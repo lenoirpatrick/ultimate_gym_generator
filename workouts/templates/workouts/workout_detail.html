@@ -1,0 +1,78 @@
+{% extends "core/base.html" %}
+
+{% block title %}Séance du {{ workout.created_at|date:"j F" }} — {{ site_name }}{% endblock %}
+
+{% block content %}
+    {% comment %}
+    Écran lu à bout de bras, entre deux séries : le temps d'effort prime sur tout
+    le reste, et chaque bloc tient d'un seul tenant.
+    {% endcomment %}
+    <div class="mx-auto max-w-2xl">
+        <p class="ugg-eyebrow"><a href="{% url 'workouts:list' %}">Mes séances</a></p>
+        <h1 class="ugg-title mt-2 text-3xl">{{ workout.get_format_display }}</h1>
+
+        <p class="mt-3 flex flex-wrap gap-2">
+            <span class="ugg-tag ugg-tag--accent">{{ workout.planned_minutes }} min</span>
+            {% for muscle in workout.muscles.all %}
+                <span class="ugg-tag">{{ muscle.name }}</span>
+            {% empty %}
+                <span class="ugg-tag">Tout le corps</span>
+            {% endfor %}
+        </p>
+
+        {% if workout.planned_minutes < workout.duration_minutes %}
+            <p class="mt-3 text-sm text-muted">
+                Demandé : {{ workout.duration_minutes }} min. Ce format se remplit par
+                blocs entiers — le reliquat sert d'échauffement ou de retour au calme.
+            </p>
+        {% endif %}
+
+        {% block coaching %}{% endblock %}
+
+        <div class="mt-8 grid gap-6">
+            {% for block in workout.blocks %}
+                <section class="ugg-card p-5">
+                    <h2 class="ugg-eyebrow">{{ block.label }}</h2>
+
+                    <ol class="mt-4 grid gap-4">
+                        {% for item in block.items %}
+                            <li class="ugg-set">
+                                <div class="ugg-set__timing">
+                                    {% if item.is_timed %}
+                                        <span class="ugg-set__work">{{ item.work_seconds }}s</span>
+                                        <span class="ugg-set__rest">{{ item.rest_seconds }}s repos</span>
+                                        <span class="ugg-set__rounds">× {{ item.rounds }}</span>
+                                    {% else %}
+                                        <span class="ugg-set__work">{{ item.reps|join:" · " }}</span>
+                                        <span class="ugg-set__rest">{{ item.rest_seconds }}s repos</span>
+                                        <span class="ugg-set__rounds">{{ item.rounds }} séries</span>
+                                    {% endif %}
+                                </div>
+
+                                <div class="min-w-0 flex-1">
+                                    <p class="font-semibold">{{ item.exercise.name }}</p>
+                                    <p class="mt-1 text-sm text-muted">
+                                        {{ item.exercise.get_equipment_display|default:"Poids du corps" }}
+                                        {% if item.load_summary %}
+                                            · <strong class="text-accent">{{ item.load_summary }}</strong>
+                                        {% endif %}
+                                    </p>
+                                </div>
+                            </li>
+                        {% endfor %}
+                    </ol>
+                </section>
+            {% endfor %}
+        </div>
+
+        <p class="mt-6 text-sm text-muted">
+            Les charges proposées sont un point de départ, choisies parmi celles que tu
+            as déclarées. Ajuste-les à ta sensation.
+        </p>
+
+        <form method="post" action="{% url 'workouts:delete' workout.pk %}" class="mt-8">
+            {% csrf_token %}
+            <button type="submit" class="ugg-btn ugg-btn--ghost">Supprimer cette séance</button>
+        </form>
+    </div>
+{% endblock %}

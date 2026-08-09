@@ -32,7 +32,11 @@ ignore = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/*" = ["S105", "S106"]  # mots de passe / jetons factices
+"tests/*" = [
+    "S105",
+    "S106",  # mots de passe / jetons factices
+    "S311",  # tirage pseudo-aléatoire : reproductibilité, pas cryptographie
+]
 "config/settings/*" = ["F403", "F405"]  # import * des settings de base
 
 [tool.pytest.ini_options]

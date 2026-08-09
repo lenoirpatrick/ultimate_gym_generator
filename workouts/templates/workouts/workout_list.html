@@ -1,0 +1,39 @@
+{% extends "core/base.html" %}
+
+{% block title %}Mes séances — {{ site_name }}{% endblock %}
+
+{% block content %}
+    <div class="flex flex-wrap items-start gap-4">
+        <div class="flex-1">
+            <p class="ugg-eyebrow">Entraînement</p>
+            <h1 class="ugg-title mt-2 text-3xl">Mes séances</h1>
+        </div>
+        <a href="{% url 'workouts:create' %}" class="ugg-btn ugg-btn--primary">Nouvelle séance</a>
+    </div>
+
+    <div class="mt-8 grid gap-3">
+        {% for workout in workouts %}
+            <a href="{% url 'workouts:detail' workout.pk %}"
+               class="ugg-card flex flex-wrap items-center gap-4 p-4 no-underline">
+                <div class="min-w-0 flex-1">
+                    <p class="font-semibold">{{ workout.get_format_display }}</p>
+                    <p class="mt-1 text-sm text-muted">
+                        {{ workout.created_at|date:"j F Y, H:i" }}
+                    </p>
+                </div>
+
+                <p class="flex flex-wrap gap-2">
+                    <span class="ugg-tag ugg-tag--accent">{{ workout.planned_minutes }} min</span>
+                    {% for muscle in workout.muscles.all %}
+                        <span class="ugg-tag">{{ muscle.name }}</span>
+                    {% empty %}
+                        <span class="ugg-tag">Tout le corps</span>
+                    {% endfor %}
+                </p>
+            </a>
+        {% empty %}
+            {% url 'workouts:create' as create_url %}
+            {% include "core/components/empty_state.html" with title="Aucune séance" body="Compose ta première séance : durée, parties du corps et type de travail suffisent." action_url=create_url action_label="Nouvelle séance" %}
+        {% endfor %}
+    </div>
+{% endblock %}

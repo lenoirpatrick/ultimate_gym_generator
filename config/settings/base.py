@@ -53,6 +53,7 @@ INSTALLED_APPS = [
     "aiproviders",
     "core",
     "exercises",
+    "workouts",
 ]
 
 MIDDLEWARE = [
