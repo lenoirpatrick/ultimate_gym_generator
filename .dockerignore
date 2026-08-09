@@ -1,0 +1,34 @@
+# Secrets — ne doivent jamais entrer dans une image.
+.env
+*.pem
+*.key
+
+# Contrôle de version et outillage local
+.git
+.gitignore
+.github
+.idea
+.vscode
+
+# Environnements et caches Python
+.venv
+venv
+__pycache__
+*.py[cod]
+.pytest_cache
+.ruff_cache
+.coverage
+coverage.xml
+htmlcov
+
+# Artefacts régénérés pendant le build
+staticfiles/
+core/static/core/css/app.css
+db.sqlite3
+
+# Documentation et fichiers Docker eux-mêmes
+docs/
+*.md
+Dockerfile
+docker-compose*.yml
+.dockerignore
