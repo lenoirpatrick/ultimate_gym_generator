@@ -1,9 +1,15 @@
 from decimal import Decimal
 from typing import Any
 
+from django.conf import settings
 from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
+
+from exercises.models import Exercise
+
+#: Plafond de crans énumérés pour une charge réglable — voir `available_loads`.
+MAX_LOAD_STEPS = 200
 
 
 def avatar_path(instance: "User", filename: str) -> str:
@@ -140,3 +146,67 @@ class User(AbstractUser):
     @property
     def has_body_metrics(self) -> bool:
         return bool(self.height_cm and self.weight_kg)
+
+
+class UserEquipment(models.Model):
+    """Matériel dont dispose un utilisateur, et charges qu'il permet.
+
+    Sans cette déclaration, une séance ne peut proposer ni exercice réalisable
+    ni charge crédible. Deux façons de décrire les charges, parce que les salles
+    et les garages n'ont pas le même matériel : un jeu de charges figées
+    (kettlebells, haltères d'un seul tenant) ou une plage réglable par crans
+    (haltères à poids variables, barre chargée de disques).
+    """
+
+    class Mode(models.TextChoices):
+        BODYWEIGHT = "bodyweight", "Sans charge"
+        FIXED = "fixed", "Charges figées"
+        ADJUSTABLE = "adjustable", "Charge réglable"
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="equipment"
+    )
+    # Le référentiel de matériel est celui du catalogue : déclarer « haltères »
+    # ici doit désigner exactement les exercices marqués « haltères » là-bas.
+    equipment = models.CharField("matériel", max_length=16, choices=Exercise.Equipment.choices)
+    mode = models.CharField("charges", max_length=12, choices=Mode.choices, default=Mode.BODYWEIGHT)
+
+    weights = models.JSONField("charges disponibles", default=list, blank=True)
+
+    min_kg = models.DecimalField(
+        "charge minimale", max_digits=5, decimal_places=1, null=True, blank=True
+    )
+    max_kg = models.DecimalField(
+        "charge maximale", max_digits=5, decimal_places=1, null=True, blank=True
+    )
+    step_kg = models.DecimalField(
+        "incrément", max_digits=4, decimal_places=1, null=True, blank=True
+    )
+
+    class Meta:
+        verbose_name = "matériel"
+        verbose_name_plural = "matériel"
+        ordering = ("equipment",)
+        constraints = [
+            models.UniqueConstraint(fields=["user", "equipment"], name="unique_equipment_per_user")
+        ]
+
+    def __str__(self) -> str:
+        return self.get_equipment_display()
+
+    def available_loads(self) -> list[Decimal]:
+        """Charges réellement disponibles, quel que soit le mode de description."""
+        if self.mode == self.Mode.FIXED:
+            return sorted(Decimal(str(weight)) for weight in self.weights or [])
+
+        if self.mode == self.Mode.ADJUSTABLE and self.min_kg and self.max_kg and self.step_kg:
+            loads = []
+            charge = self.min_kg
+            # Borne de sûreté : une plage large avec un pas minuscule produirait
+            # des milliers de crans dont aucun ne servirait.
+            while charge <= self.max_kg and len(loads) < MAX_LOAD_STEPS:
+                loads.append(charge)
+                charge += self.step_kg
+            return loads
+
+        return []

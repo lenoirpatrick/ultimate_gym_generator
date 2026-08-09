@@ -8,12 +8,14 @@ from django.http import Http404, HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 
 from .forms import (
+    EquipmentFormSet,
     FirstRunForm,
     ProfileForm,
     SelfRegistrationForm,
     StaffUserChangeForm,
     StaffUserCreationForm,
 )
+from .models import UserEquipment
 
 User = get_user_model()
 
@@ -76,6 +78,33 @@ def profile(request: HttpRequest) -> HttpResponse:
         form = ProfileForm(instance=request.user)
 
     return render(request, "accounts/profile.html", {"form": form})
+
+
+@login_required
+def equipment(request: HttpRequest) -> HttpResponse:
+    """Matériel possédé et charges disponibles.
+
+    Sans cette déclaration, une séance ne peut ni écarter les exercices
+    irréalisables ni proposer une charge qui existe vraiment.
+    """
+    queryset = UserEquipment.objects.filter(user=request.user)
+
+    if request.method == "POST":
+        formset = EquipmentFormSet(request.POST, queryset=queryset)
+        if formset.is_valid():
+            items = formset.save(commit=False)
+            for item in items:
+                item.user = request.user
+                item.save()
+            for item in formset.deleted_objects:
+                item.delete()
+
+            messages.success(request, "Matériel enregistré.")
+            return redirect("accounts:equipment")
+    else:
+        formset = EquipmentFormSet(queryset=queryset)
+
+    return render(request, "accounts/equipment.html", {"formset": formset})
 
 
 @login_required

@@ -1,10 +1,18 @@
+from decimal import Decimal, InvalidOperation
+
 from django import forms
 from django.conf import settings
 from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
 
-from .models import User
+from .models import User, UserEquipment
 
 BODY_FIELDS = ("gender", "height_cm", "weight_kg")
+
+
+def _format(weight) -> str:
+    """Affiche une charge sans décimale inutile : 12 plutôt que 12.0."""
+    return f"{float(weight):g}"
+
 
 IDENTITY_FIELDS = ("email", "first_name", "last_name")
 
@@ -91,6 +99,80 @@ class ProfileForm(AvatarFieldMixin):
         self.fields[
             "avatar"
         ].help_text = f"Image carrée de préférence. {settings.MAX_AVATAR_BYTES // 1024} Ko maximum."
+
+
+class EquipmentForm(forms.ModelForm):
+    """Une ligne de matériel et les charges qu'il permet."""
+
+    # Champ texte plutôt que le `JSONField` du modèle : personne ne devrait avoir
+    # à écrire `[8, 12, 16]` à la main. La conversion se fait ici, et le champ
+    # du modèle reçoit la liste déjà normalisée.
+    weights = forms.CharField(
+        label="Charges (kg)",
+        required=False,
+        help_text="Séparées par des virgules.",
+        widget=forms.TextInput(attrs={"placeholder": "8, 12, 16, 24", "inputmode": "decimal"}),
+    )
+
+    class Meta:
+        model = UserEquipment
+        fields = ("equipment", "mode", "weights", "min_kg", "max_kg", "step_kg")
+
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self.fields["step_kg"].help_text = "Écart entre deux crans, en kilogrammes."
+
+        if self.instance.pk and self.instance.weights:
+            self.initial["weights"] = ", ".join(_format(w) for w in self.instance.weights)
+
+    def clean_weights(self) -> list[float]:
+        """Accepte « 8, 12, 16 » — et refuse ce qui n'est pas un poids."""
+        raw = self.cleaned_data.get("weights") or ""
+
+        weights = set()
+        for chunk in raw.replace(";", ",").split(","):
+            chunk = chunk.strip().replace(",", ".")
+            if not chunk:
+                continue
+            try:
+                weight = Decimal(chunk)
+            except InvalidOperation as exc:
+                raise forms.ValidationError(f"« {chunk} » n'est pas un poids.") from exc
+            if weight <= 0:
+                raise forms.ValidationError("Une charge doit être supérieure à zéro.")
+            # Stocké en nombre JSON : `Decimal` n'est pas sérialisable, et la
+            # précision d'une charge de musculation ne l'exige pas.
+            weights.add(float(weight))
+
+        return sorted(weights)
+
+    def clean(self) -> dict:
+        """Chaque mode a ses champs obligatoires : les exiger ici évite une ligne inutilisable."""
+        cleaned = super().clean()
+        mode = cleaned.get("mode")
+
+        if mode == UserEquipment.Mode.FIXED and not cleaned.get("weights"):
+            self.add_error("weights", "Indique au moins une charge, ou choisis « Sans charge ».")
+
+        if mode == UserEquipment.Mode.ADJUSTABLE:
+            minimum, maximum, step = (cleaned.get(k) for k in ("min_kg", "max_kg", "step_kg"))
+
+            if minimum is None or maximum is None or step is None:
+                self.add_error(
+                    None, "Une charge réglable demande un minimum, un maximum et un pas."
+                )
+            else:
+                if minimum >= maximum:
+                    self.add_error("max_kg", "Le maximum doit dépasser le minimum.")
+                if step <= 0:
+                    self.add_error("step_kg", "L'incrément doit être supérieur à zéro.")
+
+        return cleaned
+
+
+EquipmentFormSet = forms.modelformset_factory(
+    UserEquipment, form=EquipmentForm, extra=1, can_delete=True
+)
 
 
 class StaffUserCreationForm(UserCreationForm):

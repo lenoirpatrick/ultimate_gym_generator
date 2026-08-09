@@ -1,0 +1,234 @@
+"""Matériel de l'utilisateur : charges disponibles, validations, écran de configuration."""
+
+from decimal import Decimal
+
+import pytest
+from django.urls import reverse
+
+from accounts.models import UserEquipment
+
+pytestmark = pytest.mark.django_db
+
+
+def creer(user, **fields) -> UserEquipment:
+    return UserEquipment.objects.create(user=user, **fields)
+
+
+# --------------------------------------------------------------------------- #
+# Charges disponibles
+# --------------------------------------------------------------------------- #
+
+
+def test_un_jeu_fige_rend_ses_charges_triees(user):
+    item = creer(user, equipment="kettlebells", mode="fixed", weights=[16, 8, 24, 12])
+
+    assert item.available_loads() == [Decimal("8"), Decimal("12"), Decimal("16"), Decimal("24")]
+
+
+def test_une_charge_reglable_enumere_ses_crans(user):
+    """Les haltères à poids variables sont explicitement visés par l'issue."""
+    item = creer(
+        user,
+        equipment="dumbbell",
+        mode="adjustable",
+        min_kg=Decimal("2"),
+        max_kg=Decimal("10"),
+        step_kg=Decimal("2"),
+    )
+
+    assert item.available_loads() == [Decimal(w) for w in (2, 4, 6, 8, 10)]
+
+
+def test_un_cran_qui_depasserait_le_maximum_est_ecarte(user):
+    item = creer(
+        user,
+        equipment="barbell",
+        mode="adjustable",
+        min_kg=Decimal("20"),
+        max_kg=Decimal("25"),
+        step_kg=Decimal("2.5"),
+    )
+
+    assert item.available_loads() == [Decimal("20"), Decimal("22.5"), Decimal("25")]
+
+
+def test_un_materiel_sans_charge_n_en_propose_aucune(user):
+    item = creer(user, equipment="body only", mode="bodyweight")
+
+    assert item.available_loads() == []
+
+
+def test_une_plage_incomplete_ne_produit_aucune_charge(user):
+    """Mieux vaut aucune charge qu'une charge inventée à partir de données partielles."""
+    item = creer(user, equipment="dumbbell", mode="adjustable", min_kg=Decimal("2"))
+
+    assert item.available_loads() == []
+
+
+def test_une_plage_immense_reste_bornee(user):
+    """Un pas minuscule sur une grande plage ne doit pas produire des milliers de crans."""
+    item = creer(
+        user,
+        equipment="barbell",
+        mode="adjustable",
+        min_kg=Decimal("1"),
+        max_kg=Decimal("500"),
+        step_kg=Decimal("0.5"),
+    )
+
+    assert len(item.available_loads()) == 200
+
+
+def test_un_materiel_n_est_declare_qu_une_fois(user):
+    creer(user, equipment="dumbbell", mode="bodyweight")
+
+    with pytest.raises(Exception):  # noqa: B017 - IntegrityError selon le moteur
+        creer(user, equipment="dumbbell", mode="bodyweight")
+
+
+# --------------------------------------------------------------------------- #
+# Écran de configuration
+# --------------------------------------------------------------------------- #
+
+
+def test_l_ecran_exige_une_authentification(client):
+    response = client.get(reverse("accounts:equipment"))
+
+    assert response.status_code == 302
+    assert reverse("accounts:login") in response.url
+
+
+def payload(**overrides) -> dict:
+    data = {
+        "form-TOTAL_FORMS": "1",
+        "form-INITIAL_FORMS": "0",
+        "form-MIN_NUM_FORMS": "0",
+        "form-MAX_NUM_FORMS": "1000",
+        "form-0-equipment": "dumbbell",
+        "form-0-mode": "adjustable",
+        "form-0-weights": "",
+        "form-0-min_kg": "2",
+        "form-0-max_kg": "24",
+        "form-0-step_kg": "2",
+    }
+    return data | overrides
+
+
+def test_une_charge_reglable_s_enregistre(logged_client, user):
+    response = logged_client.post(reverse("accounts:equipment"), payload())
+
+    assert response.status_code == 302
+    item = UserEquipment.objects.get(user=user, equipment="dumbbell")
+    assert item.available_loads()[-1] == Decimal("24")
+
+
+def test_les_charges_figees_se_saisissent_en_texte(logged_client, user):
+    """Écrire « 8, 12, 16 » vaut mieux que d'exiger un tableau JSON."""
+    logged_client.post(
+        reverse("accounts:equipment"),
+        payload(
+            **{
+                "form-0-equipment": "kettlebells",
+                "form-0-mode": "fixed",
+                "form-0-weights": "16, 8; 12",
+                "form-0-min_kg": "",
+                "form-0-max_kg": "",
+                "form-0-step_kg": "",
+            }
+        ),
+    )
+
+    item = UserEquipment.objects.get(user=user, equipment="kettlebells")
+    assert item.available_loads() == [Decimal("8"), Decimal("12"), Decimal("16")]
+
+
+def test_une_charge_illisible_est_refusee(logged_client, user):
+    response = logged_client.post(
+        reverse("accounts:equipment"),
+        payload(**{"form-0-mode": "fixed", "form-0-weights": "8, beaucoup"}),
+    )
+
+    assert response.status_code == 200
+    assert "n&#x27;est pas un poids" in response.content.decode()
+    assert not UserEquipment.objects.filter(user=user).exists()
+
+
+def test_un_jeu_fige_sans_charge_est_refuse(logged_client, user):
+    response = logged_client.post(
+        reverse("accounts:equipment"),
+        payload(**{"form-0-mode": "fixed", "form-0-weights": ""}),
+    )
+
+    assert response.status_code == 200
+    assert "au moins une charge" in response.content.decode()
+    assert not UserEquipment.objects.filter(user=user).exists()
+
+
+def test_une_plage_inversee_est_refusee(logged_client, user):
+    response = logged_client.post(
+        reverse("accounts:equipment"),
+        payload(**{"form-0-min_kg": "30", "form-0-max_kg": "10"}),
+    )
+
+    assert response.status_code == 200
+    assert "doit dépasser le minimum" in response.content.decode()
+    assert not UserEquipment.objects.filter(user=user).exists()
+
+
+def test_un_pas_nul_est_refuse(logged_client, user):
+    response = logged_client.post(
+        reverse("accounts:equipment"),
+        payload(**{"form-0-step_kg": "0"}),
+    )
+
+    assert response.status_code == 200
+    assert "supérieur à zéro" in response.content.decode()
+
+
+def test_une_plage_incomplete_est_refusee(logged_client, user):
+    response = logged_client.post(
+        reverse("accounts:equipment"),
+        payload(**{"form-0-max_kg": "", "form-0-step_kg": ""}),
+    )
+
+    assert response.status_code == 200
+    assert "un minimum, un maximum et un pas" in response.content.decode()
+
+
+def test_le_materiel_d_un_autre_utilisateur_reste_invisible(logged_client, staff_client, staff):
+    creer(staff, equipment="cable", mode="bodyweight")
+
+    content = logged_client.get(reverse("accounts:equipment")).content.decode()
+
+    assert content.count('name="form-0-equipment"') == 1
+    assert 'value="cable" selected' not in content
+
+
+def test_un_materiel_se_retire(logged_client, user):
+    item = creer(user, equipment="bands", mode="bodyweight")
+
+    logged_client.post(
+        reverse("accounts:equipment"),
+        payload(
+            **{
+                "form-TOTAL_FORMS": "1",
+                "form-INITIAL_FORMS": "1",
+                "form-0-id": str(item.pk),
+                "form-0-equipment": "bands",
+                "form-0-mode": "bodyweight",
+                "form-0-weights": "",
+                "form-0-min_kg": "",
+                "form-0-max_kg": "",
+                "form-0-step_kg": "",
+                "form-0-DELETE": "on",
+            }
+        ),
+    )
+
+    assert not UserEquipment.objects.filter(user=user).exists()
+
+
+def test_le_profil_mene_au_materiel(logged_client):
+    content = logged_client.get(reverse("accounts:profile")).content.decode()
+
+    assert reverse("accounts:equipment") in content

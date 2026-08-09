@@ -22,6 +22,7 @@ urlpatterns = [
     path("inscription/", views.register, name="register"),
     # Profil de l'utilisateur connecté
     path("profil/", views.profile, name="profile"),
+    path("profil/materiel/", views.equipment, name="equipment"),
     path(
         "profil/mot-de-passe/",
         auth_views.PasswordChangeView.as_view(
