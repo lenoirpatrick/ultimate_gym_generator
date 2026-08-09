@@ -5,7 +5,7 @@ cryptography>=44.0
 Pillow>=11.0
 
 # SSO OpenID Connect, activé uniquement si OIDC_ENABLED=True.
-mozilla-django-oidc>=5.0,<6.0
+mozilla-django-oidc>=5.0.2,<6.0
 
 # SDK officiel pour Anthropic ; les autres fournisseurs sont appelés en REST via httpx.
 anthropic>=0.116
