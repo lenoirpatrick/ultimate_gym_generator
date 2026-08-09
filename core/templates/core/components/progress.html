@@ -1,0 +1,32 @@
+{% comment %}
+Barre de progression — avancement chiffré d'une tâche longue et bornée
+(CLAUDE.md § Règles graphiques).
+
+À n'utiliser que lorsque le total est connu. Quand il ne l'est pas, l'indicateur
+correct est un spinner sport.
+
+Paramètres :
+  percent : entier 0-100, largeur du remplissage
+  label   : ce qui est en cours (lu par les lecteurs d'écran)
+  detail  : précision affichée à droite, par exemple « 300 / 873 »
+
+Usage :
+  {% include "core/components/progress.html" with percent=42 label="Chargement des exercices" detail="367 / 873" %}
+{% endcomment %}
+<div class="ugg-progress">
+    <p class="ugg-progress__head">
+        <span>{{ label }}</span>
+        <span class="ugg-progress__value">
+            {{ percent }}&nbsp;%{% if detail %} · {{ detail }}{% endif %}
+        </span>
+    </p>
+
+    <div class="ugg-progress__track"
+         role="progressbar"
+         aria-valuenow="{{ percent }}"
+         aria-valuemin="0"
+         aria-valuemax="100"
+         aria-label="{{ label }}">
+        <div class="ugg-progress__fill" style="width: {{ percent }}%"></div>
+    </div>
+</div>

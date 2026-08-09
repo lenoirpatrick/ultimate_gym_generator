@@ -1,0 +1,55 @@
+[
+  {
+    "name": "Barbell Squat",
+    "force": "push",
+    "level": "beginner",
+    "mechanic": "compound",
+    "equipment": "barbell",
+    "primaryMuscles": ["quadriceps"],
+    "secondaryMuscles": ["glutes", "hamstrings"],
+    "instructions": [
+      "Placer la barre sur les trapèzes, pieds à largeur d'épaules.",
+      "Descendre en poussant les hanches vers l'arrière.",
+      "Remonter en poussant dans les talons."
+    ],
+    "category": "strength",
+    "images": ["Barbell_Squat/0.jpg", "Barbell_Squat/1.jpg"],
+    "id": "Barbell_Squat"
+  },
+  {
+    "name": "Calf Stretch",
+    "force": null,
+    "level": "beginner",
+    "mechanic": null,
+    "equipment": null,
+    "primaryMuscles": ["calves"],
+    "secondaryMuscles": [],
+    "instructions": ["Poser les mains au mur et reculer une jambe tendue."],
+    "category": "stretching",
+    "images": ["Calf_Stretch/0.jpg"],
+    "id": "Calf_Stretch"
+  },
+  {
+    "name": "Dumbbell Bench Press",
+    "force": "push",
+    "level": "intermediate",
+    "mechanic": "compound",
+    "equipment": "dumbbell",
+    "primaryMuscles": ["chest"],
+    "secondaryMuscles": ["shoulders", "triceps"],
+    "instructions": ["Allongé sur le banc, pousser les haltères à la verticale."],
+    "category": "strength",
+    "images": ["Dumbbell_Bench_Press/0.jpg"],
+    "id": "Dumbbell_Bench_Press"
+  },
+  {
+    "name": "Text Only Exercise",
+    "level": "expert",
+    "primaryMuscles": [],
+    "secondaryMuscles": [],
+    "instructions": [],
+    "category": "cardio",
+    "images": [],
+    "id": "Text_Only_Exercise"
+  }
+]

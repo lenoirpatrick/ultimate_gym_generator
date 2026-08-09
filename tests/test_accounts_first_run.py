@@ -41,7 +41,15 @@ def test_le_premier_compte_est_administrateur_et_connecte(client):
     assert created.is_staff is True
     assert created.is_superuser is True
     assert response.context["user"].is_authenticated
-    assert response.request["PATH_INFO"] == reverse("core:home")
+
+
+@pytest.mark.fresh_install
+@pytest.mark.django_db
+def test_le_premier_compte_enchaine_sur_le_chargement_du_catalogue(client):
+    """Les deux étapes d'amorçage se suivent sans que l'utilisateur ait à les chercher."""
+    response = client.post(reverse("accounts:first_run"), FIRST_ACCOUNT, follow=True)
+
+    assert response.request["PATH_INFO"] == reverse("exercises:loading")
 
 
 @pytest.mark.fresh_install

@@ -123,6 +123,7 @@ cp .env.example .env
 
 python manage.py migrate
 python manage.py createsuperuser
+python manage.py load_exercises     # catalogue d'exercices ; sinon chargé à la première ouverture
 make css                            # ou : tailwindcss -i assets/css/input.css -o core/static/core/css/app.css
 python manage.py runserver 5907
 ```
@@ -155,6 +156,24 @@ droits d'administration. Il disparaît définitivement une fois le compte créé
 
 En conteneur, `docker compose run --rm web python manage.py createsuperuser`
 produit le même résultat en ligne de commande.
+
+### Catalogue d'exercices
+
+Le compte créé, l'application enchaîne sur `/exercices/chargement/` et importe
+les 873 exercices livrés dans `src/exercises.json`. L'écran affiche l'avancement
+et se referme définitivement une fois le catalogue en base.
+
+Pour charger le catalogue sans passer par l'interface — déploiement automatisé,
+installation sans navigateur — la commande est idempotente :
+
+```bash
+make exercises                                  # ou : python manage.py load_exercises
+docker compose run --rm web python manage.py load_exercises
+```
+
+Ajouter `--force` pour réimporter un catalogue déjà chargé, après avoir
+remplacé le fichier source. Celui-ci se déplace avec
+`DJANGO_EXERCISES_SOURCE` si tu veux fournir ton propre référentiel.
 
 ### Fournisseurs d'IA
 

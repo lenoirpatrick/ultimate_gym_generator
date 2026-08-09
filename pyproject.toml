@@ -42,10 +42,11 @@ addopts = "-ra --strict-markers"
 testpaths = ["tests"]
 markers = [
     "fresh_install: installation neuve, sans aucun compte utilisateur",
+    "empty_catalog: installation dont le catalogue d'exercices n'est pas chargé",
 ]
 
 [tool.coverage.run]
-source = ["accounts", "aiproviders", "config", "core"]
+source = ["accounts", "aiproviders", "config", "core", "exercises"]
 omit = ["*/migrations/*", "*/tests/*", "*/wsgi.py", "*/asgi.py"]
 
 [tool.coverage.report]

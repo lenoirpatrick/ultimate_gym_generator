@@ -6,8 +6,8 @@
 Application Django servie sur le port **5907** (« sport » en leet).
 
 À ce stade, seules les fondations sont posées : configuration, base de données,
-authentification, credentials IA et socle visuel. La génération de programmes
-n'est pas encore implémentée.
+authentification, credentials IA, catalogue d'exercices et socle visuel. La
+génération de programmes n'est pas encore implémentée.
 
 | Rôle | Choix |
 |---|---|
@@ -26,9 +26,11 @@ assets/css/       tokens.css (SOURCE DE VÉRITÉ graphique), components.css, inp
 config/settings/  base · dev · test · prod
 accounts/         utilisateur (avatar, mesures), authentification, SSO, gestion des comptes
 aiproviders/      credentials chiffrés, registre des fournisseurs, adaptateurs, /settings/ai/
+exercises/        catalogue d'exercices, import par lots, écran de chargement
 core/             gabarit de base, composants, spinners, /healthz, /style-guide/
 docker/           entrypoint du conteneur
 docs/             INSTALL.md · DOCKER.md
+src/              exercises.json — catalogue livré avec l'application
 tests/            suite pytest, en miroir des applications
 ```
 
@@ -84,6 +86,20 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
 - SVG inline animé en CSS pur — pas de GIF, pas de JS, pas de dépendance externe.
 - Accessibilité : `role="status"` et libellé lisible par lecteur d'écran ; animation
   neutralisée sous `prefers-reduced-motion: reduce`.
+
+### Barres de progression
+
+- Une barre de progression ne s'affiche que pour un traitement **borné**, dont le total
+  est connu à l'avance — chargement du catalogue d'exercices, par exemple. Quand la durée
+  est inconnue, l'indicateur correct reste le spinner sport.
+- Un seul composant : `core/templates/core/components/progress.html`, paramétré
+  `percent` / `label` / `detail`. L'avancement est toujours **chiffré en clair** à côté
+  de la barre : une barre seule ne dit pas combien de temps il reste.
+- Le remplissage porte des stries obliques rappelant le moletage d'une barre olympique —
+  aucune image, aucun dégradé décoratif.
+- Accessibilité : `role="progressbar"` avec `aria-valuenow` / `aria-valuemin` /
+  `aria-valuemax` et un `aria-label` ; stries et transition de largeur neutralisées sous
+  `prefers-reduced-motion: reduce`.
 
 ### Avatars
 
@@ -154,6 +170,7 @@ make css-watch    # recompile à chaque modification de gabarit
 make run          # serveur de développement sur le port 5907
 make migrate      # applique les migrations
 make superuser    # crée un compte administrateur
+make exercises    # charge le catalogue d'exercices (idempotent)
 make test         # pytest + couverture (coverage.xml)
 make lint         # ruff check + ruff format --check
 make format       # reformate et corrige ce qui peut l'être

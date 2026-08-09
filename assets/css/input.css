@@ -6,6 +6,7 @@
 /* Fichiers scannés pour déterminer les classes utilitaires à générer. */
 @source "../../accounts/**/*.html";
 @source "../../aiproviders/**/*.html";
+@source "../../exercises/**/*.html";
 @source "../../core/**/*.{html,py}";
 
 @import "./tokens.css";

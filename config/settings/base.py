@@ -52,6 +52,7 @@ INSTALLED_APPS = [
     "accounts",
     "aiproviders",
     "core",
+    "exercises",
 ]
 
 MIDDLEWARE = [
@@ -220,6 +221,15 @@ MEDIA_ROOT = Path(env.str("DJANGO_MEDIA_ROOT", default=str(BASE_DIR / "media")))
 # Un avatar reste une petite image : ce plafond évite qu'un envoi accidentel
 # remplisse le volume.
 MAX_AVATAR_BYTES = env.int("DJANGO_MAX_AVATAR_BYTES", default=2 * 1024 * 1024)
+
+# --------------------------------------------------------------------------- #
+# Catalogue d'exercices
+#
+# Livré avec l'application et chargé en base au premier démarrage. Déplaçable
+# pour substituer un référentiel maison sans toucher au code.
+# --------------------------------------------------------------------------- #
+
+EXERCISES_SOURCE = env.str("DJANGO_EXERCISES_SOURCE", default=str(BASE_DIR / "src/exercises.json"))
 
 # --------------------------------------------------------------------------- #
 # Journalisation

@@ -6,11 +6,11 @@ DB_FIXTURES = {"db", "transactional_db", "django_db_reset_sequences"}
 
 @pytest.fixture(autouse=True)
 def installation_amorcee(request):
-    """Garantit qu'un compte existe, comme sur toute installation en service.
+    """Reproduit une installation en service : un compte existe, le catalogue est chargé.
 
-    Sans cela, `FirstRunMiddleware` redirigerait chaque test vers l'écran de
-    création du premier compte. Les tests qui portent justement sur ce cas
-    portent la marque `fresh_install` et sont ignorés ici.
+    Sans cela, `FirstRunMiddleware` redirigerait chaque test vers l'étape
+    d'amorçage qui manque. Les tests qui portent justement sur ces cas se
+    marquent `fresh_install` (aucun compte) ou `empty_catalog` (aucun exercice).
     """
     if "fresh_install" in request.keywords:
         return None
@@ -25,10 +25,17 @@ def installation_amorcee(request):
     # s'exécute sinon avant celle dont elle dépend implicitement.
     request.getfixturevalue("db")
 
-    return get_user_model().objects.get_or_create(
+    amorce = get_user_model().objects.get_or_create(
         email="amorce@example.test",
         defaults={"is_active": False},
     )[0]
+
+    if "empty_catalog" not in request.keywords:
+        from exercises import catalog
+
+        catalog.import_all()
+
+    return amorce
 
 
 @pytest.fixture

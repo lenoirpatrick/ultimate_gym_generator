@@ -49,6 +49,21 @@
     </section>
 
     <section class="mt-12">
+        <h2 class="ugg-title text-xl">Barre de progression</h2>
+        <p class="mt-2 text-muted">
+            Réservée aux traitements <strong>bornés</strong>, dont on connaît le total.
+            Quand la durée est inconnue, l'indicateur correct est un spinner sport.
+            Stries figées sous
+            <code class="font-mono">prefers-reduced-motion: reduce</code>.
+        </p>
+        <div class="mt-6 grid gap-6">
+            {% include "core/components/progress.html" with percent=0 label="Chargement des exercices" detail="0 / 873" %}
+            {% include "core/components/progress.html" with percent=42 label="Chargement des exercices" detail="367 / 873" %}
+            {% include "core/components/progress.html" with percent=100 label="Catalogue prêt" detail="873 / 873" %}
+        </div>
+    </section>
+
+    <section class="mt-12">
         <h2 class="ugg-title text-xl">Avatars</h2>
         <p class="mt-2 text-muted">
             Photo de l'utilisateur, ou ses initiales à défaut — jamais une silhouette

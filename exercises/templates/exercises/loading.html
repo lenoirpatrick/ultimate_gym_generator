@@ -1,0 +1,32 @@
+{% extends "core/base.html" %}
+
+{% block title %}Préparation du catalogue — {{ site_name }}{% endblock %}
+
+{% block content %}
+    <div class="mx-auto max-w-md">
+        <p class="ugg-eyebrow">Première utilisation</p>
+        <h1 class="ugg-title mt-2 text-3xl">On charge la salle</h1>
+        <p class="mt-3 text-muted">
+            Les {{ progress.total }} exercices livrés avec l'application s'installent en
+            base. C'est l'affaire de quelques secondes, et cela n'arrive qu'une fois.
+        </p>
+
+        <div class="ugg-card mt-8 p-5">
+            {% comment %}
+            Le premier fragment porte le déclencheur de la tranche suivante, et
+            ainsi de suite jusqu'à la fin : l'avancement se propage sans qu'aucun
+            compteur ne soit gardé côté serveur.
+            {% endcomment %}
+            <div id="progression">
+                {% include "exercises/partials/progress.html" %}
+            </div>
+        </div>
+
+        <noscript>
+            <p class="mt-4 text-sm text-muted">
+                Le chargement automatique demande JavaScript. Sans lui, utilise la
+                commande <code class="font-mono">manage.py load_exercises</code>.
+            </p>
+        </noscript>
+    </div>
+{% endblock %}

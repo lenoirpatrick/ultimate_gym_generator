@@ -27,3 +27,7 @@ STORAGES = {
 }
 
 EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
+
+# Catalogue réduit : la suite exerce le vrai chemin d'import sans payer les
+# 873 exercices du fichier livré à chaque test.
+EXERCISES_SOURCE = str(BASE_DIR / "tests/fixtures/exercises.json")

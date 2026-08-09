@@ -1,4 +1,4 @@
-.PHONY: help install css css-watch run test lint format check migrate superuser docker-build docker-up docker-down
+.PHONY: help install css css-watch run test lint format check migrate superuser exercises docker-build docker-up docker-down
 
 PYTHON ?= python
 CSS_IN  := assets/css/input.css
@@ -24,6 +24,9 @@ migrate: ## Applique les migrations
 
 superuser: ## Crée un compte administrateur
 	$(PYTHON) manage.py createsuperuser
+
+exercises: ## Charge le catalogue d'exercices en base
+	$(PYTHON) manage.py load_exercises
 
 test: ## Exécute la suite de tests avec la couverture
 	$(PYTHON) -m pytest --cov --cov-report=term-missing --cov-report=xml

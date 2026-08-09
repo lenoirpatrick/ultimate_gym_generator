@@ -262,6 +262,67 @@
 .ugg-alert--error   { border-left-color: var(--ugg-danger); }
 .ugg-alert--info    { border-left-color: var(--ugg-accent); }
 
+/* Barre de progression : avancement chiffré d'une tâche longue et bornée.
+   Réservée aux traitements dont on connaît le total — sinon, c'est un spinner
+   sport qu'il faut afficher. */
+.ugg-progress {
+    display: flex;
+    flex-direction: column;
+    gap: var(--ugg-space-2);
+}
+
+.ugg-progress__head {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: var(--ugg-space-2);
+    font-size: 0.8125rem;
+    color: var(--ugg-text-muted);
+}
+
+.ugg-progress__value {
+    font-family: var(--ugg-font-display);
+    font-weight: 700;
+    letter-spacing: var(--ugg-tracking-label);
+    color: var(--ugg-text);
+}
+
+.ugg-progress__track {
+    height: var(--ugg-space-3);
+    overflow: hidden;
+    background: var(--ugg-surface-sunken);
+    border: 1px solid var(--ugg-border);
+    border-radius: var(--ugg-radius-sm);
+}
+
+/* Stries obliques rappelant le moletage d'une barre olympique : la barre est
+   reconnaissable sans recourir à une image ni à un dégradé décoratif. */
+.ugg-progress__fill {
+    height: 100%;
+    background-color: var(--ugg-accent);
+    background-image: repeating-linear-gradient(
+        135deg,
+        rgb(255 255 255 / 0.22) 0 var(--ugg-space-1),
+        transparent var(--ugg-space-1) var(--ugg-space-2)
+    );
+    background-size: var(--ugg-space-8) 100%;
+    transition: width var(--ugg-duration-base) var(--ugg-ease);
+    animation: ugg-progress-stripes 1s linear infinite;
+}
+
+@keyframes ugg-progress-stripes {
+    to { background-position: var(--ugg-space-8) 0; }
+}
+
+/* Mouvement réduit : les stries se figent, la largeur cesse de s'animer. La
+   progression reste lisible — elle est chiffrée juste au-dessus. */
+@media (prefers-reduced-motion: reduce) {
+    .ugg-progress__fill {
+        animation: none;
+        transition: none;
+    }
+}
+
 /* Avatar : photo si l'utilisateur en a déposé une, initiales sinon. */
 .ugg-avatar {
     display: inline-flex;

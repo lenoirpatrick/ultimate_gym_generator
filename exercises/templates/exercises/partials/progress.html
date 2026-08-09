@@ -1,0 +1,33 @@
+{% comment %}
+Avancement de l'import du catalogue. Chaque rendu déclenche la tranche suivante
+tant qu'il en reste — voir exercises.views.load_batch.
+
+Le jeton CSRF est posé une fois pour toutes sur <body> (hx-headers).
+{% endcomment %}
+{% if error %}
+    {% include "core/components/alert.html" with level="error" text=error %}
+    <p class="mt-3 text-sm text-muted">
+        Le catalogue n'a pas pu être lu. L'application reste utilisable, mais la
+        génération de programmes n'aura pas d'exercices sur lesquels s'appuyer.
+    </p>
+    <a href="{% url 'core:home' %}" class="ugg-btn ugg-btn--ghost mt-4">Continuer sans catalogue</a>
+
+{% elif progress.done %}
+    {% include "core/components/progress.html" with percent=100 label="Catalogue prêt" detail=progress.total %}
+    <p class="mt-4 text-sm">{{ progress.total }} exercices sont désormais disponibles.</p>
+    <a href="{% url 'core:home' %}" class="ugg-btn ugg-btn--primary mt-4">Commencer</a>
+
+{% else %}
+    <div class="flex items-center gap-3">
+        {% include "core/components/spinner.html" with variant="kettlebell" size="md" label="Chargement du catalogue en cours" %}
+        <div class="flex-1">
+            {% include "core/components/progress.html" with percent=progress.percent label="Chargement des exercices" detail=detail %}
+        </div>
+    </div>
+
+    <div hx-post="{% url 'exercises:load_batch' %}"
+         hx-vals='{"offset": {{ offset }}}'
+         hx-trigger="load"
+         hx-target="#progression"
+         hx-swap="innerHTML"></div>
+{% endif %}
