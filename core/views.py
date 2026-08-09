@@ -1,6 +1,7 @@
 """Vues du socle : accueil, sonde de santé, référentiel visuel."""
 
 from django.conf import settings
+from django.contrib.auth import get_user_model
 from django.db import connection
 from django.http import Http404, HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import render
@@ -53,4 +54,18 @@ def style_guide(request: HttpRequest) -> HttpResponse:
     """
     if not settings.DEBUG:
         raise Http404
-    return render(request, "core/style_guide.html", {"swatches": COLOR_SWATCHES})
+
+    user_model = get_user_model()
+    return render(
+        request,
+        "core/style_guide.html",
+        {
+            "swatches": COLOR_SWATCHES,
+            # Instances non enregistrées : le référentiel illustre le composant
+            # sans dépendre du contenu de la base.
+            "avatar_demos": [
+                user_model(first_name="Alex", last_name="Martin"),
+                user_model(username="coach"),
+            ],
+        },
+    )

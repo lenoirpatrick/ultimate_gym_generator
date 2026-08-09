@@ -6,10 +6,17 @@
     <div class="mx-auto max-w-sm">
         <h1 class="ugg-title text-2xl">Connexion</h1>
 
-        {% if form.non_field_errors %}
-            {% for error in form.non_field_errors %}
-                {% include "core/components/alert.html" with level="error" text=error %}
-            {% endfor %}
+        {% for error in form.non_field_errors %}
+            {% include "core/components/alert.html" with level="error" text=error %}
+        {% endfor %}
+
+        {% if sso_enabled %}
+            <a href="{% url 'oidc_authentication_init' %}{% if request.GET.next %}?next={{ request.GET.next|urlencode }}{% endif %}"
+               class="ugg-btn ugg-btn--primary mt-6 w-full">
+                Se connecter avec {{ sso_provider_name }}
+            </a>
+
+            <p class="ugg-eyebrow my-6 text-center">ou avec un mot de passe</p>
         {% endif %}
 
         <form method="post" class="mt-6 grid gap-5">
@@ -19,5 +26,12 @@
             {% endfor %}
             <button type="submit" class="ugg-btn ugg-btn--primary">Se connecter</button>
         </form>
+
+        {% if self_registration_enabled %}
+            <p class="mt-6 text-sm">
+                Pas encore de compte ?
+                <a href="{% url 'accounts:register' %}">Créer un compte</a>
+            </p>
+        {% endif %}
     </div>
 {% endblock %}

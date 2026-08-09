@@ -40,6 +40,9 @@ DJANGO_SETTINGS_MODULE = "config.settings.test"
 python_files = ["test_*.py"]
 addopts = "-ra --strict-markers"
 testpaths = ["tests"]
+markers = [
+    "fresh_install: installation neuve, sans aucun compte utilisateur",
+]
 
 [tool.coverage.run]
 source = ["accounts", "aiproviders", "config", "core"]

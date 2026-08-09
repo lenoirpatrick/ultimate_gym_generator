@@ -1,7 +1,7 @@
 """Configuration des credentials d'IA générative."""
 
 from django.contrib import messages
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import login_required, user_passes_test
 from django.http import Http404, HttpRequest, HttpResponse
 from django.shortcuts import redirect, render
 from django.views.decorators.http import require_POST
@@ -10,6 +10,10 @@ from .clients import ProviderError, get_client
 from .forms import ProviderCredentialForm
 from .models import ProviderCredential
 from .registry import PROVIDERS, get_spec
+
+# Les credentials d'IA valent pour toute l'installation, pas pour un utilisateur :
+# leur configuration est réservée au personnel.
+staff_required = user_passes_test(lambda user: user.is_staff)
 
 
 def _spec_or_404(slug: str):
@@ -20,6 +24,7 @@ def _spec_or_404(slug: str):
 
 
 @login_required
+@staff_required
 def credential_list(request: HttpRequest) -> HttpResponse:
     """Une ligne par fournisseur du registre, configurée ou non."""
     stored = {c.provider: c for c in ProviderCredential.objects.all()}
@@ -28,6 +33,7 @@ def credential_list(request: HttpRequest) -> HttpResponse:
 
 
 @login_required
+@staff_required
 def credential_edit(request: HttpRequest, provider: str) -> HttpResponse:
     spec = _spec_or_404(provider)
     instance = ProviderCredential.objects.filter(provider=provider).first()
@@ -51,6 +57,7 @@ def credential_edit(request: HttpRequest, provider: str) -> HttpResponse:
 
 
 @login_required
+@staff_required
 @require_POST
 def credential_test(request: HttpRequest, provider: str) -> HttpResponse:
     """Test de connexion déclenché en HTMX depuis la liste des fournisseurs."""

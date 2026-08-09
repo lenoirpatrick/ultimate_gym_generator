@@ -1,0 +1,25 @@
+{% extends "core/base.html" %}
+
+{% block title %}Inscription — {{ site_name }}{% endblock %}
+
+{% block content %}
+    <div class="mx-auto max-w-md">
+        <h1 class="ugg-title text-2xl">Créer un compte</h1>
+
+        {% for error in form.non_field_errors %}
+            {% include "core/components/alert.html" with level="error" text=error %}
+        {% endfor %}
+
+        <form method="post" class="mt-6 grid gap-5">
+            {% csrf_token %}
+            {% for field in form %}
+                {% include "core/components/field.html" with field=field %}
+            {% endfor %}
+            <button type="submit" class="ugg-btn ugg-btn--primary">S'inscrire</button>
+        </form>
+
+        <p class="mt-6 text-sm">
+            Déjà un compte ? <a href="{% url 'accounts:login' %}">Se connecter</a>
+        </p>
+    </div>
+{% endblock %}

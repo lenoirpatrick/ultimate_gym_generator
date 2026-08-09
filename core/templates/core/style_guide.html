@@ -49,6 +49,24 @@
     </section>
 
     <section class="mt-12">
+        <h2 class="ugg-title text-xl">Avatars</h2>
+        <p class="mt-2 text-muted">
+            Photo de l'utilisateur, ou ses initiales à défaut — jamais une silhouette
+            générique.
+        </p>
+        <div class="mt-6 flex flex-wrap items-end gap-6">
+            {% for demo in avatar_demos %}
+                <div class="text-center">
+                    {% include "core/components/avatar.html" with profile=demo size="sm" %}
+                    {% include "core/components/avatar.html" with profile=demo size="md" %}
+                    {% include "core/components/avatar.html" with profile=demo size="lg" %}
+                    <p class="ugg-eyebrow mt-2">{{ demo.display_name }}</p>
+                </div>
+            {% endfor %}
+        </div>
+    </section>
+
+    <section class="mt-12">
         <h2 class="ugg-title text-xl">Couleurs</h2>
         <div class="mt-6 grid gap-3 sm:grid-cols-3 lg:grid-cols-5">
             {% for name, var in swatches %}

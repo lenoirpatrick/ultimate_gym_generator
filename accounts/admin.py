@@ -6,5 +6,14 @@ from .models import User
 
 @admin.register(User)
 class CustomUserAdmin(UserAdmin):
-    list_display = ("username", "email", "first_name", "last_name", "is_staff")
+    list_display = ("username", "email", "first_name", "last_name", "is_staff", "is_active")
+    list_filter = ("is_staff", "is_active", "gender")
     search_fields = ("username", "email", "first_name", "last_name")
+
+    fieldsets = (
+        *UserAdmin.fieldsets,
+        (
+            "Profil sportif",
+            {"fields": ("avatar", "gender", "height_cm", "weight_kg")},
+        ),
+    )

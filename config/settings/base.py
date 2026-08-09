@@ -63,6 +63,9 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    # Après l'authentification : une installation neuve doit pouvoir créer son
+    # premier compte, sinon plus rien n'est accessible.
+    "accounts.middleware.FirstRunMiddleware",
 ]
 
 ROOT_URLCONF = "config.urls"
@@ -137,6 +140,46 @@ LOGIN_URL = "accounts:login"
 LOGIN_REDIRECT_URL = "core:home"
 LOGOUT_REDIRECT_URL = "core:home"
 
+# L'application est mono-utilisateur par défaut : seul le personnel crée des
+# comptes. Passer à True pour ouvrir l'inscription libre.
+ALLOW_SELF_REGISTRATION = env.bool("DJANGO_ALLOW_SELF_REGISTRATION", default=False)
+
+AUTHENTICATION_BACKENDS = ["django.contrib.auth.backends.ModelBackend"]
+
+# --------------------------------------------------------------------------- #
+# SSO OpenID Connect (facultatif)
+#
+# Désactivé tant que OIDC_ENABLED n'est pas vrai : aucune route, aucun backend
+# supplémentaire, aucun bouton sur la page de connexion. Procédure de
+# configuration — Google et fournisseur générique — dans docs/INSTALL.md.
+# --------------------------------------------------------------------------- #
+
+OIDC_ENABLED = env.bool("OIDC_ENABLED", default=False)
+OIDC_PROVIDER_NAME = env.str("OIDC_PROVIDER_NAME", default="SSO")
+
+if OIDC_ENABLED:
+    INSTALLED_APPS.append("mozilla_django_oidc")
+    AUTHENTICATION_BACKENDS.insert(0, "accounts.oidc.GymOIDCAuthenticationBackend")
+
+    OIDC_RP_CLIENT_ID = env.str("OIDC_RP_CLIENT_ID")
+    OIDC_RP_CLIENT_SECRET = env.str("OIDC_RP_CLIENT_SECRET")
+    OIDC_RP_SIGN_ALGO = env.str("OIDC_RP_SIGN_ALGO", default="RS256")
+    OIDC_RP_SCOPES = env.str("OIDC_RP_SCOPES", default="openid email profile")
+
+    OIDC_OP_AUTHORIZATION_ENDPOINT = env.str("OIDC_OP_AUTHORIZATION_ENDPOINT")
+    OIDC_OP_TOKEN_ENDPOINT = env.str("OIDC_OP_TOKEN_ENDPOINT")
+    OIDC_OP_USER_ENDPOINT = env.str("OIDC_OP_USER_ENDPOINT")
+    # Requis dès que l'algorithme de signature est asymétrique (RS256).
+    OIDC_OP_JWKS_ENDPOINT = env.str("OIDC_OP_JWKS_ENDPOINT", default="")
+
+    # Un compte SSO n'est créé automatiquement que si on l'autorise. Laisser à
+    # False impose de provisionner les comptes à l'avance : c'est le réglage sûr
+    # quand le fournisseur d'identité n'est pas dédié à cette application.
+    OIDC_CREATE_USER = env.bool("OIDC_CREATE_USER", default=False)
+
+    OIDC_AUTHENTICATION_CALLBACK_URL = "oidc_authentication_callback"
+    LOGIN_REDIRECT_URL_FAILURE = "accounts:login"
+
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
     {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"},
@@ -163,6 +206,20 @@ STORAGES = {
     "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
     "staticfiles": {"BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"},
 }
+
+# --------------------------------------------------------------------------- #
+# Fichiers déposés par les utilisateurs (avatars)
+#
+# Monter ce répertoire sur un volume persistant : il n'est pas reconstruit avec
+# l'image, contrairement aux statiques.
+# --------------------------------------------------------------------------- #
+
+MEDIA_URL = "media/"
+MEDIA_ROOT = Path(env.str("DJANGO_MEDIA_ROOT", default=str(BASE_DIR / "media")))
+
+# Un avatar reste une petite image : ce plafond évite qu'un envoi accidentel
+# remplisse le volume.
+MAX_AVATAR_BYTES = env.int("DJANGO_MAX_AVATAR_BYTES", default=2 * 1024 * 1024)
 
 # --------------------------------------------------------------------------- #
 # Journalisation

@@ -1,0 +1,17 @@
+{% comment %}
+Avatar d'un utilisateur : sa photo, ou ses initiales à défaut.
+
+Paramètres :
+  profile : instance de User
+  size    : sm | md (défaut) | lg
+
+Usage : {% include "core/components/avatar.html" with profile=user size="lg" %}
+{% endcomment %}
+<span class="ugg-avatar ugg-avatar--{{ size|default:'md' }}">
+    {% if profile.avatar %}
+        <img src="{{ profile.avatar.url }}" alt="Avatar de {{ profile.display_name }}">
+    {% else %}
+        <span aria-hidden="true">{{ profile.initials }}</span>
+        <span class="sr-only">{{ profile.display_name }}</span>
+    {% endif %}
+</span>

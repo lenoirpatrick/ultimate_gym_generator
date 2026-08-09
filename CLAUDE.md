@@ -17,13 +17,14 @@ n'est pas encore implémentée.
 | Interface | Gabarits Django + HTMX 2 (vendoré) + Tailwind CSS 4 (CLI autonome, zéro Node) |
 | Chiffrement | Fernet (`cryptography`) pour les clés d'API en base |
 | Fournisseurs IA | Anthropic (SDK officiel), Gemini / Mistral / Ollama (REST via httpx) |
+| Comptes | Mono-utilisateur par défaut, multi-utilisateurs pris en charge ; SSO OpenID Connect facultatif (`mozilla-django-oidc`) |
 | Serveur | Gunicorn + WhiteNoise, conteneur non-root |
 | Qualité | `ruff`, `pytest` + `pytest-django` + couverture, SonarCloud |
 
 ```
 assets/css/       tokens.css (SOURCE DE VÉRITÉ graphique), components.css, input.css
 config/settings/  base · dev · test · prod
-accounts/         utilisateur personnalisé et écrans d'authentification
+accounts/         utilisateur (avatar, mesures), authentification, SSO, gestion des comptes
 aiproviders/      credentials chiffrés, registre des fournisseurs, adaptateurs, /settings/ai/
 core/             gabarit de base, composants, spinners, /healthz, /style-guide/
 docker/           entrypoint du conteneur
@@ -83,6 +84,15 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
 - SVG inline animé en CSS pur — pas de GIF, pas de JS, pas de dépendance externe.
 - Accessibilité : `role="status"` et libellé lisible par lecteur d'écran ; animation
   neutralisée sous `prefers-reduced-motion: reduce`.
+
+### Avatars
+
+- Photo déposée par l'utilisateur, ou **ses initiales** à défaut — jamais une
+  silhouette générique ni un service d'avatar distant.
+- Un seul composant : `core/templates/core/components/avatar.html`, paramétré
+  `profile` / `size` (`sm`, `md`, `lg`).
+- L'image porte un `alt` nommant la personne ; le repli initiales est
+  `aria-hidden` et doublé d'un libellé lisible par lecteur d'écran.
 
 ### Référentiel visuel
 

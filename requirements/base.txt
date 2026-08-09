@@ -2,6 +2,10 @@ Django>=6.1,<6.2
 django-environ>=0.12,<1.0
 mysqlclient>=2.2,<3.0
 cryptography>=44.0
+Pillow>=11.0
+
+# SSO OpenID Connect, activé uniquement si OIDC_ENABLED=True.
+mozilla-django-oidc>=5.0,<6.0
 
 # SDK officiel pour Anthropic ; les autres fournisseurs sont appelés en REST via httpx.
 anthropic>=0.116

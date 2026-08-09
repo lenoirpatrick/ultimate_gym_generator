@@ -59,9 +59,14 @@ COPY --from=builder /opt/venv /opt/venv
 WORKDIR /app
 COPY --from=builder --chown=gym:gym /app /app
 
-RUN chmod +x /app/docker/entrypoint.sh
+RUN chmod +x /app/docker/entrypoint.sh \
+    # Point de montage des avatars : créé et attribué avant de perdre les droits
+    # root, sinon un volume monté ici serait inaccessible en écriture.
+    && mkdir -p /app/media && chown gym:gym /app/media
 
 USER gym
+
+VOLUME ["/app/media"]
 
 # 5907 = « sport » en leet.
 EXPOSE 5907

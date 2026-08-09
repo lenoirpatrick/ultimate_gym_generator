@@ -1,0 +1,34 @@
+{% extends "core/base.html" %}
+
+{% block title %}
+    {% if target %}{{ target.username }}{% else %}Nouveau compte{% endif %} — {{ site_name }}
+{% endblock %}
+
+{% block content %}
+    <div class="mx-auto max-w-lg">
+        <p class="ugg-eyebrow"><a href="{% url 'accounts:user_list' %}">Comptes</a></p>
+        <h1 class="ugg-title mt-2 text-2xl">
+            {% if target %}{{ target.username }}{% else %}Nouveau compte{% endif %}
+        </h1>
+
+        {% if target %}
+            {% include "core/components/alert.html" with level="info" text="Le mot de passe se change depuis le profil de son titulaire, ou se réinitialise depuis l'administration Django." %}
+        {% endif %}
+
+        {% for error in form.non_field_errors %}
+            {% include "core/components/alert.html" with level="error" text=error %}
+        {% endfor %}
+
+        <form method="post" enctype="multipart/form-data" class="mt-6 grid gap-5">
+            {% csrf_token %}
+            {% for field in form %}
+                {% include "core/components/field.html" with field=field %}
+            {% endfor %}
+
+            <div class="flex flex-wrap gap-3">
+                <button type="submit" class="ugg-btn ugg-btn--primary">Enregistrer</button>
+                <a href="{% url 'accounts:user_list' %}" class="ugg-btn ugg-btn--ghost">Annuler</a>
+            </div>
+        </form>
+    </div>
+{% endblock %}

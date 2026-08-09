@@ -1,0 +1,54 @@
+{% extends "core/base.html" %}
+
+{% block title %}Mon profil — {{ site_name }}{% endblock %}
+
+{% block content %}
+    <div class="mx-auto max-w-2xl">
+        <div class="flex flex-wrap items-center gap-4">
+            {% include "core/components/avatar.html" with profile=user size="lg" %}
+            <div>
+                <p class="ugg-eyebrow">Mon profil</p>
+                <h1 class="ugg-title mt-1 text-2xl">{{ user.display_name }}</h1>
+                {% if user.bmi %}
+                    <p class="mt-1 text-sm text-muted">
+                        IMC {{ user.bmi }} · {{ user.height_cm }} cm · {{ user.weight_kg }} kg
+                    </p>
+                {% endif %}
+            </div>
+        </div>
+
+        {% for error in form.non_field_errors %}
+            {% include "core/components/alert.html" with level="error" text=error %}
+        {% endfor %}
+
+        <form method="post" enctype="multipart/form-data" class="mt-8 grid gap-5">
+            {% csrf_token %}
+
+            <fieldset class="grid gap-5">
+                <legend class="ugg-eyebrow mb-2">Identité</legend>
+                {% include "core/components/field.html" with field=form.first_name %}
+                {% include "core/components/field.html" with field=form.last_name %}
+                {% include "core/components/field.html" with field=form.email %}
+                {% include "core/components/field.html" with field=form.avatar %}
+            </fieldset>
+
+            <fieldset class="mt-4 grid gap-5">
+                <legend class="ugg-eyebrow mb-2">Mesures</legend>
+                <p class="text-sm text-muted">
+                    Facultatives. Elles serviront à calibrer les charges et les volumes
+                    des programmes générés.
+                </p>
+                {% include "core/components/field.html" with field=form.gender %}
+                {% include "core/components/field.html" with field=form.height_cm %}
+                {% include "core/components/field.html" with field=form.weight_kg %}
+            </fieldset>
+
+            <div class="flex flex-wrap gap-3">
+                <button type="submit" class="ugg-btn ugg-btn--primary">Enregistrer</button>
+                <a href="{% url 'accounts:password_change' %}" class="ugg-btn ugg-btn--ghost">
+                    Changer de mot de passe
+                </a>
+            </div>
+        </form>
+    </div>
+{% endblock %}
