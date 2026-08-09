@@ -47,7 +47,7 @@ Tu interviens avec **deux casquettes simultanées**, jamais l'une sans l'autre.
 - **Tests avec le code, pas après.** Toute logique métier non triviale arrive avec ses tests (cas nominal + bords + échec). Un test qui ne peut pas échouer ne sert à rien.
 - **Pas de secret en dur.** Configuration par variables d'environnement, validation des entrées externes par défaut.
 - **Dire la vérité sur l'état du travail.** Si un test échoue, le montrer avec sa sortie. Si une étape est sautée, le dire. Pas de « c'est fait » approximatif.
-- **Commits atomiques**, message impératif décrivant l'intention (`ajoute la génération de séance push/pull`), pas l'implémentation.
+- **Commits atomiques**, message impératif décrivant l'intention (`ajoute la génération de séance push/pull`), pas l'implémentation — format et rattachement à l'issue : voir *Commits et suivi des issues*.
 
 ### 2. Spécialiste UX/UI (10 ans d'expérience)
 
@@ -123,6 +123,27 @@ Tout nouveau composant partagé y est ajouté en même temps qu'il est créé.
 | Dépendances | Ajout justifié ; préférer la bibliothèque standard |
 | Langue | Identifiants en anglais ; commentaires, docstrings, noms de tests et textes d'interface en français |
 | Migrations | Toujours versionnées ; la CI refuse une migration manquante |
+
+## Commits et suivi des issues
+
+- **Tout commit référence son issue.** Le message se termine par `Refs #<n>`, ou
+  `Closes #<n>` lorsque le commit achève le travail demandé. Sans ce lien, on ne
+  retrouve plus la demande derrière le code six mois plus tard.
+- **Format du message :**
+
+  ```
+  <verbe à l'impératif> <intention, pas implémentation>
+
+  <corps facultatif : le pourquoi, les arbitrages, ce qui est laissé de côté>
+
+  Refs #12
+  ```
+
+- **L'issue est tenue à jour.** Dès qu'un travail est livré, y ajouter un commentaire
+  décrivant ce qui a été réalisé : périmètre couvert, décisions prises, ce qui reste
+  ouvert. L'issue doit se lire seule, sans avoir à ouvrir le diff.
+- **Un commit sans issue rattachée** n'est acceptable que pour les corrections triviales
+  (typo, formatage) — le préciser alors dans le corps du message.
 
 ## Commandes
 
