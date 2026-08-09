@@ -1,10 +1,39 @@
 from django import forms
 from django.conf import settings
-from django.contrib.auth.forms import UserCreationForm
+from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
 
 from .models import User
 
 BODY_FIELDS = ("gender", "height_cm", "weight_kg")
+
+IDENTITY_FIELDS = ("email", "first_name", "last_name")
+
+
+class EmailAuthenticationForm(AuthenticationForm):
+    """Connexion par adresse e-mail.
+
+    Le champ garde le nom `username` imposé par Django ; seul l'habillage change.
+    """
+
+    error_messages = {
+        # Un message unique pour l'e-mail inconnu et le mot de passe faux : le
+        # distinguer révélerait quels comptes existent sur l'installation.
+        "invalid_login": "Adresse e-mail ou mot de passe incorrect.",
+        "inactive": "Ce compte est désactivé.",
+    }
+
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self.fields["username"].label = "Adresse e-mail"
+        # Un e-mail se saisit souvent d'une main sur un téléphone, à la salle :
+        # le clavier doit proposer « @ » et la saisie automatique doit s'appliquer.
+        self.fields["username"].widget = forms.EmailInput(
+            attrs={"autocomplete": "email", "autofocus": True, "inputmode": "email"}
+        )
+
+    def clean_username(self) -> str:
+        """Normalise comme `User.save()`, pour qu'une majuscule ne bloque pas la connexion."""
+        return self.cleaned_data["username"].strip().lower()
 
 
 class AvatarFieldMixin(forms.ModelForm):
@@ -27,7 +56,7 @@ class FirstRunForm(UserCreationForm):
 
     class Meta:
         model = User
-        fields = ("username", "email", "first_name", "last_name")
+        fields = IDENTITY_FIELDS
 
     def save(self, commit: bool = True) -> User:
         user = super().save(commit=False)
@@ -45,7 +74,7 @@ class SelfRegistrationForm(UserCreationForm):
 
     class Meta:
         model = User
-        fields = ("username", "email", "first_name", "last_name")
+        fields = IDENTITY_FIELDS
 
 
 class ProfileForm(AvatarFieldMixin):
@@ -53,7 +82,7 @@ class ProfileForm(AvatarFieldMixin):
 
     class Meta:
         model = User
-        fields = ("first_name", "last_name", "email", "avatar", *BODY_FIELDS)
+        fields = ("email", "first_name", "last_name", "avatar", *BODY_FIELDS)
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
@@ -69,7 +98,7 @@ class StaffUserCreationForm(UserCreationForm):
 
     class Meta:
         model = User
-        fields = ("username", "email", "first_name", "last_name", "is_staff")
+        fields = (*IDENTITY_FIELDS, "is_staff")
 
 
 class StaffUserChangeForm(AvatarFieldMixin):
@@ -82,10 +111,7 @@ class StaffUserChangeForm(AvatarFieldMixin):
     class Meta:
         model = User
         fields = (
-            "username",
-            "email",
-            "first_name",
-            "last_name",
+            *IDENTITY_FIELDS,
             "avatar",
             *BODY_FIELDS,
             "is_active",

@@ -26,8 +26,8 @@ def installation_amorcee(request):
     request.getfixturevalue("db")
 
     return get_user_model().objects.get_or_create(
-        username="__amorce__",
-        defaults={"email": "amorce@example.test", "is_active": False},
+        email="amorce@example.test",
+        defaults={"is_active": False},
     )[0]
 
 
@@ -35,7 +35,6 @@ def installation_amorcee(request):
 def user(db):
     """Utilisateur ordinaire, sans droit d'administration."""
     return get_user_model().objects.create_user(
-        username="coach",
         email="coach@example.test",
         password="entrainement-42",
     )
@@ -44,7 +43,6 @@ def user(db):
 @pytest.fixture
 def staff(db):
     return get_user_model().objects.create_user(
-        username="patron",
         email="patron@example.test",
         password="entrainement-42",
         is_staff=True,

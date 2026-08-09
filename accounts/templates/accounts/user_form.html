@@ -1,14 +1,14 @@
 {% extends "core/base.html" %}
 
 {% block title %}
-    {% if target %}{{ target.username }}{% else %}Nouveau compte{% endif %} — {{ site_name }}
+    {% if target %}{{ target.email }}{% else %}Nouveau compte{% endif %} — {{ site_name }}
 {% endblock %}
 
 {% block content %}
     <div class="mx-auto max-w-lg">
         <p class="ugg-eyebrow"><a href="{% url 'accounts:user_list' %}">Comptes</a></p>
         <h1 class="ugg-title mt-2 text-2xl">
-            {% if target %}{{ target.username }}{% else %}Nouveau compte{% endif %}
+            {% if target %}{{ target.email }}{% else %}Nouveau compte{% endif %}
         </h1>
 
         {% if target %}

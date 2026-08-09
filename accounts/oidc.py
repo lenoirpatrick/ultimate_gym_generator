@@ -15,7 +15,9 @@ class GymOIDCAuthenticationBackend(OIDCAuthenticationBackend):
     """
 
     def create_user(self, claims: dict):
-        user = super().create_user(claims)
+        # `super()` créerait le compte avec un nom d'utilisateur en premier
+        # argument, que le modèle n'a plus : l'e-mail est le seul identifiant.
+        user = self.UserModel.objects.create_user(email=claims.get("email"))
         self._apply_claims(user, claims)
         user.save()
         return user
@@ -29,7 +31,3 @@ class GymOIDCAuthenticationBackend(OIDCAuthenticationBackend):
     def _apply_claims(user, claims: dict) -> None:
         user.first_name = claims.get("given_name") or user.first_name
         user.last_name = claims.get("family_name") or user.last_name
-
-        if not user.username:
-            email = claims.get("email") or ""
-            user.username = claims.get("preferred_username") or email.split("@")[0]

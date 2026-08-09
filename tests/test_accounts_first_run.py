@@ -7,7 +7,6 @@ from django.urls import reverse
 User = get_user_model()
 
 FIRST_ACCOUNT = {
-    "username": "coach",
     "email": "coach@example.test",
     "first_name": "Alex",
     "last_name": "Martin",
@@ -38,7 +37,7 @@ def test_la_sonde_de_sante_reste_joignable_sans_compte(client):
 def test_le_premier_compte_est_administrateur_et_connecte(client):
     response = client.post(reverse("accounts:first_run"), FIRST_ACCOUNT, follow=True)
 
-    created = User.objects.get(username="coach")
+    created = User.objects.get(email="coach@example.test")
     assert created.is_staff is True
     assert created.is_superuser is True
     assert response.context["user"].is_authenticated

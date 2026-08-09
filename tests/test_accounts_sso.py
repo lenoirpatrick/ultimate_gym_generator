@@ -17,7 +17,6 @@ CLAIMS = {
     "email": "alex@example.test",
     "given_name": "Alex",
     "family_name": "Martin",
-    "preferred_username": "amartin",
 }
 
 
@@ -70,23 +69,26 @@ def test_la_page_de_connexion_propose_le_sso_quand_il_est_active(client, setting
 @pytest.mark.django_db
 def test_les_claims_remplissent_l_identite_du_compte():
     backend = GymOIDCAuthenticationBackend.__new__(GymOIDCAuthenticationBackend)
-    account = User(username="", email=CLAIMS["email"])
+    account = User(email=CLAIMS["email"])
 
     backend._apply_claims(account, CLAIMS)
 
     assert account.first_name == "Alex"
     assert account.last_name == "Martin"
-    assert account.username == "amartin"
 
 
 @pytest.mark.django_db
-def test_le_nom_d_utilisateur_retombe_sur_la_partie_locale_de_l_e_mail():
+def test_un_compte_sso_est_cree_sur_la_seule_adresse_e_mail():
+    """Le modèle n'a plus de nom d'utilisateur : le backend ne doit pas en fournir."""
     backend = GymOIDCAuthenticationBackend.__new__(GymOIDCAuthenticationBackend)
-    account = User(username="", email="alex@example.test")
+    backend.UserModel = User
 
-    backend._apply_claims(account, {"email": "alex@example.test"})
+    account = backend.create_user(CLAIMS)
 
-    assert account.username == "alex"
+    assert account.pk is not None
+    assert account.email == CLAIMS["email"]
+    assert account.first_name == "Alex"
+    assert account.has_usable_password() is False
 
 
 @pytest.mark.django_db
@@ -94,7 +96,6 @@ def test_une_reconnexion_sso_n_ecrase_pas_les_mesures_corporelles():
     """Les mesures appartiennent à l'utilisateur, pas au fournisseur d'identité."""
     backend = GymOIDCAuthenticationBackend.__new__(GymOIDCAuthenticationBackend)
     account = User.objects.create_user(
-        username="amartin",
         email=CLAIMS["email"],
         height_cm=172,
         weight_kg="64.5",
@@ -107,13 +108,3 @@ def test_une_reconnexion_sso_n_ecrase_pas_les_mesures_corporelles():
     assert account.height_cm == 172
     assert account.gender == "F"
     assert account.first_name == "Alex"
-
-
-@pytest.mark.django_db
-def test_un_nom_d_utilisateur_existant_n_est_pas_ecrase():
-    backend = GymOIDCAuthenticationBackend.__new__(GymOIDCAuthenticationBackend)
-    account = User(username="deja-defini", email=CLAIMS["email"])
-
-    backend._apply_claims(account, CLAIMS)
-
-    assert account.username == "deja-defini"

@@ -28,9 +28,9 @@
                         {{ account.display_name }}
                         {% if account.pk == user.pk %}<span class="text-muted">— toi</span>{% endif %}
                     </p>
-                    <p class="truncate text-sm text-muted">
-                        {{ account.username }} · {{ account.email }}
-                    </p>
+                    {% if account.display_name != account.email %}
+                        <p class="truncate text-sm text-muted">{{ account.email }}</p>
+                    {% endif %}
                 </div>
 
                 <p class="text-sm">

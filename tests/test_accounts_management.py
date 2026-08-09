@@ -7,7 +7,6 @@ from django.urls import reverse
 User = get_user_model()
 
 NEW_ACCOUNT = {
-    "username": "recrue",
     "email": "recrue@example.test",
     "first_name": "Sam",
     "last_name": "Durand",
@@ -34,7 +33,7 @@ def test_la_gestion_des_comptes_est_reservee_au_personnel(logged_client, route):
 def test_le_personnel_voit_la_liste_des_comptes(staff_client, user):
     content = staff_client.get(reverse("accounts:user_list")).content.decode()
 
-    assert user.username in content
+    assert user.email in content
 
 
 # --------------------------------------------------------------------------- #
@@ -47,7 +46,7 @@ def test_le_personnel_cree_un_compte(staff_client):
     response = staff_client.post(reverse("accounts:user_create"), NEW_ACCOUNT)
 
     assert response.status_code == 302
-    created = User.objects.get(username="recrue")
+    created = User.objects.get(email="recrue@example.test")
     assert created.is_staff is False
     assert created.is_active is True
 
@@ -57,7 +56,6 @@ def test_le_personnel_desactive_un_compte(staff_client, user):
     staff_client.post(
         reverse("accounts:user_update", args=[user.pk]),
         {
-            "username": user.username,
             "email": user.email,
             "first_name": "",
             "last_name": "",
@@ -79,7 +77,6 @@ def test_le_personnel_ne_peut_pas_se_retirer_ses_propres_droits(staff_client, st
     staff_client.post(
         reverse("accounts:user_update", args=[staff.pk]),
         {
-            "username": staff.username,
             "email": staff.email,
             "first_name": "",
             "last_name": "",
@@ -126,6 +123,6 @@ def test_l_inscription_libre_cree_un_compte_ordinaire_quand_elle_est_ouverte(cli
     response = client.post(reverse("accounts:register"), NEW_ACCOUNT)
 
     assert response.status_code == 302
-    created = User.objects.get(username="recrue")
+    created = User.objects.get(email="recrue@example.test")
     assert created.is_staff is False
     assert created.is_superuser is False

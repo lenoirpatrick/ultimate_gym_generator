@@ -65,7 +65,7 @@ def style_guide(request: HttpRequest) -> HttpResponse:
             # sans dépendre du contenu de la base.
             "avatar_demos": [
                 user_model(first_name="Alex", last_name="Martin"),
-                user_model(username="coach"),
+                user_model(email="coach@example.test"),
             ],
         },
     )

@@ -84,7 +84,7 @@ def user_list(request: HttpRequest) -> HttpResponse:
     return render(
         request,
         "accounts/user_list.html",
-        {"users": User.objects.order_by("-is_active", "username")},
+        {"users": User.objects.order_by("-is_active", "email")},
     )
 
 
@@ -95,7 +95,7 @@ def user_create(request: HttpRequest) -> HttpResponse:
         form = StaffUserCreationForm(request.POST)
         if form.is_valid():
             user = form.save()
-            messages.success(request, f"Compte « {user.username} » créé.")
+            messages.success(request, f"Compte « {user.email} » créé.")
             return redirect("accounts:user_list")
     else:
         form = StaffUserCreationForm()
@@ -115,7 +115,7 @@ def user_update(request: HttpRequest, pk: int) -> HttpResponse:
         )
         if form.is_valid():
             form.save()
-            messages.success(request, f"Compte « {target.username} » enregistré.")
+            messages.success(request, f"Compte « {target.email} » enregistré.")
             return redirect("accounts:user_list")
     else:
         form = StaffUserChangeForm(instance=target, editing_self=editing_self)
