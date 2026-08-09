@@ -116,6 +116,18 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
 - La zone de résultats porte `aria-live="polite"` : le nombre de résultats change sans
   rechargement et doit être annoncé.
 
+### Blocs de séance
+
+- Une séance se lit **à bout de bras, entre deux séries** : le temps d'effort passe avant
+  le nom de l'exercice, en gros et en accent, aligné à droite d'une colonne fixe pour que
+  l'œil le retrouve sans chercher.
+- Ordre imposé : **durée d'effort → repos → nombre de tours → exercice → charge**. La
+  charge est accentuée, jamais le matériel.
+- Un bloc tient d'un seul tenant dans une carte ; on ne coupe pas un bloc entre deux écrans.
+- Les conseils rédigés par l'IA sont un **habillage** : ils arrivent après la séance, et
+  leur absence ne produit aucun message. Une erreur de fournisseur devant un entraînement
+  prêt n'apprend rien à personne.
+
 ### Bascules d'état (favori)
 
 - Une bascule affiche **toujours son libellé** à côté de l'icône : une étoile seule ne dit

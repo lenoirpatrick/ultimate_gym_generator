@@ -27,7 +27,17 @@
             </p>
         {% endif %}
 
-        {% block coaching %}{% endblock %}
+        {% comment %}
+        Les conseils arrivent après la séance : un appel au fournisseur d'IA
+        prend quelques secondes, et l'entraînement, lui, est prêt tout de suite.
+        {% endcomment %}
+        <div hx-get="{% url 'workouts:coaching' workout.pk %}"
+             hx-trigger="load"
+             hx-indicator="#conseils-en-cours">
+            <span id="conseils-en-cours" class="ugg-indicator mt-6">
+                {% include "core/components/spinner.html" with variant="dumbbell" size="sm" label="Rédaction des conseils" visible_label=True %}
+            </span>
+        </div>
 
         <div class="mt-8 grid gap-6">
             {% for block in workout.blocks %}

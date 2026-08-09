@@ -585,6 +585,15 @@
     color: var(--ugg-text-muted);
 }
 
+/* Conseils rédigés : un texte suivi, qui doit se lire comme tel. */
+.ugg-coaching {
+    border-left: 4px solid var(--ugg-accent);
+}
+
+.ugg-coaching p + p {
+    line-height: 1.6;
+}
+
 /* Avatar : photo si l'utilisateur en a déposé une, initiales sinon. */
 .ugg-avatar {
     display: inline-flex;

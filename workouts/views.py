@@ -8,7 +8,7 @@ from django.views.decorators.http import require_POST
 
 from accounts.models import UserEquipment
 
-from . import generator
+from . import coaching, generator
 from .forms import WorkoutForm
 from .models import Workout
 
@@ -61,6 +61,19 @@ def workout_detail(request: HttpRequest, pk: int) -> HttpResponse:
         user=request.user,
     )
     return render(request, "workouts/workout_detail.html", {"workout": workout})
+
+
+@login_required
+def workout_coaching(request: HttpRequest, pk: int) -> HttpResponse:
+    """Conseils du coach, chargés après la séance.
+
+    En différé parce qu'un appel au fournisseur prend quelques secondes : la
+    séance, elle, est prête tout de suite et ne doit pas attendre.
+    """
+    workout = get_object_or_404(Workout, pk=pk, user=request.user)
+    notes = coaching.write_notes(workout)
+
+    return render(request, "workouts/partials/coaching.html", {"notes": notes})
 
 
 @login_required
