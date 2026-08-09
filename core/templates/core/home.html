@@ -1,0 +1,27 @@
+{% extends "core/base.html" %}
+
+{% block content %}
+    <p class="ugg-eyebrow">Socle applicatif</p>
+    <h1 class="ugg-title mt-2 text-4xl sm:text-5xl">
+        Des programmes<br><span class="text-accent">taillés pour toi</span>
+    </h1>
+    <p class="mt-4 max-w-xl text-muted">
+        Ultimate Gym Generator construit des programmes d'entraînement à partir de tes
+        objectifs, de ton niveau et du matériel dont tu disposes.
+    </p>
+
+    <div class="mt-8">
+        {% if user.is_authenticated %}
+            <a href="{% url 'aiproviders:list' %}" class="ugg-btn ugg-btn--primary">
+                Configurer les fournisseurs IA
+            </a>
+        {% else %}
+            <a href="{% url 'accounts:login' %}" class="ugg-btn ugg-btn--primary">Se connecter</a>
+        {% endif %}
+    </div>
+
+    <p class="mt-12 text-sm text-muted">
+        La génération de programmes n'est pas encore branchée : cette version pose les
+        fondations (base de données, authentification, credentials IA, socle visuel).
+    </p>
+{% endblock %}

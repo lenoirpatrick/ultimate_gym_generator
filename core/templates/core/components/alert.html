@@ -1,0 +1,6 @@
+{% comment %}
+Message contextuel.
+Usage : {% include "core/components/alert.html" with level="error" text="..." %}
+  level : info (défaut) | success | error
+{% endcomment %}
+<p class="ugg-alert ugg-alert--{{ level|default:'info' }}" role="status">{{ text }}</p>

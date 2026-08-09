@@ -1,0 +1,11 @@
+{% comment %}
+État vide : dit ce qui manque et propose l'action qui le corrige.
+Usage : {% include "core/components/empty_state.html" with title="..." body="..." action_url="..." action_label="..." %}
+{% endcomment %}
+<div class="ugg-empty">
+    <p class="ugg-title text-lg">{{ title }}</p>
+    {% if body %}<p class="mt-2">{{ body }}</p>{% endif %}
+    {% if action_url %}
+        <a href="{{ action_url }}" class="ugg-btn ugg-btn--primary mt-6">{{ action_label }}</a>
+    {% endif %}
+</div>

@@ -1,0 +1,59 @@
+{% load static %}<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}{{ site_name }}{% endblock %}</title>
+    <meta name="description" content="{% block description %}Générateur de programmes sportifs assisté par IA.{% endblock %}">
+    <link rel="stylesheet" href="{% static 'core/css/app.css' %}">
+    <script src="{% static 'core/js/htmx.min.js' %}" defer></script>
+</head>
+<body hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
+
+<a href="#contenu" class="sr-only">Aller au contenu principal</a>
+
+<header class="border-b border-line">
+    <div class="mx-auto flex max-w-5xl flex-wrap items-center gap-4 px-4 py-4">
+        <a href="{% url 'core:home' %}" class="ugg-title text-xl no-underline">
+            Ultimate<span class="text-accent">Gym</span>
+        </a>
+
+        <nav aria-label="Navigation principale" class="ml-auto flex items-center gap-2">
+            {% if user.is_authenticated %}
+                <a href="{% url 'aiproviders:list' %}" class="ugg-btn ugg-btn--ghost">Fournisseurs IA</a>
+                <form method="post" action="{% url 'accounts:logout' %}">
+                    {% csrf_token %}
+                    <button type="submit" class="ugg-btn ugg-btn--ghost">Déconnexion</button>
+                </form>
+            {% else %}
+                <a href="{% url 'accounts:login' %}" class="ugg-btn ugg-btn--primary">Connexion</a>
+            {% endif %}
+        </nav>
+    </div>
+</header>
+
+{% if messages %}
+    <div class="mx-auto max-w-5xl px-4 pt-4" role="status">
+        {% for message in messages %}
+            <p class="ugg-alert ugg-alert--{% if message.tags == 'error' %}error{% elif message.tags == 'success' %}success{% else %}info{% endif %} mb-2">
+                {{ message }}
+            </p>
+        {% endfor %}
+    </div>
+{% endif %}
+
+<main id="contenu" class="mx-auto max-w-5xl px-4 py-8">
+    {% block content %}{% endblock %}
+</main>
+
+<footer class="mt-12 border-t border-line">
+    <div class="mx-auto max-w-5xl px-4 py-6 text-sm text-muted">
+        Ultimate Gym Generator
+        {% if debug %}
+            · <a href="{% url 'core:style_guide' %}">Référentiel visuel</a>
+        {% endif %}
+    </div>
+</footer>
+
+</body>
+</html>

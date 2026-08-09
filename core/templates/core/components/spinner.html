@@ -1,0 +1,50 @@
+{% comment %}
+Indicateur de chargement — icône de sport animée (CLAUDE.md § Règles graphiques).
+
+Paramètres :
+  variant : dumbbell (défaut) | kettlebell | runner
+  size    : sm | md (défaut) | lg
+  label   : texte lu par les lecteurs d'écran
+  visible_label : True pour afficher le libellé à côté de l'icône
+
+Usage :
+  {% include "core/components/spinner.html" with variant="kettlebell" label="Génération en cours" %}
+{% endcomment %}
+<span class="ugg-spinner ugg-spinner--{{ variant|default:'dumbbell' }} ugg-spinner--{{ size|default:'md' }}"
+      role="status">
+    {% if variant == "kettlebell" %}
+        <svg class="ugg-spinner__icon" viewBox="0 0 48 48" fill="none" aria-hidden="true">
+            <g class="ugg-spinner__spin" stroke="currentColor" stroke-width="3.5" stroke-linecap="round">
+                <path d="M17 18a7 7 0 0 1 14 0" />
+                <path d="M15 19c-2 3-3.5 6.5-3.5 10.5C11.5 36 17 41 24 41s12.5-5 12.5-11.5c0-4-1.5-7.5-3.5-10.5z"
+                      fill="currentColor" fill-opacity="0.18" stroke-linejoin="round" />
+            </g>
+        </svg>
+    {% elif variant == "runner" %}
+        <svg class="ugg-spinner__icon" viewBox="0 0 48 48" fill="none" aria-hidden="true">
+            <g class="ugg-spinner__spin" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="29" cy="10" r="4.5" fill="currentColor" stroke="none" />
+                <path d="M27 18l-5 10 6 6" />
+                <path d="M30 19l7 5" />
+                <path class="ugg-spinner__leg-front" d="M28 34l6 8" />
+                <path class="ugg-spinner__leg-back" d="M22 28l-8 6" />
+            </g>
+        </svg>
+    {% else %}
+        <svg class="ugg-spinner__icon" viewBox="0 0 48 48" fill="none" aria-hidden="true">
+            <g class="ugg-spinner__spin" stroke="currentColor" stroke-width="3.5" stroke-linecap="round">
+                <path d="M14 24h20" />
+                <path d="M11 17v14" />
+                <path d="M37 17v14" />
+                <path d="M6 20v8" />
+                <path d="M42 20v8" />
+            </g>
+        </svg>
+    {% endif %}
+
+    {% if visible_label %}
+        <span class="ugg-spinner__label">{{ label|default:"Chargement" }}</span>
+    {% else %}
+        <span class="sr-only">{{ label|default:"Chargement en cours" }}</span>
+    {% endif %}
+</span>

@@ -216,3 +216,15 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# --- Ultimate Gym Generator ---------------------------------------------------
+
+# PyCharm
+.idea/
+
+# Statiques collectés et feuille de style compilée : régénérés au build.
+staticfiles/
+core/static/core/css/app.css
+
+# Fichiers déposés par les utilisateurs
+media/

@@ -1,0 +1,19 @@
+/* Point d'entrée du build CSS.
+   Compilé vers core/static/core/css/app.css — voir la cible `css` du Makefile. */
+
+@import "tailwindcss";
+
+/* Fichiers scannés pour déterminer les classes utilitaires à générer. */
+@source "../../accounts/**/*.html";
+@source "../../aiproviders/**/*.html";
+@source "../../core/**/*.{html,py}";
+
+@import "./tokens.css";
+@import "./components.css";
+
+body {
+    background: var(--ugg-surface);
+    color: var(--ugg-text);
+    font-family: var(--ugg-font-body);
+    -webkit-font-smoothing: antialiased;
+}

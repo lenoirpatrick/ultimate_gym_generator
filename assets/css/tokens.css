@@ -1,0 +1,135 @@
+/* =========================================================================
+   TOKENS — source de vérité graphique de Ultimate Gym Generator.
+   Toute décision visuelle (couleur, typo, espacement, rayon, ombre, durée)
+   se prend ici et nulle part ailleurs. Voir CLAUDE.md § Règles graphiques.
+
+   Direction : salle de sport, pas tableau de bord SaaS. Fond graphite très
+   sombre par défaut, accent citron vif emprunté au marquage des poids, typo
+   de titre capitale et serrée façon affiche d'entraînement.
+   ========================================================================= */
+
+:root {
+    /* --- Couleurs de marque ------------------------------------------- */
+    --ugg-lime-300: #d4f542;
+    --ugg-lime-400: #bce319;
+    --ugg-lime-500: #9fc70a;
+    --ugg-ember-400: #ff6b35; /* alertes et efforts maximaux */
+
+    /* --- Neutres graphite --------------------------------------------- */
+    --ugg-graphite-950: #0b0d0c;
+    --ugg-graphite-900: #131614;
+    --ugg-graphite-800: #1c211e;
+    --ugg-graphite-700: #2a312d;
+    --ugg-graphite-500: #6b7671;
+    --ugg-graphite-300: #b3bdb8;
+    --ugg-graphite-100: #e8ede9;
+    --ugg-graphite-50: #f4f7f5;
+
+    /* --- Rôles sémantiques (thème clair par défaut) --------------------- */
+    --ugg-surface: var(--ugg-graphite-50);
+    --ugg-surface-raised: #ffffff;
+    --ugg-surface-sunken: var(--ugg-graphite-100);
+    --ugg-border: #d5ddd8;
+    --ugg-border-strong: var(--ugg-graphite-500);
+    --ugg-text: var(--ugg-graphite-950);
+    --ugg-text-muted: #5a635e;
+    --ugg-accent: var(--ugg-lime-500);
+    --ugg-accent-contrast: var(--ugg-graphite-950);
+    --ugg-focus: var(--ugg-graphite-950);
+    --ugg-success: #1f7a4d;
+    --ugg-danger: #b4331a;
+
+    /* --- Typographie ---------------------------------------------------- */
+    /* Aucune police distante : pas de dépendance réseau, pas de FOIT.
+       Le caractère vient du traitement (capitales, chasse serrée, graisse). */
+    --ugg-font-display: ui-sans-serif, "Segoe UI", system-ui, -apple-system, sans-serif;
+    --ugg-font-body: ui-sans-serif, "Segoe UI", system-ui, -apple-system, sans-serif;
+    --ugg-font-mono: ui-monospace, "Cascadia Mono", "JetBrains Mono", monospace;
+    --ugg-tracking-display: -0.02em;
+    --ugg-tracking-label: 0.08em;
+
+    /* --- Espacements ---------------------------------------------------- */
+    --ugg-space-1: 0.25rem;
+    --ugg-space-2: 0.5rem;
+    --ugg-space-3: 0.75rem;
+    --ugg-space-4: 1rem;
+    --ugg-space-6: 1.5rem;
+    --ugg-space-8: 2rem;
+    --ugg-space-12: 3rem;
+
+    /* --- Rayons et ombres ------------------------------------------------ */
+    --ugg-radius-sm: 0.25rem;
+    --ugg-radius-md: 0.5rem;
+    --ugg-radius-lg: 0.875rem;
+    --ugg-shadow-card: 0 1px 2px rgb(11 13 12 / 0.06), 0 8px 24px rgb(11 13 12 / 0.06);
+
+    /* --- Mouvement -------------------------------------------------------- */
+    --ugg-duration-fast: 120ms;
+    --ugg-duration-base: 220ms;
+    --ugg-duration-spinner: 1.1s;
+    --ugg-ease: cubic-bezier(0.4, 0, 0.2, 1);
+
+    /* --- Cible tactile minimale (accessibilité) --------------------------- */
+    --ugg-touch-target: 44px;
+}
+
+/* Thème sombre : par préférence système, sauf choix explicite « clair ». */
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+        --ugg-surface: var(--ugg-graphite-950);
+        --ugg-surface-raised: var(--ugg-graphite-900);
+        --ugg-surface-sunken: #060807;
+        --ugg-border: var(--ugg-graphite-700);
+        --ugg-border-strong: var(--ugg-graphite-500);
+        --ugg-text: var(--ugg-graphite-50);
+        --ugg-text-muted: var(--ugg-graphite-300);
+        --ugg-accent: var(--ugg-lime-300);
+        --ugg-accent-contrast: var(--ugg-graphite-950);
+        --ugg-focus: var(--ugg-lime-300);
+        --ugg-success: #56d99a;
+        --ugg-danger: #ff8a6b;
+        --ugg-shadow-card: 0 1px 2px rgb(0 0 0 / 0.5), 0 8px 24px rgb(0 0 0 / 0.35);
+    }
+}
+
+/* Choix explicite « sombre » : gagne sur la préférence système. */
+:root[data-theme="dark"] {
+    --ugg-surface: var(--ugg-graphite-950);
+    --ugg-surface-raised: var(--ugg-graphite-900);
+    --ugg-surface-sunken: #060807;
+    --ugg-border: var(--ugg-graphite-700);
+    --ugg-border-strong: var(--ugg-graphite-500);
+    --ugg-text: var(--ugg-graphite-50);
+    --ugg-text-muted: var(--ugg-graphite-300);
+    --ugg-accent: var(--ugg-lime-300);
+    --ugg-accent-contrast: var(--ugg-graphite-950);
+    --ugg-focus: var(--ugg-lime-300);
+    --ugg-success: #56d99a;
+    --ugg-danger: #ff8a6b;
+    --ugg-shadow-card: 0 1px 2px rgb(0 0 0 / 0.5), 0 8px 24px rgb(0 0 0 / 0.35);
+}
+
+/* Exposition des tokens à Tailwind : `bg-surface`, `text-muted`, `rounded-lg`… */
+@theme inline {
+    --color-surface: var(--ugg-surface);
+    --color-raised: var(--ugg-surface-raised);
+    --color-sunken: var(--ugg-surface-sunken);
+    --color-line: var(--ugg-border);
+    --color-line-strong: var(--ugg-border-strong);
+    --color-ink: var(--ugg-text);
+    --color-muted: var(--ugg-text-muted);
+    --color-accent: var(--ugg-accent);
+    --color-accent-ink: var(--ugg-accent-contrast);
+    --color-success: var(--ugg-success);
+    --color-danger: var(--ugg-danger);
+
+    --font-display: var(--ugg-font-display);
+    --font-body: var(--ugg-font-body);
+    --font-mono: var(--ugg-font-mono);
+
+    --radius-sm: var(--ugg-radius-sm);
+    --radius-md: var(--ugg-radius-md);
+    --radius-lg: var(--ugg-radius-lg);
+
+    --shadow-card: var(--ugg-shadow-card);
+}

@@ -1,0 +1,23 @@
+{% extends "core/base.html" %}
+
+{% block title %}Connexion — {{ site_name }}{% endblock %}
+
+{% block content %}
+    <div class="mx-auto max-w-sm">
+        <h1 class="ugg-title text-2xl">Connexion</h1>
+
+        {% if form.non_field_errors %}
+            {% for error in form.non_field_errors %}
+                {% include "core/components/alert.html" with level="error" text=error %}
+            {% endfor %}
+        {% endif %}
+
+        <form method="post" class="mt-6 grid gap-5">
+            {% csrf_token %}
+            {% for field in form %}
+                {% include "core/components/field.html" with field=field %}
+            {% endfor %}
+            <button type="submit" class="ugg-btn ugg-btn--primary">Se connecter</button>
+        </form>
+    </div>
+{% endblock %}

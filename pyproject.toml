@@ -1,0 +1,49 @@
+[project]
+name = "ultimate-gym-generator"
+version = "0.1.0"
+description = "Générateur de programmes sportifs assisté par IA"
+requires-python = ">=3.13"
+
+# Les dépendances sont déclarées dans requirements/*.txt : un projet Django n'est pas
+# une bibliothèque installable, et des fichiers séparés donnent de meilleures couches
+# de cache Docker. Ce pyproject ne porte que la configuration de l'outillage.
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+extend-exclude = ["*/migrations/*"]
+
+[tool.ruff.lint]
+select = [
+    "E",    # pycodestyle
+    "F",    # pyflakes
+    "I",    # isort
+    "UP",   # pyupgrade
+    "B",    # bugbear
+    "DJ",   # flake8-django
+    "S",    # bandit
+    "C4",   # comprehensions
+    "SIM",  # simplify
+    "RUF",
+]
+ignore = [
+    "S101",    # assert : légitime dans les tests
+    "RUF012",  # les classes Meta de Django déclarent des dict/list de classe par convention
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S105", "S106"]  # mots de passe / jetons factices
+"config/settings/*" = ["F403", "F405"]  # import * des settings de base
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "config.settings.test"
+python_files = ["test_*.py"]
+addopts = "-ra --strict-markers"
+testpaths = ["tests"]
+
+[tool.coverage.run]
+source = ["accounts", "aiproviders", "config", "core"]
+omit = ["*/migrations/*", "*/tests/*", "*/wsgi.py", "*/asgi.py"]
+
+[tool.coverage.report]
+show_missing = true
