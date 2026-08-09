@@ -32,10 +32,20 @@ class ProviderCredentialForm(forms.ModelForm):
             if spec.default_base_url
             else "Laisser vide pour l'URL officielle du fournisseur."
         )
-        self.fields["default_model"].help_text = (
-            f"Laisser vide pour utiliser {spec.default_model}. "
-            "L'identifiant doit correspondre au catalogue actuel du fournisseur."
-        )
+        # Quand le fournisseur sait publier son catalogue, ce champ est remplacé
+        # par un menu déroulant dès qu'une clé est enregistrée — l'aide annonce
+        # donc ce qui attend l'utilisateur au prochain passage.
+        if spec.supports_model_listing and not (self.instance.pk and self.instance.is_configured):
+            self.fields["default_model"].help_text = (
+                f"Laisser vide pour utiliser {spec.default_model}. "
+                "Une fois la clé enregistrée, le modèle se choisira dans la liste "
+                "des modèles disponibles sur ton compte."
+            )
+        else:
+            self.fields["default_model"].help_text = (
+                f"Laisser vide pour utiliser {spec.default_model}. "
+                "L'identifiant doit correspondre au catalogue actuel du fournisseur."
+            )
 
     def clean_secret(self) -> str:
         """Un champ vide conserve la clé existante plutôt que de l'effacer."""

@@ -22,6 +22,9 @@ class ProviderSpec:
     requires_api_key: bool = True
     #: Aide affichée sous le champ « URL de base » quand il est pertinent.
     base_url_help: str = ""
+    #: Vrai lorsque l'adaptateur sait énumérer le catalogue du fournisseur ; le
+    #: modèle se choisit alors dans un menu déroulant plutôt qu'à la saisie.
+    supports_model_listing: bool = False
 
 
 PROVIDERS: tuple[ProviderSpec, ...] = (
@@ -39,6 +42,7 @@ PROVIDERS: tuple[ProviderSpec, ...] = (
         credential_url="https://aistudio.google.com/apikey",
         default_model="gemini-2.5-pro",
         default_base_url="https://generativelanguage.googleapis.com",
+        supports_model_listing=True,
     ),
     ProviderSpec(
         slug="mistral",

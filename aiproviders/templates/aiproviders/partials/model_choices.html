@@ -1,0 +1,58 @@
+{% comment %}
+Champ « modèle par défaut » d'un fournisseur sachant énumérer son catalogue.
+Chargé en HTMX — voir aiproviders.views.credential_models.
+
+Le repli en saisie libre est délibéré : une panne côté fournisseur ne doit pas
+empêcher d'enregistrer une configuration.
+{% endcomment %}
+<div class="ugg-field">
+    <label class="ugg-field__label" for="id_default_model">Modèle par défaut</label>
+
+    <div class="ugg-field__control">
+        {% if models %}
+            <select name="default_model" id="id_default_model">
+                <option value="">Par défaut ({{ spec.default_model }})</option>
+                {% for model in models %}
+                    <option value="{{ model.identifier }}"
+                            {% if model.identifier == selected %}selected{% endif %}>
+                        {{ model.label }}
+                    </option>
+                {% endfor %}
+            </select>
+        {% else %}
+            <input type="text"
+                   name="default_model"
+                   id="id_default_model"
+                   maxlength="100"
+                   value="{{ selected }}"
+                   placeholder="{{ spec.default_model }}">
+        {% endif %}
+    </div>
+
+    {% if error %}
+        <p class="ugg-field__error">{{ error }}</p>
+        <p class="ugg-field__help">
+            Saisis l'identifiant du modèle à la main, ou
+            <button type="button"
+                    class="ugg-btn ugg-btn--ghost"
+                    hx-get="{% url 'aiproviders:models' spec.slug %}"
+                    hx-target="#model-picker"
+                    hx-indicator="#model-picker-spin">
+                Réessayer
+            </button>
+            <span id="model-picker-spin" class="ugg-indicator">
+                {% include "core/components/spinner.html" with variant="dumbbell" size="sm" label="Nouvelle tentative de chargement des modèles" %}
+            </span>
+        </p>
+    {% elif models %}
+        <p class="ugg-field__help">
+            {{ models|length }} modèle{{ models|pluralize }} lu{{ models|pluralize }} depuis ton
+            compte {{ spec.name }}. « Par défaut » utilise {{ spec.default_model }}.
+        </p>
+    {% else %}
+        <p class="ugg-field__help">
+            {{ spec.name }} ne propose aucun modèle de génération de texte sur ce compte.
+            Saisis l'identifiant à la main si tu sais lequel utiliser.
+        </p>
+    {% endif %}
+</div>

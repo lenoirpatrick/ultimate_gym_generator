@@ -94,6 +94,100 @@ def test_gemini_signale_une_reponse_filtree():
 
 
 # --------------------------------------------------------------------------- #
+# Gemini — catalogue des modèles (issue #7)
+# --------------------------------------------------------------------------- #
+
+CATALOGUE = {
+    "models": [
+        {
+            "name": "models/gemini-2.5-pro",
+            "displayName": "Gemini 2.5 Pro",
+            "supportedGenerationMethods": ["generateContent", "countTokens"],
+        },
+        {
+            "name": "models/text-embedding-004",
+            "displayName": "Text Embedding 004",
+            "supportedGenerationMethods": ["embedContent"],
+        },
+        {
+            "name": "models/gemini-2.5-flash",
+            "displayName": "Gemini 2.5 Flash",
+            "supportedGenerationMethods": ["generateContent"],
+        },
+    ]
+}
+
+
+def test_gemini_ne_retient_que_les_modeles_generant_du_texte():
+    """Un modèle d'embedding ne rédige pas un programme : il n'a rien à faire dans la liste."""
+    models = build("gemini", json_response(200, CATALOGUE)).list_models()
+
+    assert [model.identifier for model in models] == ["gemini-2.5-flash", "gemini-2.5-pro"]
+    assert models[0].label == "Gemini 2.5 Flash"
+
+
+def test_gemini_retient_un_modele_qui_n_annonce_pas_ses_methodes():
+    """Mieux vaut un modèle de trop qu'une liste vide si la réponse évolue."""
+    payload = {"models": [{"name": "models/gemini-3-pro", "displayName": "Gemini 3 Pro"}]}
+
+    models = build("gemini", json_response(200, payload)).list_models()
+
+    assert [model.identifier for model in models] == ["gemini-3-pro"]
+
+
+def test_gemini_retombe_sur_l_identifiant_sans_libelle():
+    payload = {"models": [{"name": "models/gemini-3-pro"}]}
+
+    models = build("gemini", json_response(200, payload)).list_models()
+
+    assert models[0].label == "gemini-3-pro"
+
+
+def test_gemini_traduit_une_cle_refusee_lors_du_listage():
+    with pytest.raises(ProviderError, match="Clé d'API refusée"):
+        build("gemini", json_response(401, {"error": "unauthorized"})).list_models()
+
+
+def test_gemini_reconnait_une_cle_invalide_derriere_un_400():
+    """Google refuse une clé mal formée en 400, pas en 401 : le pavé JSON n'aide personne."""
+    payload = {
+        "error": {
+            "code": 400,
+            "message": "API key not valid. Please pass a valid API key.",
+            "status": "INVALID_ARGUMENT",
+            "details": [{"reason": "API_KEY_INVALID"}],
+        }
+    }
+
+    result = build("gemini", json_response(400, payload)).ping()
+
+    assert result.message == "Clé d'API refusée."
+
+
+def test_gemini_remonte_le_message_de_google_plutot_que_le_corps_brut():
+    payload = {"error": {"code": 400, "message": "Le modèle demandé n'existe plus."}}
+
+    result = build("gemini", json_response(400, payload)).ping()
+
+    assert result.message == "Erreur HTTP 400 : Le modèle demandé n'existe plus."
+
+
+def test_gemini_traduit_un_serveur_injoignable_lors_du_listage():
+    def refuse(request):
+        raise httpx.ConnectError("connexion refusée", request=request)
+
+    with pytest.raises(ProviderError, match="injoignable"):
+        build("gemini", refuse).list_models()
+
+
+@pytest.mark.parametrize("provider", ["mistral", "ollama"])
+def test_un_fournisseur_sans_catalogue_le_dit_clairement(provider):
+    """Seul Gemini annonce `supports_model_listing` ; les autres n'ont pas à répondre."""
+    with pytest.raises(ProviderError, match="ne sait pas énumérer"):
+        build(provider, json_response(200, {})).list_models()
+
+
+# --------------------------------------------------------------------------- #
 # Mistral
 # --------------------------------------------------------------------------- #
 

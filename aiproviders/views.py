@@ -52,7 +52,17 @@ def credential_edit(request: HttpRequest, provider: str) -> HttpResponse:
     return render(
         request,
         "aiproviders/credential_form.html",
-        {"form": form, "spec": spec, "credential": instance},
+        {
+            "form": form,
+            "spec": spec,
+            "credential": instance,
+            # Le menu déroulant des modèles suppose des credentials utilisables :
+            # sans clé enregistrée, le catalogue est hors de portée et le champ
+            # reste une saisie libre.
+            "offers_model_picker": spec.supports_model_listing
+            and instance is not None
+            and instance.is_configured,
+        },
     )
 
 
@@ -74,3 +84,40 @@ def credential_test(request: HttpRequest, provider: str) -> HttpResponse:
             result = {"ok": False, "message": str(exc)}
 
     return render(request, "aiproviders/partials/test_result.html", {"result": result})
+
+
+@login_required
+@staff_required
+def credential_models(request: HttpRequest, provider: str) -> HttpResponse:
+    """Menu déroulant des modèles du fournisseur, chargé en HTMX.
+
+    Le catalogue vit chez le fournisseur : le charger à l'affichage du
+    formulaire rendrait l'écran tributaire d'un appel réseau. Il arrive donc
+    après coup, et son échec laisse le champ saisissable à la main.
+    """
+    spec = _spec_or_404(provider)
+    if not spec.supports_model_listing:
+        raise Http404(f"{spec.name} ne publie pas la liste de ses modèles.")
+
+    credential = ProviderCredential.objects.filter(provider=provider).first()
+    models: list = []
+    error = None
+
+    if credential is None or not credential.is_configured:
+        error = f"Enregistre d'abord une clé pour consulter les modèles de {spec.name}."
+    else:
+        try:
+            models = get_client(credential).list_models()
+        except ProviderError as exc:
+            error = str(exc)
+
+    return render(
+        request,
+        "aiproviders/partials/model_choices.html",
+        {
+            "spec": spec,
+            "models": models,
+            "error": error,
+            "selected": credential.default_model if credential else "",
+        },
+    )
