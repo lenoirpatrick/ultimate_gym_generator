@@ -1,0 +1,50 @@
+{% comment %}
+Carte d'un exercice : ce qu'il faut pour décider si on le retient.
+
+Le nom vient de la source, en anglais ; les caractéristiques sont traduites.
+Les consignes sont repliées : elles ne servent qu'une fois l'exercice choisi, et
+déroulées elles noieraient la grille.
+{% endcomment %}
+<article class="ugg-card ugg-exercise flex flex-col p-4">
+    <h3 class="ugg-title text-base">{{ exercise.name }}</h3>
+
+    <p class="ugg-exercise__tags mt-3">
+        <span class="ugg-tag ugg-tag--accent">{{ exercise.get_category_display }}</span>
+        <span class="ugg-tag">{{ exercise.get_level_display }}</span>
+        {% if exercise.equipment %}
+            <span class="ugg-tag">{{ exercise.get_equipment_display }}</span>
+        {% endif %}
+        {% if exercise.force %}
+            <span class="ugg-tag">{{ exercise.get_force_display }}</span>
+        {% endif %}
+        {% if exercise.mechanic %}
+            <span class="ugg-tag">{{ exercise.get_mechanic_display }}</span>
+        {% endif %}
+    </p>
+
+    <dl class="mt-4 grid gap-1 text-sm">
+        {% if exercise.primary_muscles.all %}
+            <div class="flex flex-wrap gap-2">
+                <dt class="text-muted">Principal</dt>
+                <dd>{% for muscle in exercise.primary_muscles.all %}{{ muscle.name }}{% if not forloop.last %}, {% endif %}{% endfor %}</dd>
+            </div>
+        {% endif %}
+        {% if exercise.secondary_muscles.all %}
+            <div class="flex flex-wrap gap-2">
+                <dt class="text-muted">Secondaire</dt>
+                <dd class="text-muted">{% for muscle in exercise.secondary_muscles.all %}{{ muscle.name }}{% if not forloop.last %}, {% endif %}{% endfor %}</dd>
+            </div>
+        {% endif %}
+    </dl>
+
+    {% if exercise.instructions %}
+        <details class="ugg-exercise__steps mt-4">
+            <summary>Comment l'exécuter</summary>
+            <ol class="mt-3 grid gap-2 text-sm">
+                {% for step in exercise.instructions %}
+                    <li>{{ step }}</li>
+                {% endfor %}
+            </ol>
+        </details>
+    {% endif %}
+</article>

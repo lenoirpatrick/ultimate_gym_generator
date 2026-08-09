@@ -1,0 +1,75 @@
+{% comment %}
+Résultats de la recherche : compteur, grille de cartes, pagination.
+Bloc remplacé à chaque changement de critère — voir exercises.views.exercise_list.
+{% endcomment %}
+{% if oob %}
+    {% comment %}
+    Les compteurs des critères vivent hors de ce bloc : ils voyagent avec la
+    réponse pour rester exacts, sans que le formulaire soit re-rendu — ce qui
+    refermerait le panneau que l'utilisateur vient d'ouvrir.
+    {% endcomment %}
+    {% for group in groups %}
+        {% include "exercises/partials/filter_badge.html" with group=group oob=True %}
+    {% endfor %}
+{% endif %}
+<div class="flex flex-wrap items-baseline justify-between gap-3">
+    <p class="ugg-eyebrow">
+        {% if page.paginator.count %}
+            {{ page.paginator.count }} exercice{{ page.paginator.count|pluralize }}
+            {% if filtered %}sur {{ total }}{% endif %}
+        {% endif %}
+    </p>
+
+    {% if filtered %}
+        <a href="{% url 'exercises:list' %}" class="text-sm">Tout effacer</a>
+    {% endif %}
+</div>
+
+{% if page.paginator.count %}
+    <div class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {% for exercise in page %}
+            {% include "exercises/partials/card.html" with exercise=exercise %}
+        {% endfor %}
+    </div>
+
+    {% if page.paginator.num_pages > 1 %}
+        <nav class="mt-8 flex flex-wrap items-center justify-between gap-3"
+             aria-label="Pagination des exercices">
+            {% if page.has_previous %}
+                <a class="ugg-btn ugg-btn--ghost"
+                   href="?{% if query %}{{ query }}&{% endif %}page={{ page.previous_page_number }}"
+                   hx-get="?{% if query %}{{ query }}&{% endif %}page={{ page.previous_page_number }}"
+                   hx-target="#resultats"
+                   hx-push-url="true">
+                    Précédent
+                </a>
+            {% else %}
+                <span></span>
+            {% endif %}
+
+            <span class="text-sm text-muted">
+                Page {{ page.number }} sur {{ page.paginator.num_pages }}
+            </span>
+
+            {% if page.has_next %}
+                <a class="ugg-btn ugg-btn--ghost"
+                   href="?{% if query %}{{ query }}&{% endif %}page={{ page.next_page_number }}"
+                   hx-get="?{% if query %}{{ query }}&{% endif %}page={{ page.next_page_number }}"
+                   hx-target="#resultats"
+                   hx-push-url="true">
+                    Suivant
+                </a>
+            {% else %}
+                <span></span>
+            {% endif %}
+        </nav>
+    {% endif %}
+
+{% elif filtered %}
+    {% url 'exercises:list' as reset_url %}
+    {% include "core/components/empty_state.html" with title="Aucun exercice ne correspond" body="Aucun mouvement ne réunit tous ces critères. Décoche-en un, en commençant par le matériel." action_url=reset_url action_label="Tout effacer" %}
+
+{% else %}
+    {% url 'exercises:loading' as loading_url %}
+    {% include "core/components/empty_state.html" with title="Catalogue vide" body="Aucun exercice n'est encore chargé en base." action_url=loading_url action_label="Charger le catalogue" %}
+{% endif %}

@@ -101,6 +101,29 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
   `aria-valuemax` et un `aria-label` ; stries et transition de largeur neutralisées sous
   `prefers-reduced-motion: reduce`.
 
+### Filtres de catalogue
+
+- Un critère de filtrage est un panneau **repliable natif** (`<details>`), jamais un
+  `<select multiple>` — impraticable au pouce. Composant :
+  `exercises/templates/exercises/partials/filter_group.html`.
+- Replié par défaut, **déplié dès qu'une de ses cases est cochée**, et le nombre de
+  sélections reste affiché sur l'onglet fermé : un filtre actif ne doit jamais pouvoir
+  s'oublier.
+- Sémantique constante : plusieurs valeurs d'un même critère s'additionnent (OU), deux
+  critères se cumulent (ET).
+- Chaque changement relance la recherche et **réécrit l'adresse** (`hx-push-url`), pour
+  qu'une sélection se partage et survive à un rechargement.
+- La zone de résultats porte `aria-live="polite"` : le nombre de résultats change sans
+  rechargement et doit être annoncé.
+
+### Cartes de catalogue
+
+- Une carte présente les caractéristiques qui servent à **décider**, pas la fiche
+  complète. Le détail long (consignes d'exécution) est replié.
+- Les caractéristiques sont des étiquettes `.ugg-tag`. **Une seule accentuée par carte**
+  — la catégorie ; au-delà, plus rien ne ressort.
+- Grille responsive : une colonne au pouce, deux à partir de `sm`, trois à partir de `lg`.
+
 ### Avatars
 
 - Photo déposée par l'utilisateur, ou **ses initiales** à défaut — jamais une

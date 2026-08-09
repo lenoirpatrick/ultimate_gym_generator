@@ -82,6 +82,34 @@
     </section>
 
     <section class="mt-12">
+        <h2 class="ugg-title text-xl">Étiquettes de caractéristique</h2>
+        <p class="mt-2 text-muted">
+            Une seule accentuée par carte — celle qui donne la nature de l'élément.
+            Au-delà, plus rien ne ressort.
+        </p>
+        <div class="mt-6 flex flex-wrap gap-2">
+            <span class="ugg-tag ugg-tag--accent">Renforcement</span>
+            <span class="ugg-tag">Débutant</span>
+            <span class="ugg-tag">Barre</span>
+            <span class="ugg-tag">Polyarticulaire</span>
+        </div>
+    </section>
+
+    <section class="mt-12">
+        <h2 class="ugg-title text-xl">Filtre repliable</h2>
+        <p class="mt-2 text-muted">
+            Jamais de <code class="font-mono">select multiple</code>, impraticable au pouce.
+            Replié par défaut, déplié dès qu'une case est cochée, avec le nombre de
+            sélections visible sur l'onglet fermé.
+        </p>
+        <div class="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {% for group in filter_demos %}
+                {% include "exercises/partials/filter_group.html" with group=group %}
+            {% endfor %}
+        </div>
+    </section>
+
+    <section class="mt-12">
         <h2 class="ugg-title text-xl">Couleurs</h2>
         <div class="mt-6 grid gap-3 sm:grid-cols-3 lg:grid-cols-5">
             {% for name, var in swatches %}

@@ -55,6 +55,8 @@ def style_guide(request: HttpRequest) -> HttpResponse:
     if not settings.DEBUG:
         raise Http404
 
+    from exercises.filters import FilterGroup, Option
+
     user_model = get_user_model()
     return render(
         request,
@@ -66,6 +68,26 @@ def style_guide(request: HttpRequest) -> HttpResponse:
             "avatar_demos": [
                 user_model(first_name="Alex", last_name="Martin"),
                 user_model(email="coach@example.test"),
+            ],
+            "filter_demos": [
+                FilterGroup(
+                    name="niveau",
+                    legend="Niveau",
+                    options=[
+                        Option("beginner", "Débutant", True),
+                        Option("intermediate", "Intermédiaire", True),
+                        Option("expert", "Confirmé", False),
+                    ],
+                ),
+                FilterGroup(
+                    name="materiel",
+                    legend="Matériel",
+                    options=[
+                        Option("barbell", "Barre", False),
+                        Option("dumbbell", "Haltères", False),
+                        Option("body only", "Poids du corps", False),
+                    ],
+                ),
             ],
         },
     )

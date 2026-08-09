@@ -1,0 +1,13 @@
+{% comment %}
+Compteur de cases cochées d'un critère.
+
+Rendu à part parce qu'il vit hors du bloc de résultats : après un filtrage HTMX,
+il est réinjecté par échange hors-bande (`hx-swap-oob`). Sans cela, refermer un
+critère masquerait le fait qu'il filtre encore.
+{% endcomment %}
+<span class="ugg-filter__badge-slot" id="badge-{{ group.name }}"{% if oob %} hx-swap-oob="true"{% endif %}>
+    {% if group.selected_count %}
+        <span class="ugg-filter__badge">{{ group.selected_count }}</span>
+        <span class="sr-only">critère{{ group.selected_count|pluralize }} coché{{ group.selected_count|pluralize }}</span>
+    {% endif %}
+</span>

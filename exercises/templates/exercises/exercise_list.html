@@ -1,0 +1,56 @@
+{% extends "core/base.html" %}
+
+{% block title %}Exercices — {{ site_name }}{% endblock %}
+
+{% block content %}
+    <p class="ugg-eyebrow">Catalogue</p>
+    <h1 class="ugg-title mt-2 text-3xl">Exercices</h1>
+    <p class="mt-3 max-w-2xl text-muted">
+        {{ total }} mouvements référencés. Coche des critères pour ne garder que ceux
+        que tu peux faire avec le matériel dont tu disposes.
+    </p>
+
+    {% comment %}
+    Un seul formulaire pour tous les critères : chaque changement de case relance
+    la recherche et réécrit l'adresse, si bien qu'une sélection se partage et
+    survit à un rechargement. Le bouton de repli n'existe que sans JavaScript,
+    où HTMX ne peut pas relayer.
+    {% endcomment %}
+    <form class="mt-8"
+          method="get"
+          action="{% url 'exercises:list' %}"
+          hx-get="{% url 'exercises:list' %}"
+          hx-trigger="change"
+          hx-target="#resultats"
+          hx-push-url="true"
+          hx-indicator="#recherche-en-cours">
+
+        <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {% for group in groups %}
+                {% include "exercises/partials/filter_group.html" with group=group %}
+            {% endfor %}
+        </div>
+
+        <div class="mt-4 flex flex-wrap items-center gap-3">
+            <noscript>
+                <button type="submit" class="ugg-btn ugg-btn--primary">Filtrer</button>
+            </noscript>
+
+            {% comment %}
+            L'indicateur reste hors du bloc remplacé, sinon il disparaîtrait avec
+            la réponse qu'il annonce.
+            {% endcomment %}
+            <span id="recherche-en-cours" class="ugg-indicator">
+                {% include "core/components/spinner.html" with variant="runner" size="md" label="Recherche en cours" visible_label=True %}
+            </span>
+        </div>
+    </form>
+
+    {% comment %}
+    aria-live : le nombre de résultats change sans rechargement, il doit être
+    annoncé à qui ne voit pas la liste se réordonner.
+    {% endcomment %}
+    <div id="resultats" class="mt-8" aria-live="polite">
+        {% include "exercises/partials/results.html" %}
+    </div>
+{% endblock %}

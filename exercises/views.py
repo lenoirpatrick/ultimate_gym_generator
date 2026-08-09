@@ -7,11 +7,52 @@ cache partagé n'est nécessaire pour la connaître.
 """
 
 from django.contrib.auth.decorators import login_required
+from django.core.paginator import Paginator
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import redirect, render
 from django.views.decorators.http import require_POST
 
-from . import catalog
+from . import catalog, filters
+from .models import Exercise
+
+#: Cartes par page. Assez pour remplir un grand écran, assez peu pour qu'un
+#: téléphone ne charge pas 873 fiches d'un coup.
+PAGE_SIZE = 24
+
+
+@login_required
+def exercise_list(request: HttpRequest) -> HttpResponse:
+    """Catalogue filtrable.
+
+    La même vue sert la page entière et, en HTMX, le seul bloc de résultats :
+    l'adresse porte donc toujours les critères cochés, ce qui rend une sélection
+    partageable et rechargeable.
+    """
+    groups = filters.build_groups(request.GET)
+    queryset = filters.filter_exercises(request.GET).order_by("name")
+
+    page = Paginator(queryset, PAGE_SIZE).get_page(request.GET.get("page"))
+
+    context = {
+        "groups": groups,
+        "page": page,
+        "total": Exercise.objects.count(),
+        "filtered": filters.has_active_filters(groups),
+        "query": _query_without_page(request.GET),
+    }
+
+    if request.headers.get("HX-Request"):
+        # Les compteurs de critères accompagnent la réponse en échange
+        # hors-bande ; à la première charge, ils sont déjà dans le formulaire.
+        return render(request, "exercises/partials/results.html", context | {"oob": True})
+    return render(request, "exercises/exercise_list.html", context)
+
+
+def _query_without_page(params) -> str:
+    """Critères sérialisés sans le numéro de page, pour construire les liens de pagination."""
+    remaining = params.copy()
+    remaining.pop("page", None)
+    return remaining.urlencode()
 
 
 @login_required

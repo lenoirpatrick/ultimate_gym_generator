@@ -1,0 +1,26 @@
+{% comment %}
+Un critère de filtrage, replié par défaut.
+
+Replié parce que quatre critères déroulés — dont dix-sept muscles — repousseraient
+les résultats hors de l'écran sur un téléphone. Le nombre de cases cochées reste
+visible sur l'onglet fermé, pour qu'on n'oublie jamais un filtre actif.
+{% endcomment %}
+<details class="ugg-filter"{% if group.selected_count %} open{% endif %}>
+    <summary class="ugg-filter__summary">
+        <span>{{ group.legend }}</span>
+        {% include "exercises/partials/filter_badge.html" with group=group oob=False %}
+    </summary>
+
+    <fieldset class="ugg-filter__options">
+        <legend class="sr-only">{{ group.legend }}</legend>
+        {% for option in group.options %}
+            <label class="ugg-filter__option">
+                <input type="checkbox"
+                       name="{{ group.name }}"
+                       value="{{ option.value }}"
+                       {% if option.selected %}checked{% endif %}>
+                <span>{{ option.label }}</span>
+            </label>
+        {% endfor %}
+    </fieldset>
+</details>
