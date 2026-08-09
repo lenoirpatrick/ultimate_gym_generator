@@ -1,14 +1,25 @@
 {% extends "core/base.html" %}
 
-{% block title %}Exercices — {{ site_name }}{% endblock %}
+{% block title %}
+    {% if favorites_page %}Mes favoris{% else %}Exercices{% endif %} — {{ site_name }}
+{% endblock %}
 
 {% block content %}
-    <p class="ugg-eyebrow">Catalogue</p>
-    <h1 class="ugg-title mt-2 text-3xl">Exercices</h1>
-    <p class="mt-3 max-w-2xl text-muted">
-        {{ total }} mouvements référencés. Coche des critères pour ne garder que ceux
-        que tu peux faire avec le matériel dont tu disposes.
-    </p>
+    {% if favorites_page %}
+        <p class="ugg-eyebrow">Catalogue</p>
+        <h1 class="ugg-title mt-2 text-3xl">Mes favoris</h1>
+        <p class="mt-3 max-w-2xl text-muted">
+            Les mouvements que tu as mis de côté. Ils reviendront dans tes séances
+            selon la part de favoris que tu choisis.
+        </p>
+    {% else %}
+        <p class="ugg-eyebrow">Catalogue</p>
+        <h1 class="ugg-title mt-2 text-3xl">Exercices</h1>
+        <p class="mt-3 max-w-2xl text-muted">
+            {{ total }} mouvements référencés. Coche des critères pour ne garder que ceux
+            que tu peux faire avec le matériel dont tu disposes.
+        </p>
+    {% endif %}
 
     {% comment %}
     Un seul formulaire pour tous les critères : chaque changement de case relance
@@ -18,8 +29,8 @@
     {% endcomment %}
     <form class="mt-8"
           method="get"
-          action="{% url 'exercises:list' %}"
-          hx-get="{% url 'exercises:list' %}"
+          action="{{ base_url }}"
+          hx-get="{{ base_url }}"
           hx-trigger="change"
           hx-target="#resultats"
           hx-push-url="true"
@@ -32,6 +43,18 @@
         </div>
 
         <div class="mt-4 flex flex-wrap items-center gap-3">
+            {% if not favorites_page %}
+                {% comment %}
+                Critère à part : une seule valeur, donc une case directement visible
+                plutôt qu'un cinquième panneau à déplier pour une ligne.
+                {% endcomment %}
+                <label class="ugg-filter__option ugg-filter__option--standalone">
+                    <input type="checkbox" name="favoris" value="1"
+                           {% if favorites_only %}checked{% endif %}>
+                    <span>Mes favoris uniquement</span>
+                </label>
+            {% endif %}
+
             <noscript>
                 <button type="submit" class="ugg-btn ugg-btn--primary">Filtrer</button>
             </noscript>

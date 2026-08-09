@@ -116,6 +116,15 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
 - La zone de résultats porte `aria-live="polite"` : le nombre de résultats change sans
   rechargement et doit être annoncé.
 
+### Bascules d'état (favori)
+
+- Une bascule affiche **toujours son libellé** à côté de l'icône : une étoile seule ne dit
+  pas si elle montre l'état actuel ou l'action à venir. Le libellé nomme l'action
+  (« Ajouter aux favoris » / « Retirer des favoris »).
+- L'état est porté par `aria-pressed`, jamais par la seule couleur.
+- Composant : `exercises/templates/exercises/partials/favorite_button.html`. Le bouton se
+  remplace lui-même (`hx-swap="outerHTML"`) — pas de rechargement pour un simple marquage.
+
 ### Cartes de catalogue
 
 - Une carte présente les caractéristiques qui servent à **décider**, pas la fiche

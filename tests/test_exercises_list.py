@@ -286,9 +286,9 @@ def test_un_numero_de_page_illisible_ne_casse_pas_la_liste(logged_client):
 # --------------------------------------------------------------------------- #
 
 
-def test_les_muscles_sont_precharges(django_assert_num_queries):
+def test_les_muscles_sont_precharges(django_assert_num_queries, user):
     """Sans préchargement, chaque carte ajouterait deux requêtes au rendu de la grille."""
-    exercises = list(filters.filter_exercises(QueryDict()))
+    exercises = list(filters.filter_exercises(QueryDict(), user))
     assert len(exercises) == TOTAL
 
     with django_assert_num_queries(0):

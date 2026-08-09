@@ -56,8 +56,14 @@ def style_guide(request: HttpRequest) -> HttpResponse:
         raise Http404
 
     from exercises.filters import FilterGroup, Option
+    from exercises.models import Exercise
 
     user_model = get_user_model()
+
+    # Instances non enregistrées : la bascule s'illustre sans écrire en base.
+    favorite_demos = [Exercise(pk=1, name="Non marqué"), Exercise(pk=2, name="Marqué")]
+    favorite_demos[0].is_favorite = False
+    favorite_demos[1].is_favorite = True
     return render(
         request,
         "core/style_guide.html",
@@ -69,6 +75,7 @@ def style_guide(request: HttpRequest) -> HttpResponse:
                 user_model(first_name="Alex", last_name="Martin"),
                 user_model(email="coach@example.test"),
             ],
+            "favorite_demos": favorite_demos,
             "filter_demos": [
                 FilterGroup(
                     name="niveau",

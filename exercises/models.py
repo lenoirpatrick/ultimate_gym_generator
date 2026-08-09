@@ -5,6 +5,7 @@ valeurs sont en anglais. Les identifiants restent ceux du fichier — ils serven
 de clé d'import stable — et les libellés affichés sont traduits ici.
 """
 
+from django.conf import settings
 from django.db import models
 
 
@@ -26,6 +27,33 @@ class Muscle(models.Model):
 
     def __str__(self) -> str:
         return self.name
+
+
+class Favorite(models.Model):
+    """Exercice mis de côté par un utilisateur.
+
+    Table de liaison explicite plutôt qu'un `ManyToManyField` nu : la date
+    d'ajout permet de retrouver les derniers marqués, et la contrainte
+    d'unicité rend le basculement idempotent — deux clics rapprochés ne
+    créent pas deux lignes.
+    """
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="favorites"
+    )
+    exercise = models.ForeignKey("Exercise", on_delete=models.CASCADE, related_name="favorited_by")
+    created_at = models.DateTimeField("ajouté le", auto_now_add=True)
+
+    class Meta:
+        verbose_name = "favori"
+        verbose_name_plural = "favoris"
+        ordering = ("-created_at",)
+        constraints = [
+            models.UniqueConstraint(fields=["user", "exercise"], name="unique_favorite_per_user")
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.exercise} — {self.user}"
 
 
 class Exercise(models.Model):

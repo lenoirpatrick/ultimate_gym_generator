@@ -47,4 +47,9 @@ déroulées elles noieraient la grille.
             </ol>
         </details>
     {% endif %}
+
+    {# `mt-auto` cale la bascule en bas : les cartes d'une même ligne s'alignent. #}
+    <div class="mt-auto pt-4">
+        {% include "exercises/partials/favorite_button.html" with exercise=exercise %}
+    </div>
 </article>

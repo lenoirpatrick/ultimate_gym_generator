@@ -427,6 +427,49 @@
     accent-color: var(--ugg-accent);
 }
 
+/* Case de filtre isolée, hors panneau repliable. */
+.ugg-filter__option--standalone {
+    border: 1px solid var(--ugg-border);
+    background: var(--ugg-surface-raised);
+}
+
+/* Bascule « favori ». L'étoile ne part jamais seule : son libellé dit l'action,
+   faute de quoi on ne sait pas si l'icône montre l'état ou ce qui va arriver. */
+.ugg-favorite {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--ugg-space-2);
+    min-height: var(--ugg-touch-target);
+    padding: 0 var(--ugg-space-3);
+    border: 1px solid var(--ugg-border);
+    border-radius: var(--ugg-radius-md);
+    background: transparent;
+    color: var(--ugg-text-muted);
+    cursor: pointer;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: var(--ugg-tracking-label);
+    text-transform: uppercase;
+    transition: color var(--ugg-duration-fast) var(--ugg-ease),
+                border-color var(--ugg-duration-fast) var(--ugg-ease);
+}
+
+.ugg-favorite:hover {
+    border-color: var(--ugg-accent);
+    color: var(--ugg-text);
+}
+
+.ugg-favorite--on {
+    border-color: var(--ugg-accent);
+    color: var(--ugg-accent);
+}
+
+.ugg-favorite__icon {
+    flex: none;
+    width: 1.125rem;
+    height: 1.125rem;
+}
+
 /* Étiquette de caractéristique sur une carte de catalogue. */
 .ugg-tag {
     display: inline-flex;

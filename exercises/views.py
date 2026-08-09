@@ -9,11 +9,12 @@ cache partagé n'est nécessaire pour la connaître.
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from django.http import HttpRequest, HttpResponse
-from django.shortcuts import redirect, render
+from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.views.decorators.http import require_POST
 
 from . import catalog, filters
-from .models import Exercise
+from .models import Exercise, Favorite
 
 #: Cartes par page. Assez pour remplir un grand écran, assez peu pour qu'un
 #: téléphone ne charge pas 873 fiches d'un coup.
@@ -28,17 +29,38 @@ def exercise_list(request: HttpRequest) -> HttpResponse:
     l'adresse porte donc toujours les critères cochés, ce qui rend une sélection
     partageable et rechargeable.
     """
-    groups = filters.build_groups(request.GET)
-    queryset = filters.filter_exercises(request.GET).order_by("name")
+    return _render_catalog(request, request.GET)
 
-    page = Paginator(queryset, PAGE_SIZE).get_page(request.GET.get("page"))
+
+@login_required
+def favorite_list(request: HttpRequest) -> HttpResponse:
+    """Catalogue restreint aux favoris.
+
+    Même écran que le catalogue, critère « Mes favoris » imposé : une adresse
+    qu'on garde en marque-page, plutôt qu'une case à recocher à chaque visite.
+    """
+    params = request.GET.copy()
+    params[filters.FAVORITES_PARAM] = "1"
+    return _render_catalog(request, params, favorites_page=True)
+
+
+def _render_catalog(request: HttpRequest, params, favorites_page: bool = False) -> HttpResponse:
+    groups = filters.build_groups(params)
+    queryset = filters.filter_exercises(params, request.user).order_by("name")
+
+    page = Paginator(queryset, PAGE_SIZE).get_page(params.get("page"))
 
     context = {
         "groups": groups,
         "page": page,
         "total": Exercise.objects.count(),
-        "filtered": filters.has_active_filters(groups),
-        "query": _query_without_page(request.GET),
+        "filtered": filters.has_active_filters(groups, params),
+        "favorites_only": filters.favorites_only(params),
+        "favorites_page": favorites_page,
+        # Les liens du bloc de résultats doivent rester sur l'écran courant :
+        # « Tout effacer » depuis les favoris ne renvoie pas au catalogue entier.
+        "base_url": reverse("exercises:favorites" if favorites_page else "exercises:list"),
+        "query": _query_without_page(params),
     }
 
     if request.headers.get("HX-Request"):
@@ -46,6 +68,24 @@ def exercise_list(request: HttpRequest) -> HttpResponse:
         # hors-bande ; à la première charge, ils sont déjà dans le formulaire.
         return render(request, "exercises/partials/results.html", context | {"oob": True})
     return render(request, "exercises/exercise_list.html", context)
+
+
+@login_required
+@require_POST
+def toggle_favorite(request: HttpRequest, pk: int) -> HttpResponse:
+    """Ajoute ou retire un favori, et rend le bouton dans son nouvel état."""
+    exercise = get_object_or_404(Exercise, pk=pk)
+
+    favorite, created = Favorite.objects.get_or_create(user=request.user, exercise=exercise)
+    if not created:
+        favorite.delete()
+
+    exercise.is_favorite = created
+    return render(
+        request,
+        "exercises/partials/favorite_button.html",
+        {"exercise": exercise},
+    )
 
 
 def _query_without_page(params) -> str:

@@ -63,6 +63,15 @@ def logged_client(client, user):
 
 
 @pytest.fixture
-def staff_client(client, staff):
-    client.force_login(staff)
-    return client
+def staff_client(staff):
+    """Client distinct de `logged_client`, pour qu'un test puisse utiliser les deux.
+
+    La fixture `client` de pytest-django est unique par test : la partager
+    ferait que la seconde connexion écrase la première, et le test observerait
+    silencieusement le mauvais utilisateur.
+    """
+    from django.test import Client
+
+    session = Client()
+    session.force_login(staff)
+    return session

@@ -9,9 +9,9 @@ doit pas casser parce que le référentiel a changé depuis.
 
 from dataclasses import dataclass
 
-from django.db.models import Q, QuerySet
+from django.db.models import Exists, OuterRef, Q, QuerySet
 
-from .models import Exercise, Muscle
+from .models import Exercise, Favorite, Muscle
 
 
 @dataclass(frozen=True)
@@ -45,6 +45,10 @@ CHOICE_FILTERS: tuple[tuple[str, str, str, type], ...] = (
 )
 
 MUSCLE_PARAM = "muscle"
+
+#: Critère à part : il ne porte qu'une case et dépend de l'utilisateur, là où
+#: les autres se décrivent par une énumération fermée.
+FAVORITES_PARAM = "favoris"
 
 
 def selected_values(params, name: str, allowed: set[str]) -> list[str]:
@@ -86,9 +90,18 @@ def build_groups(params) -> list[FilterGroup]:
     return groups
 
 
-def filter_exercises(params) -> QuerySet[Exercise]:
-    """Catalogue restreint aux critères cochés."""
-    queryset = Exercise.objects.all()
+def favorites_only(params) -> bool:
+    """Vrai lorsque la case « Mes favoris » est cochée."""
+    return params.get(FAVORITES_PARAM) == "1"
+
+
+def filter_exercises(params, user) -> QuerySet[Exercise]:
+    """Catalogue restreint aux critères cochés, annoté de l'état « favori »."""
+    marked = Favorite.objects.filter(user=user.pk, exercise=OuterRef("pk"))
+    queryset = Exercise.objects.annotate(is_favorite=Exists(marked))
+
+    if favorites_only(params):
+        queryset = queryset.filter(is_favorite=True)
 
     for name, field, _legend, choices in CHOICE_FILTERS:
         values = selected_values(params, name, set(choices.values))
@@ -109,5 +122,5 @@ def filter_exercises(params) -> QuerySet[Exercise]:
     return queryset.prefetch_related("primary_muscles", "secondary_muscles")
 
 
-def has_active_filters(groups: list[FilterGroup]) -> bool:
-    return any(group.selected_count for group in groups)
+def has_active_filters(groups: list[FilterGroup], params) -> bool:
+    return favorites_only(params) or any(group.selected_count for group in groups)

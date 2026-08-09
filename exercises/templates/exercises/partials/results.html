@@ -21,7 +21,7 @@ Bloc remplacé à chaque changement de critère — voir exercises.views.exercis
     </p>
 
     {% if filtered %}
-        <a href="{% url 'exercises:list' %}" class="text-sm">Tout effacer</a>
+        <a href="{{ base_url }}" class="text-sm">Tout effacer</a>
     {% endif %}
 </div>
 
@@ -65,9 +65,12 @@ Bloc remplacé à chaque changement de critère — voir exercises.views.exercis
         </nav>
     {% endif %}
 
+{% elif favorites_page %}
+    {% url 'exercises:list' as catalog_url %}
+    {% include "core/components/empty_state.html" with title="Aucun favori" body="Parcours le catalogue et marque les mouvements que tu veux retrouver — ils reviendront dans tes séances." action_url=catalog_url action_label="Ouvrir le catalogue" %}
+
 {% elif filtered %}
-    {% url 'exercises:list' as reset_url %}
-    {% include "core/components/empty_state.html" with title="Aucun exercice ne correspond" body="Aucun mouvement ne réunit tous ces critères. Décoche-en un, en commençant par le matériel." action_url=reset_url action_label="Tout effacer" %}
+    {% include "core/components/empty_state.html" with title="Aucun exercice ne correspond" body="Aucun mouvement ne réunit tous ces critères. Décoche-en un, en commençant par le matériel." action_url=base_url action_label="Tout effacer" %}
 
 {% else %}
     {% url 'exercises:loading' as loading_url %}
