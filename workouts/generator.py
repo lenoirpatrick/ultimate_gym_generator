@@ -262,9 +262,20 @@ def build_blueprint(
 # --------------------------------------------------------------------------- #
 
 
-def eligible_exercises(user, muscles: list[str]) -> QuerySet[Exercise]:
-    """Exercices réalisables par cet utilisateur, ciblant les muscles demandés."""
+def eligible_exercises(
+    user, muscles: list[str], equipment: list[str] | None = None
+) -> QuerySet[Exercise]:
+    """Exercices réalisables par cet utilisateur, ciblant les muscles demandés.
+
+    `equipment` restreint le matériel réellement pris en compte pour cette
+    séance (issue #32) : un sous-ensemble du matériel configuré, coché
+    directement dans le formulaire, indépendant de la configuration
+    elle-même. `None` retient tout le matériel configuré, comme avant cette
+    option ; une liste, même vide, est prise au mot.
+    """
     owned = set(UserEquipment.objects.filter(user=user).values_list("equipment", flat=True))
+    if equipment is not None:
+        owned &= set(equipment)
     # Le poids du corps ne se déclare pas : il est toujours disponible.
     owned.add(BODYWEIGHT)
     owned.add("")
@@ -281,14 +292,21 @@ def eligible_exercises(user, muscles: list[str]) -> QuerySet[Exercise]:
     return queryset
 
 
-def select_exercises(user, muscles: list[str], needed: int, ratio: int, rng) -> list[Exercise]:
+def select_exercises(
+    user,
+    muscles: list[str],
+    needed: int,
+    ratio: int,
+    rng,
+    equipment: list[str] | None = None,
+) -> list[Exercise]:
     """Tire les exercices de la séance, en y glissant la part de favoris demandée.
 
     Les favoris ne sont pas privilégiés dans l'absolu : ils occupent la part
     réclamée, ni plus ni moins. C'est ce qui évite une séance entièrement
     composée de mouvements inconnus.
     """
-    pool = list(eligible_exercises(user, muscles))
+    pool = list(eligible_exercises(user, muscles, equipment))
     if not pool:
         raise GenerationError(
             "Aucun exercice ne correspond à ce matériel et à ces parties du corps. "
@@ -329,11 +347,12 @@ def select_exercises(user, muscles: list[str], needed: int, ratio: int, rng) -> 
 # --------------------------------------------------------------------------- #
 
 
-def load_options(user) -> dict[str, list[Decimal]]:
-    """Charges disponibles, par matériel."""
-    return {
-        item.equipment: item.available_loads() for item in UserEquipment.objects.filter(user=user)
-    }
+def load_options(user, equipment: list[str] | None = None) -> dict[str, list[Decimal]]:
+    """Charges disponibles, par matériel pris en compte (voir `eligible_exercises`)."""
+    queryset = UserEquipment.objects.filter(user=user)
+    if equipment is not None:
+        queryset = queryset.filter(equipment__in=equipment)
+    return {item.equipment: item.available_loads() for item in queryset}
 
 
 def _pick_load(exercise: Exercise, options: dict[str, list[Decimal]]) -> Decimal | None:
@@ -377,16 +396,21 @@ def generate(
     favorites_ratio: int = 25,
     work_seconds: int | None = None,
     rest_seconds: int | None = None,
+    equipment: list[str] | None = None,
     rng: random.Random | None = None,
 ) -> Workout:
-    """Compose et enregistre une séance."""
+    """Compose et enregistre une séance.
+
+    `equipment` restreint le matériel configuré retenu pour cette séance
+    (issue #32) — `None` le prend en entier, comme avant cette option.
+    """
     # Tirage de variété, pas de secret : le générateur standard convient, et un
     # `Random` injectable rend la composition reproductible en test.
     rng = rng or random.Random()  # noqa: S311
 
     blueprint = build_blueprint(workout_format, duration_minutes, work_seconds, rest_seconds)
-    exercises = select_exercises(user, muscles, blueprint.needed, favorites_ratio, rng)
-    options = load_options(user)
+    exercises = select_exercises(user, muscles, blueprint.needed, favorites_ratio, rng, equipment)
+    options = load_options(user, equipment)
 
     workout = Workout.objects.create(
         user=user,

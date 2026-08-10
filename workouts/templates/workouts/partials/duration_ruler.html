@@ -1,7 +1,12 @@
 {% comment %}
 Durée d'une séance : une règle graduée plutôt qu'une liste de radios verticale.
-Six valeurs possibles, donc six crans — on ne peut pas tomber entre deux.
-Navigation clavier native au groupe de radios (← →), aucun JavaScript.
+Onze valeurs possibles (5 en 5, de 10 à 60), donc onze crans — on ne peut pas
+tomber entre deux. Navigation clavier native au groupe de radios (← →), aucun
+JavaScript.
+
+L'unité ne se répète pas sur chaque cran — onze fois « min » ne tiendrait pas
+sur un téléphone (CLAUDE.md § Socle mobile) — elle est portée une fois par le
+libellé du champ, « Durée (minutes) ».
 
 Attend `field` (form.duration_minutes).
 {% endcomment %}
@@ -9,7 +14,7 @@ Attend `field` (form.duration_minutes).
     {% for radio in field %}
         <label class="ugg-ruler__tick">
             {{ radio.tag }}
-            <span class="ugg-ruler__value">{{ radio.data.value }} min</span>
+            <span class="ugg-ruler__value">{{ radio.data.value }}</span>
         </label>
     {% endfor %}
 </div>

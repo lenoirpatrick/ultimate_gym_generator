@@ -71,6 +71,58 @@ def test_sans_materiel_le_formulaire_le_dit(logged_client):
     assert "Aucun matériel déclaré" in content
 
 
+# --------------------------------------------------------------------------- #
+# Matériel pris en compte : sélection directe, indépendante de la
+# configuration (issue #32)
+# --------------------------------------------------------------------------- #
+
+
+def test_le_materiel_declare_se_coche_directement_dans_l_encart(logged_client, user):
+    """Une vraie case à cocher, pas une étiquette en lecture seule."""
+    UserEquipment.objects.create(user=user, equipment="dumbbell", mode="fixed", weights=[10])
+
+    content = logged_client.get(reverse("workouts:create")).content.decode()
+
+    assert '<label class="ugg-filter__option ugg-filter__option--standalone">' in content
+    assert 'type="checkbox" name="equipment" value="dumbbell"' in content
+
+
+def test_le_materiel_declare_est_coche_par_defaut(logged_client, user):
+    UserEquipment.objects.create(user=user, equipment="dumbbell", mode="fixed", weights=[10])
+
+    content = logged_client.get(reverse("workouts:create")).content.decode()
+
+    assert 'value="dumbbell" id="id_equipment_0" checked' in content
+
+
+def test_sans_materiel_configure_aucune_case_n_est_proposee(logged_client):
+    content = logged_client.get(reverse("workouts:create")).content.decode()
+
+    assert 'name="equipment"' not in content
+
+
+def test_decocher_du_materiel_ecarte_ses_exercices_sans_toucher_la_configuration(
+    logged_client, user
+):
+    """Décocher les haltères à la composition ne doit pas les retirer du profil."""
+    UserEquipment.objects.create(user=user, equipment="dumbbell", mode="fixed", weights=[10])
+
+    composer(logged_client, muscles=[], equipment=[])
+
+    workout = Workout.objects.get(user=user)
+    assert all(item.exercise.equipment != "dumbbell" for item in workout.items.all())
+    assert UserEquipment.objects.filter(user=user, equipment="dumbbell").exists()
+
+
+def test_un_materiel_coche_reste_utilise(logged_client, user):
+    UserEquipment.objects.create(user=user, equipment="dumbbell", mode="fixed", weights=[10])
+
+    composer(logged_client, muscles=[], equipment=["dumbbell"])
+
+    workout = Workout.objects.get(user=user)
+    assert workout.items.exists()
+
+
 def test_une_demande_impossible_est_expliquee_dans_le_formulaire(logged_client, user):
     """Aucun exercice pour ce muscle sans matériel : il faut dire quoi changer."""
     from exercises.models import Muscle
@@ -96,6 +148,54 @@ def test_le_formulaire_affiche_une_bulle_d_aide_par_format(logged_client):
 
     assert content.count("ugg-hint__bubble") == 4
     assert "Huit séries d&#x27;un seul exercice" in content
+
+
+# --------------------------------------------------------------------------- #
+# Ajustement des temps par format (issue #32)
+# --------------------------------------------------------------------------- #
+
+
+def test_le_declencheur_du_format_n_englobe_pas_le_panneau_de_temps(logged_client):
+    """Un <summary> imbriqué dans le <label> du radio partage son clic avec lui :
+    le panneau « Ajuster les temps » doit rester hors du <label>."""
+    content = logged_client.get(reverse("workouts:create")).content.decode()
+
+    assert '<label class="ugg-format__select">' in content
+    assert '<label class="ugg-format">' not in content
+    assert '<div class="ugg-format">' in content
+
+
+def test_le_panneau_de_temps_reste_un_declencheur_independant(logged_client):
+    content = logged_client.get(reverse("workouts:create")).content.decode()
+
+    assert content.count('<details class="ugg-format__tune">') == 4
+    assert content.count("<summary>Ajuster les temps</summary>") == 4
+
+
+# --------------------------------------------------------------------------- #
+# Durée : paliers de 5 minutes, par défaut 30 (issue #32)
+# --------------------------------------------------------------------------- #
+
+
+def test_la_duree_propose_onze_paliers_de_cinq_en_cinq(logged_client):
+    content = logged_client.get(reverse("workouts:create")).content.decode()
+
+    for minutes in range(10, 61, 5):
+        assert f'value="{minutes}"' in content
+
+
+def test_la_duree_par_defaut_est_trente_minutes(logged_client):
+    content = logged_client.get(reverse("workouts:create")).content.decode()
+
+    assert 'value="30" id="id_duration_minutes_4" required checked' in content
+
+
+def test_le_libelle_de_duree_porte_l_unite(logged_client):
+    """L'unité n'est plus répétée sur chacun des onze crans (CLAUDE.md § Socle mobile)."""
+    content = logged_client.get(reverse("workouts:create")).content.decode()
+
+    assert "Durée (minutes)" in content
+    assert "10 min" not in content
 
 
 def test_les_temps_personnalises_sont_transmis_et_enregistres(logged_client, user):
@@ -391,7 +491,7 @@ def build_workout(user, exercise):
     générateur — pour savoir précisément quelle fiche sera affichée."""
     workout = Workout.objects.create(
         user=user,
-        duration_minutes=Workout.Duration.STANDARD,
+        duration_minutes=Workout.Duration.THIRTY,
         format=Workout.Format.CIRCUIT,
         planned_seconds=600,
     )

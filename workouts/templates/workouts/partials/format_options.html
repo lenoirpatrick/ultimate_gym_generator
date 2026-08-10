@@ -4,21 +4,27 @@ principe et, repliés, les temps d'effort/repos de ce format. Seule la carte du
 format coché révèle ses champs — géré en CSS pur par `.ugg-format`, aucun
 JavaScript.
 
+Le radio n'est associé qu'à la tête de carte (`.ugg-format__select`) : le
+panneau « Ajuster les temps » reste hors du <label>, pour que son <summary>
+garde son propre clic plutôt que de le partager avec le radio (issue #32).
+
 Attend `options` (form.format_options).
 {% endcomment %}
 <div class="grid gap-3 sm:grid-cols-2">
     {% for option in options %}
-        <label class="ugg-format">
-            {{ option.radio.tag }}
-            <span class="ugg-format__head">
-                <span class="ugg-format__label">{{ option.label }}</span>
-                <span class="ugg-hint" tabindex="0" aria-describedby="conseil-{{ option.radio.data.value }}">
-                    ?
-                    <span id="conseil-{{ option.radio.data.value }}" class="ugg-hint__bubble" role="tooltip">
-                        {{ option.hint }}
+        <div class="ugg-format">
+            <label class="ugg-format__select">
+                {{ option.radio.tag }}
+                <span class="ugg-format__head">
+                    <span class="ugg-format__label">{{ option.label }}</span>
+                    <span class="ugg-hint" tabindex="0" aria-describedby="conseil-{{ option.radio.data.value }}">
+                        ?
+                        <span id="conseil-{{ option.radio.data.value }}" class="ugg-hint__bubble" role="tooltip">
+                            {{ option.hint }}
+                        </span>
                     </span>
                 </span>
-            </span>
+            </label>
 
             <details class="ugg-format__tune">
                 <summary>Ajuster les temps</summary>
@@ -29,6 +35,6 @@ Attend `options` (form.format_options).
                     {% include "core/components/field.html" with field=option.rest_field %}
                 </div>
             </details>
-        </label>
+        </div>
     {% endfor %}
 </div>

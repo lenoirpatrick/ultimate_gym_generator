@@ -268,6 +268,62 @@ def test_un_catalogue_trop_pauvre_fait_tourner_les_memes_exercices(user, rng):
 
 
 # --------------------------------------------------------------------------- #
+# Matériel retenu pour la séance (issue #32)
+# --------------------------------------------------------------------------- #
+
+
+def test_sans_restriction_tout_le_materiel_configure_est_retenu(user, halteres):
+    """`equipment=None` doit se comporter comme avant l'option — aucune restriction."""
+    retenus = generator.eligible_exercises(user, [], equipment=None)
+
+    assert "dumbbell" in {e.equipment for e in retenus}
+
+
+def test_le_materiel_decoche_est_ecarte_de_la_seance(user, halteres):
+    """Décocher les haltères dans le formulaire ne doit proposer aucun exercice à haltères."""
+    retenus = generator.eligible_exercises(user, [], equipment=[])
+
+    assert {e.equipment for e in retenus} <= {"body only", ""}
+
+
+def test_le_poids_du_corps_reste_disponible_meme_ecarte(user, halteres):
+    """Le poids du corps ne se déclare pas : `equipment=[]` ne peut pas le retirer."""
+    retenus = generator.eligible_exercises(user, [], equipment=[])
+
+    assert any(e.equipment in ("body only", "") for e in retenus)
+
+
+def test_un_materiel_non_configure_ne_peut_pas_etre_ajoute(user):
+    """La liste transmise n'est qu'un filtre : elle ne peut pas accorder un matériel
+    absent de la configuration réelle de l'utilisateur."""
+    retenus = generator.eligible_exercises(user, [], equipment=["dumbbell"])
+
+    assert "dumbbell" not in {e.equipment for e in retenus}
+
+
+def test_la_restriction_de_materiel_s_applique_aux_charges(user, halteres):
+    assert generator.load_options(user, equipment=["dumbbell"])
+    assert generator.load_options(user, equipment=[]) == {}
+
+
+def test_generate_transmet_la_restriction_de_materiel(user, halteres, rng):
+    """Intégration bout en bout : composer une séance sans les haltères cochés
+    ne doit produire aucun exercice à haltères."""
+    workout = generator.generate(
+        user=user,
+        duration_minutes=20,
+        workout_format=Workout.Format.CIRCUIT,
+        muscles=[],
+        favorites_ratio=0,
+        equipment=[],
+        rng=rng,
+    )
+
+    equipements = {item.exercise.equipment for item in workout.items.all()}
+    assert equipements <= {"body only", ""}
+
+
+# --------------------------------------------------------------------------- #
 # Charges
 # --------------------------------------------------------------------------- #
 

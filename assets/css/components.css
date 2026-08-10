@@ -883,9 +883,10 @@
    SÉANCES (issue #22, complétées par l'issue #26)
    ========================================================================= */
 
-/* Durée : une règle graduée plutôt qu'une colonne de radios. Six valeurs
-   possibles, donc six crans — on ne peut pas tomber entre deux, et la
-   navigation clavier reste celle, native, d'un groupe de radios. */
+/* Durée : une règle graduée plutôt qu'une colonne de radios. Une valeur tous
+   les 5 crans, de 10 à 60 minutes (issue #32) — on ne peut pas tomber entre
+   deux, et la navigation clavier reste celle, native, d'un groupe de radios.
+   Le chiffre seul par cran, sans unité répétée : voir duration_ruler.html. */
 .ugg-ruler {
     display: flex;
     border-top: 2px solid var(--ugg-border);
@@ -990,16 +991,21 @@
     outline-offset: 2px;
 }
 
-/* Carte de format de travail : radio masqué, carte entière cliquable. Les
+/* Carte de format de travail : radio masqué, tête de carte cliquable. Les
    temps réglables ne se révèlent que pour le format coché — une seule paire
-   de champs visible à la fois, sans JavaScript. */
+   de champs visible à la fois, sans JavaScript.
+
+   Le déclencheur du radio (`.ugg-format__select`, un <label>) ne couvre que
+   la tête de la carte — jamais le panneau « Ajuster les temps » : imbriquer
+   un <summary> dans un <label> fait que le clic est capté par les deux à la
+   fois, et le second n'obtient plus le sien (issue #32). Le panneau doit
+   rester un déclencheur indépendant, hors du <label>. */
 .ugg-format {
     position: relative;
     display: block;
     padding: var(--ugg-space-3) var(--ugg-space-4);
     border: 1px solid var(--ugg-border);
     border-radius: var(--ugg-radius-md);
-    cursor: pointer;
     transition: border-color var(--ugg-duration-fast) var(--ugg-ease);
 }
 
@@ -1010,6 +1016,11 @@
 .ugg-format:has(input:focus-visible) {
     outline: 3px solid var(--ugg-focus);
     outline-offset: 2px;
+}
+
+.ugg-format__select {
+    display: block;
+    cursor: pointer;
 }
 
 .ugg-format input {
@@ -1038,7 +1049,7 @@
     border-top: 1px solid var(--ugg-border);
 }
 
-.ugg-format input:checked ~ .ugg-format__tune {
+.ugg-format:has(input:checked) .ugg-format__tune {
     display: block;
 }
 

@@ -15,12 +15,19 @@ class Workout(models.Model):
     """Séance générée pour un utilisateur."""
 
     class Duration(models.IntegerChoices):
-        SHORT = 10, "10 minutes"
-        BRISK = 15, "15 minutes"
-        STANDARD = 20, "20 minutes"
-        LONG = 30, "30 minutes"
-        EXTENDED = 45, "45 minutes"
-        FULL = 60, "60 minutes"
+        """De 5 en 5 minutes, de 10 à 60 — la valeur par défaut est `THIRTY` (issue #32)."""
+
+        TEN = 10, "10 minutes"
+        FIFTEEN = 15, "15 minutes"
+        TWENTY = 20, "20 minutes"
+        TWENTY_FIVE = 25, "25 minutes"
+        THIRTY = 30, "30 minutes"
+        THIRTY_FIVE = 35, "35 minutes"
+        FORTY = 40, "40 minutes"
+        FORTY_FIVE = 45, "45 minutes"
+        FIFTY = 50, "50 minutes"
+        FIFTY_FIVE = 55, "55 minutes"
+        SIXTY = 60, "60 minutes"
 
     class Format(models.TextChoices):
         HIIT = "hiit", "HIIT — intervalles intenses"

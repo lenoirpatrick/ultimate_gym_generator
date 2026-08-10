@@ -209,12 +209,18 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
   valeur possible devient un cran, la valeur active est accentuée. Composant :
   `workouts/templates/workouts/partials/duration_ruler.html`. Utilisable pour tout champ à
   peu de valeurs numériques fixes — jamais pour une plage continue, qui appelle un vrai
-  curseur.
+  curseur. Onze crans de 5 en 5 minutes, de 10 à 60, 30 par défaut (issue #32) ; l'unité ne
+  se répète pas sur chaque cran (illisible sur un téléphone) mais se porte une fois par le
+  libellé du champ, « Durée (minutes) ».
 - Le **type de travail** est une carte par format (`.ugg-format`), avec une bulle d'aide
   (`.ugg-hint`) qui explique le principe — déclenchée au survol **et** au focus clavier,
   jamais au survol seul. Les temps d'effort/repos de chaque format sont réglables, mais
   **une seule paire de champs est visible à la fois** : elle ne se révèle que pour le
-  format coché (`input:checked ~ .ugg-format__tune`, CSS pur).
+  format coché (`.ugg-format:has(input:checked) .ugg-format__tune`, CSS pur). Le radio
+  n'est associé qu'à la tête de carte (`.ugg-format__select`, un `<label>` distinct) —
+  jamais à la carte entière : un `<summary>` imbriqué dans le `<label>` du radio partage
+  son clic avec lui, et le panneau « Ajuster les temps » n'ouvrait plus (issue #32). Le
+  panneau reste un déclencheur `<details>` indépendant, hors de tout `<label>`.
 - Une **part de favoris** ou toute autre proportion à choix fermé passe par un contrôle
   segmenté (`.ugg-segmented`), jamais par un `<select>` natif — il n'appartient à aucun
   langage visuel du projet.
@@ -223,6 +229,14 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
   l'onglet fermé) — voir `exercises.catalog.group_by_region` et
   `workouts/templates/workouts/partials/muscle_regions.html`. Le champ reste un
   `ModelMultipleChoiceField` unique ; le regroupement n'est qu'un habillage d'affichage.
+- Le **matériel pris en compte** se coche directement dans son encart, en puces
+  `.ugg-filter__option--standalone` — jamais en lecture seule (issue #32). Un choix par
+  matériel réellement configuré, coché par défaut, mais indépendant de la configuration
+  elle-même (`accounts:equipment`) : décocher ici n'écarte ce matériel que pour cette
+  séance. Le poids du corps reste une étiquette fixe, non togglable — il ne se déclare
+  pas. Champ construit dynamiquement dans `WorkoutForm.__init__` (nécessite `user`),
+  transmis à `workouts.generator.generate` qui l'intersecte avec le matériel réellement
+  possédé — la liste soumise ne peut jamais accorder un matériel non configuré.
 
 ### Cartes de catalogue
 

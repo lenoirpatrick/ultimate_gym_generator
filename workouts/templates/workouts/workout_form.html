@@ -15,28 +15,39 @@
             {% include "core/components/alert.html" with level="error" text=error %}
         {% endfor %}
 
-        <div class="ugg-card mt-6 p-4">
-            <p class="ugg-eyebrow">Matériel pris en compte</p>
-            {% if equipment %}
-                <p class="mt-2 flex flex-wrap gap-2">
-                    <span class="ugg-tag">Poids du corps</span>
-                    {% for item in equipment %}
-                        <span class="ugg-tag">{{ item.get_equipment_display }}</span>
-                    {% endfor %}
-                </p>
-            {% else %}
-                <p class="mt-2 text-sm text-muted">
-                    Aucun matériel déclaré : seuls les exercices au poids du corps seront
-                    proposés.
-                </p>
-            {% endif %}
-            <p class="mt-3 text-sm">
-                <a href="{% url 'accounts:equipment' %}">Modifier mon matériel</a>
-            </p>
-        </div>
-
         <form method="post" class="mt-8 grid gap-8">
             {% csrf_token %}
+
+            {% comment %}
+            Le matériel pris en compte se coche ici, indépendamment de sa
+            configuration (issue #32) : décocher une case n'écarte ce matériel
+            que pour cette séance, sans toucher à accounts:equipment.
+            {% endcomment %}
+            <div class="ugg-card p-4">
+                <p class="ugg-eyebrow">Matériel pris en compte</p>
+                <p class="mt-2 flex flex-wrap gap-2">
+                    <span class="ugg-tag">Poids du corps</span>
+                </p>
+                {% if form.equipment %}
+                    <fieldset class="mt-3 flex flex-wrap gap-2 border-0 p-0">
+                        <legend class="sr-only">Matériel pris en compte</legend>
+                        {% for box in form.equipment %}
+                            <label class="ugg-filter__option ugg-filter__option--standalone">
+                                {{ box.tag }}
+                                <span>{{ box.choice_label }}</span>
+                            </label>
+                        {% endfor %}
+                    </fieldset>
+                {% else %}
+                    <p class="mt-2 text-sm text-muted">
+                        Aucun matériel déclaré : seuls les exercices au poids du corps seront
+                        proposés.
+                    </p>
+                {% endif %}
+                <p class="mt-3 text-sm">
+                    <a href="{% url 'accounts:equipment' %}">Modifier mon matériel</a>
+                </p>
+            </div>
 
             <fieldset>
                 <legend class="ugg-field__label">{{ form.duration_minutes.label }}</legend>

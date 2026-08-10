@@ -6,7 +6,6 @@ from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
-from accounts.models import UserEquipment
 from aiproviders.clients import get_active_client
 
 from . import coaching, generator
@@ -37,10 +36,8 @@ def workout_list(request: HttpRequest) -> HttpResponse:
 @login_required
 def workout_create(request: HttpRequest) -> HttpResponse:
     """Composition d'une séance à partir des paramètres saisis."""
-    equipment = UserEquipment.objects.filter(user=request.user)
-
     if request.method == "POST":
-        form = WorkoutForm(request.POST)
+        form = WorkoutForm(request.POST, user=request.user)
         if form.is_valid():
             try:
                 workout = generator.generate(
@@ -51,6 +48,7 @@ def workout_create(request: HttpRequest) -> HttpResponse:
                     favorites_ratio=form.cleaned_data["favorites_ratio"],
                     work_seconds=form.cleaned_data["work_seconds"],
                     rest_seconds=form.cleaned_data["rest_seconds"],
+                    equipment=form.cleaned_data.get("equipment"),
                 )
             except generator.GenerationError as exc:
                 # Le catalogue ne peut rien produire pour ces critères : c'est la
@@ -59,13 +57,9 @@ def workout_create(request: HttpRequest) -> HttpResponse:
             else:
                 return redirect("workouts:detail", pk=workout.pk)
     else:
-        form = WorkoutForm()
+        form = WorkoutForm(user=request.user)
 
-    return render(
-        request,
-        "workouts/workout_form.html",
-        {"form": form, "equipment": equipment},
-    )
+    return render(request, "workouts/workout_form.html", {"form": form})
 
 
 @login_required

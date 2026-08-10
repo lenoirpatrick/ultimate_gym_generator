@@ -2,6 +2,7 @@ from dataclasses import dataclass
 
 from django import forms
 
+from accounts.models import UserEquipment
 from exercises import catalog
 from exercises.models import Muscle
 
@@ -72,10 +73,10 @@ class WorkoutForm(forms.Form):
     """
 
     duration_minutes = forms.TypedChoiceField(
-        label="Durée",
+        label="Durée (minutes)",
         choices=Workout.Duration.choices,
         coerce=int,
-        initial=Workout.Duration.STANDARD,
+        initial=Workout.Duration.THIRTY,
         widget=forms.RadioSelect,
     )
     workout_format = forms.ChoiceField(
@@ -100,8 +101,21 @@ class WorkoutForm(forms.Form):
         help_text="Proportion d'exercices puisés dans tes favoris.",
     )
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, user=None, **kwargs):
         super().__init__(*args, **kwargs)
+
+        # Un choix par matériel réellement configuré : coché par défaut, mais
+        # indépendant de cette configuration — décocher ici ne la modifie pas,
+        # ça ne fait qu'écarter ce matériel de cette séance (issue #32).
+        configured = list(UserEquipment.objects.filter(user=user)) if user else []
+        if configured:
+            self.fields["equipment"] = forms.MultipleChoiceField(
+                label="Matériel pris en compte",
+                choices=[(item.equipment, item.get_equipment_display()) for item in configured],
+                required=False,
+                initial=[item.equipment for item in configured],
+                widget=forms.CheckboxSelectMultiple,
+            )
 
         for value, periods in generator.FORMAT_PERIODS.items():
             if periods.work is not None:
