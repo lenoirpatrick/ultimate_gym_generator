@@ -232,6 +232,12 @@ MAX_AVATAR_BYTES = env.int("DJANGO_MAX_AVATAR_BYTES", default=2 * 1024 * 1024)
 
 EXERCISES_SOURCE = env.str("DJANGO_EXERCISES_SOURCE", default=str(BASE_DIR / "src/exercises.json"))
 
+#: Illustrations vendorées (licence Unlicense), un dossier par exercice
+#: contenant ses photos — voir `exercises.catalog.sync_images` (issue #29).
+EXERCISES_IMAGES_SOURCE = env.str(
+    "DJANGO_EXERCISES_IMAGES_SOURCE", default=str(BASE_DIR / "src/exercises")
+)
+
 # --------------------------------------------------------------------------- #
 # Journalisation
 # --------------------------------------------------------------------------- #

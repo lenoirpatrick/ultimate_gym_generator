@@ -6,12 +6,14 @@ affichée est donc réelle — elle mesure ce qui est en base — et aucun threa
 cache partagé n'est nécessaire pour la connaître.
 """
 
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import login_required, user_passes_test
 from django.core.paginator import Paginator
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.views.decorators.http import require_POST
+
+from aiproviders.clients import get_active_client
 
 from . import catalog, filters
 from .models import Exercise, Favorite
@@ -19,6 +21,10 @@ from .models import Exercise, Favorite
 #: Cartes par page. Assez pour remplir un grand écran, assez peu pour qu'un
 #: téléphone ne charge pas 873 fiches d'un coup.
 PAGE_SIZE = 24
+
+# Le rechargement du référentiel — et surtout la traduction, qui consomme des
+# jetons IA sur l'ensemble du catalogue — est réservé au personnel.
+staff_required = user_passes_test(lambda user: user.is_staff)
 
 
 @login_required
@@ -125,6 +131,64 @@ def _offset(raw: str | None) -> int:
         return max(0, int(raw or 0))
     except ValueError:
         return 0
+
+
+@login_required
+@staff_required
+def reload_catalog(request: HttpRequest) -> HttpResponse:
+    """Écran de rechargement à la demande — hors du premier amorçage (issue #29).
+
+    Propose une traduction des consignes uniquement si un fournisseur IA est
+    actif : sans lui, l'opération se limite à resynchroniser les données et
+    illustrations depuis le fichier livré avec l'application.
+    """
+    client = get_active_client()
+    ai_warning = None
+    if client is not None:
+        ai_warning = (
+            f"La traduction utilisera {client.credential.spec.name} "
+            f"({client.credential.effective_model}). Cette opération va consommer "
+            "des jetons IA sur l'ensemble du référentiel."
+        )
+
+    return render(
+        request,
+        "exercises/reload.html",
+        {"total": len(catalog.entries()), "client": client, "ai_warning": ai_warning},
+    )
+
+
+@login_required
+@staff_required
+@require_POST
+def reload_batch(request: HttpRequest) -> HttpResponse:
+    """Importe une tranche du rechargement et rend la barre, qui déclenchera la suivante.
+
+    Distinct de `load_batch` : ici le catalogue est déjà complet, donc
+    l'avancement se mesure sur la position atteinte dans le fichier source,
+    pas sur le nombre de lignes en base.
+    """
+    offset = _offset(request.POST.get("offset"))
+    translate = request.POST.get("translate") == "1"
+
+    try:
+        reached = catalog.import_batch(offset, translate=translate)
+        total = len(catalog.entries())
+    except catalog.CatalogError as exc:
+        return render(request, "exercises/partials/reload_progress.html", {"error": str(exc)})
+
+    progress = catalog.Progress(imported=reached, total=total)
+    return render(
+        request,
+        "exercises/partials/reload_progress.html",
+        {
+            "progress": progress,
+            "offset": reached,
+            "detail": f"{reached} / {total}",
+            "translate": translate,
+            "error": None,
+        },
+    )
 
 
 def _state(offset: int) -> dict:

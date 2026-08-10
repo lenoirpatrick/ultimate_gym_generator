@@ -782,6 +782,77 @@
     color: var(--ugg-text-muted);
 }
 
+/* Galerie repliée : position de départ / position d'exécution (issue #29). */
+.ugg-exercise__gallery {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--ugg-space-2);
+}
+
+.ugg-exercise__thumb {
+    display: block;
+    border-radius: var(--ugg-radius-md);
+}
+
+.ugg-exercise__photo {
+    width: 6rem;
+    height: 6rem;
+    border: 1px solid var(--ugg-border);
+    border-radius: var(--ugg-radius-md);
+    object-fit: cover;
+}
+
+/* Agrandissement au clic sur une vignette — bascule par `:target`, sans
+   script (issue #29). */
+.ugg-lightbox {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    align-items: center;
+    justify-content: center;
+    padding: var(--ugg-space-6);
+}
+
+.ugg-lightbox:target {
+    display: flex;
+}
+
+.ugg-lightbox__backdrop {
+    position: absolute;
+    inset: 0;
+    background: var(--ugg-overlay);
+}
+
+.ugg-lightbox__image {
+    position: relative;
+    max-width: 100%;
+    max-height: 100%;
+    border-radius: var(--ugg-radius-md);
+    box-shadow: var(--ugg-shadow-card);
+}
+
+.ugg-lightbox__close {
+    position: absolute;
+    top: var(--ugg-space-4);
+    right: var(--ugg-space-4);
+    display: flex;
+    min-height: var(--ugg-touch-target);
+    align-items: center;
+    gap: var(--ugg-space-2);
+    padding: var(--ugg-space-2) var(--ugg-space-3);
+    border-radius: var(--ugg-radius-md);
+    background: var(--ugg-surface-raised);
+    color: var(--ugg-text);
+    font-size: 0.8125rem;
+    font-weight: 600;
+}
+
+.ugg-lightbox__close svg {
+    width: 1.25rem;
+    height: 1.25rem;
+}
+
 /* Panneau repliable générique, hors contexte de filtre — consignes d'exercice,
    renommage d'une séance. Accentué et capitalisé, sans chevron ni compteur
    (contrairement à `.ugg-filter`, réservé aux critères de recherche). */

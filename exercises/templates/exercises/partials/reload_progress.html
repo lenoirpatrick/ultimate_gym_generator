@@ -1,0 +1,30 @@
+{% comment %}
+Avancement du rechargement à la demande (issue #29). Même mécanique que
+exercises/partials/progress.html, mais l'avancement se mesure sur la position
+atteinte dans le fichier source, pas sur le nombre de lignes en base — voir
+exercises.views.reload_batch.
+{% endcomment %}
+{% if error %}
+    {% include "core/components/alert.html" with level="error" text=error %}
+
+{% elif progress.done %}
+    {% include "core/components/progress.html" with percent=100 label="Référentiel à jour" detail=progress.total %}
+    <p class="mt-4 text-sm">
+        {{ progress.total }} exercices synchronisés{% if translate %}, traduction incluse{% endif %}.
+    </p>
+    <a href="{% url 'exercises:list' %}" class="ugg-btn ugg-btn--primary mt-4">Terminé</a>
+
+{% else %}
+    <div class="flex items-center gap-3">
+        {% include "core/components/spinner.html" with variant="dumbbell" size="md" label="Rechargement du référentiel en cours" %}
+        <div class="flex-1">
+            {% include "core/components/progress.html" with percent=progress.percent label="Rechargement des exercices" detail=detail %}
+        </div>
+    </div>
+
+    <div hx-post="{% url 'exercises:reload_batch' %}"
+         hx-vals='{"offset": {{ offset }}, "translate": "{{ translate|yesno:"1,0" }}"}'
+         hx-trigger="load"
+         hx-target="#progression"
+         hx-swap="innerHTML"></div>
+{% endif %}

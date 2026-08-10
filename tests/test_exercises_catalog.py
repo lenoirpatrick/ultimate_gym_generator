@@ -268,3 +268,142 @@ def test_une_valeur_hors_referentiel_est_ecartee(settings, tmp_path):
     mystere = Exercise.objects.get(slug="Mystere")
     assert mystere.equipment == ""
     assert mystere.force == ""
+
+
+# --------------------------------------------------------------------------- #
+# Illustrations vendorées (issue #29)
+# --------------------------------------------------------------------------- #
+
+
+def test_les_illustrations_sont_copiees_vers_le_media(settings, tmp_path):
+    source = tmp_path / "source_images"
+    (source / "Barbell_Squat").mkdir(parents=True)
+    (source / "Barbell_Squat" / "0.jpg").write_bytes(b"jpeg-content")
+    settings.EXERCISES_IMAGES_SOURCE = str(source)
+    settings.MEDIA_ROOT = str(tmp_path / "media")
+
+    catalog.sync_images(["Barbell_Squat/0.jpg"])
+
+    copie = tmp_path / "media" / "exercises" / "Barbell_Squat" / "0.jpg"
+    assert copie.read_bytes() == b"jpeg-content"
+
+
+def test_une_illustration_deja_copiee_n_est_pas_relue(settings, tmp_path):
+    source = tmp_path / "source_images"
+    (source / "Barbell_Squat").mkdir(parents=True)
+    (source / "Barbell_Squat" / "0.jpg").write_bytes(b"version-recente")
+    settings.EXERCISES_IMAGES_SOURCE = str(source)
+    settings.MEDIA_ROOT = str(tmp_path / "media")
+
+    destination = tmp_path / "media" / "exercises" / "Barbell_Squat"
+    destination.mkdir(parents=True)
+    (destination / "0.jpg").write_bytes(b"version-en-place")
+
+    catalog.sync_images(["Barbell_Squat/0.jpg"])
+
+    assert (destination / "0.jpg").read_bytes() == b"version-en-place"
+
+
+def test_une_illustration_absente_de_la_source_est_ignoree(settings, tmp_path):
+    """Les illustrations sont un supplément : leur absence ne doit rien casser."""
+    settings.EXERCISES_IMAGES_SOURCE = str(tmp_path / "introuvable")
+    settings.MEDIA_ROOT = str(tmp_path / "media")
+
+    catalog.sync_images(["Inconnu/0.jpg"])
+
+    assert not (tmp_path / "media" / "exercises" / "Inconnu").exists()
+
+
+def test_import_batch_synchronise_les_illustrations_du_lot(settings, tmp_path):
+    source = tmp_path / "source_images"
+    (source / "Barbell_Squat").mkdir(parents=True)
+    (source / "Barbell_Squat" / "0.jpg").write_bytes(b"jpeg-content")
+    settings.EXERCISES_IMAGES_SOURCE = str(source)
+    settings.MEDIA_ROOT = str(tmp_path / "media")
+
+    catalog.import_all()
+
+    copie = tmp_path / "media" / "exercises" / "Barbell_Squat" / "0.jpg"
+    assert copie.exists()
+
+
+def test_les_adresses_d_illustration_pointent_vers_le_media(settings):
+    settings.MEDIA_URL = "/media/"
+
+    squat = Exercise.objects.get(slug="Barbell_Squat")
+
+    assert squat.image_urls == [
+        "/media/exercises/Barbell_Squat/0.jpg",
+        "/media/exercises/Barbell_Squat/1.jpg",
+    ]
+
+
+# --------------------------------------------------------------------------- #
+# Traduction à la demande (issue #29)
+# --------------------------------------------------------------------------- #
+
+
+def stub_translation(monkeypatch, translated):
+    monkeypatch.setattr(
+        catalog.translation, "translate_instructions", lambda instructions: translated
+    )
+
+
+def test_sans_loption_traduire_les_consignes_restent_en_anglais(monkeypatch):
+    def refuser(instructions):
+        raise AssertionError("la traduction ne doit pas être demandée sans l'option")
+
+    monkeypatch.setattr(catalog.translation, "translate_instructions", refuser)
+
+    catalog.import_all()
+
+    assert Exercise.objects.get(slug="Barbell_Squat").instructions_fr == []
+
+
+def test_loption_traduire_enregistre_la_traduction(monkeypatch):
+    traduit = ["Traduit un.", "Traduit deux.", "Traduit trois."]
+    stub_translation(monkeypatch, traduit)
+
+    catalog.import_all(translate=True)
+
+    assert Exercise.objects.get(slug="Barbell_Squat").instructions_fr == traduit
+
+
+def test_une_fiche_deja_traduite_n_est_pas_retraduite(monkeypatch):
+    squat = Exercise.objects.get(slug="Barbell_Squat")
+    squat.instructions_fr = ["Déjà traduit."]
+    squat.save()
+
+    demandes = []
+    monkeypatch.setattr(
+        catalog.translation,
+        "translate_instructions",
+        lambda instructions: demandes.append(instructions) or ["Traduit."],
+    )
+
+    catalog.import_all(translate=True)
+
+    assert squat.instructions not in demandes
+    assert Exercise.objects.get(slug="Barbell_Squat").instructions_fr == ["Déjà traduit."]
+
+
+def test_un_echec_de_traduction_laisse_la_fiche_en_anglais(monkeypatch):
+    stub_translation(monkeypatch, None)
+
+    catalog.import_all(translate=True)
+
+    assert Exercise.objects.get(slug="Barbell_Squat").instructions_fr == []
+
+
+def test_une_fiche_sans_consigne_n_est_pas_envoyee_en_traduction(monkeypatch):
+    demandes = []
+    monkeypatch.setattr(
+        catalog.translation,
+        "translate_instructions",
+        lambda instructions: demandes.append(instructions) or ["Traduit."],
+    )
+
+    catalog.import_all(translate=True)
+
+    assert [] not in demandes
+    assert Exercise.objects.get(slug="Text_Only_Exercise").instructions_fr == []

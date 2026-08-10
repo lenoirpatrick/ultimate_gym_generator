@@ -64,6 +64,29 @@ def test_une_source_vide_ne_fait_pas_echouer_la_commande(settings, tmp_path):
     assert Exercise.objects.count() == 0
 
 
+def test_loption_traduire_sans_fournisseur_previent_et_continue():
+    sortie = executer("--traduire")
+
+    assert "Aucun fournisseur IA actif" in sortie
+    assert f"{TOTAL} exercices chargés" in sortie
+    assert Exercise.objects.get(slug="Barbell_Squat").instructions_fr == []
+
+
+def test_loption_traduire_appelle_la_traduction(monkeypatch):
+    from exercises import catalog
+
+    monkeypatch.setattr(
+        catalog.translation, "translate_instructions", lambda instructions: ["Traduit."]
+    )
+    # Simule un fournisseur actif pour passer l'avertissement d'absence — la
+    # commande importe `get_active_client` localement à chaque appel.
+    monkeypatch.setattr("aiproviders.clients.get_active_client", lambda: object())
+
+    executer("--traduire")
+
+    assert Exercise.objects.get(slug="Barbell_Squat").instructions_fr == ["Traduit."]
+
+
 @pytest.mark.empty_catalog
 def test_une_source_vide_n_immobilise_pas_l_ecran_de_chargement(settings, tmp_path, logged_client):
     from django.urls import reverse

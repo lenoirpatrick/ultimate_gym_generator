@@ -10,6 +10,7 @@ met à jour les fiches au lieu de les dupliquer.
 """
 
 import json
+import shutil
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
@@ -17,6 +18,7 @@ from pathlib import Path
 from django.conf import settings
 from django.db import transaction
 
+from . import translation
 from .models import Exercise, Muscle
 
 #: Nombre d'exercices traités par appel. Assez petit pour qu'un lot reste bref
@@ -113,6 +115,35 @@ def source_path() -> Path:
     return Path(settings.EXERCISES_SOURCE)
 
 
+def images_source_path() -> Path:
+    return Path(settings.EXERCISES_IMAGES_SOURCE)
+
+
+def sync_images(paths: list[str]) -> None:
+    """Copie vers le stockage média les illustrations encore absentes (issue #29).
+
+    Les fichiers sont vendorés dans le dépôt (licence Unlicense), au même
+    chemin relatif que celui stocké sur l'exercice. Un fichier déjà copié n'est
+    pas relu : l'opération reste bon marché à chaque réimport. Une source
+    manquante est ignorée — les illustrations sont un supplément, jamais une
+    condition pour que le référentiel se charge.
+    """
+    source_root = images_source_path()
+    media_root = Path(settings.MEDIA_ROOT) / "exercises"
+
+    for relative in paths:
+        destination = media_root / relative
+        if destination.exists():
+            continue
+
+        origin = source_root / relative
+        if not origin.is_file():
+            continue
+
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(origin, destination)
+
+
 @lru_cache(maxsize=1)
 def _load(path: str, mtime: float) -> list[dict]:
     """Lit et met en cache le fichier source.
@@ -185,11 +216,16 @@ def _valid(value: str | None, choices: type) -> str:
 
 
 @transaction.atomic
-def import_batch(offset: int, size: int | None = None) -> int:
+def import_batch(offset: int, size: int | None = None, translate: bool = False) -> int:
     """Importe la tranche `[offset, offset + size)` et retourne la position atteinte.
 
     La transaction couvre le lot entier : une panne au milieu laisse la base
     telle qu'elle était, et l'écran de chargement rejoue simplement la tranche.
+
+    `translate` ne s'active que depuis le rechargement à la demande (jamais au
+    premier amorçage) : chaque fiche encore sans traduction reçoit un appel au
+    fournisseur IA actif. Sans fournisseur configuré, ou en cas d'échec, la
+    fiche garde ses consignes en anglais — voir `exercises.translation`.
     """
     source = entries()
     offset = max(0, min(offset, len(source)))
@@ -221,6 +257,14 @@ def import_batch(offset: int, size: int | None = None) -> int:
         exercise.primary_muscles.set(_resolve(entry.get("primaryMuscles"), muscles))
         exercise.secondary_muscles.set(_resolve(entry.get("secondaryMuscles"), muscles))
 
+        sync_images(exercise.images)
+
+        if translate and exercise.instructions and not exercise.instructions_fr:
+            translated = translation.translate_instructions(exercise.instructions)
+            if translated:
+                exercise.instructions_fr = translated
+                exercise.save(update_fields=["instructions_fr"])
+
     return offset + len(tranche)
 
 
@@ -239,10 +283,10 @@ def _resolve(slugs: list[str] | None, muscles: dict[str, Muscle]) -> list[Muscle
     return resolved
 
 
-def import_all() -> int:
+def import_all(translate: bool = False) -> int:
     """Importe le catalogue entier et retourne le nombre d'exercices traités."""
     total = len(entries())
     offset = 0
     while offset < total:
-        offset = import_batch(offset)
+        offset = import_batch(offset, translate=translate)
     return total

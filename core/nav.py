@@ -45,6 +45,7 @@ CONFIG: tuple[NavGroup, ...] = (
         (
             NavLink("IA", "aiproviders:list", staff_only=True),
             NavLink("Comptes", "accounts:user_list", staff_only=True),
+            NavLink("Référentiel", "exercises:reload", staff_only=True),
         ),
     ),
     NavGroup("Utilisateur", (NavLink("Compte", "accounts:profile"),)),

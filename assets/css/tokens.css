@@ -62,6 +62,8 @@
     --ugg-radius-md: 0.5rem;
     --ugg-radius-lg: 0.875rem;
     --ugg-shadow-card: 0 1px 2px rgb(11 13 12 / 0.06), 0 8px 24px rgb(11 13 12 / 0.06);
+    /* Fond d'agrandissement (issue #29) : toujours sombre, indépendant du thème. */
+    --ugg-overlay: rgb(11 13 12 / 0.8);
 
     /* --- Mouvement -------------------------------------------------------- */
     --ugg-duration-fast: 120ms;

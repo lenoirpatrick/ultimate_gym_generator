@@ -224,6 +224,29 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
 - Les caractéristiques sont des étiquettes `.ugg-tag`. **Une seule accentuée par carte**
   — la catégorie ; au-delà, plus rien ne ressort.
 - Grille responsive : une colonne au pouce, deux à partir de `sm`, trois à partir de `lg`.
+- Les consignes traduites (`Exercise.instructions_fr`, voir « Référentiel d'exercices »
+  ci-dessous) priment sur l'anglais d'origine dès qu'elles existent ; sans traduction,
+  l'affichage retombe sur `instructions` sans qu'aucun état d'erreur ne soit visible.
+- Les illustrations d'une fiche sont des vignettes cliquables qui s'agrandissent en plein
+  écran (`.ugg-lightbox`), bascule pilotée en CSS pur par `:target` — aucun script. Le
+  panneau se referme par le fond ou par la croix, jamais par Échap, qu'aucune règle CSS ne
+  peut intercepter sans JavaScript (même limite assumée que le tiroir de navigation).
+
+### Référentiel d'exercices
+
+- Les consignes sont livrées en anglais ; leur traduction française n'est jamais générée
+  automatiquement au premier chargement — un fournisseur IA mal configuré ne doit pas
+  ralentir ni faire échouer l'amorçage. Elle se déclenche depuis un écran dédié
+  (Configuration → Admin → Référentiel, réservé au personnel), qui affiche un bandeau
+  nommant le fournisseur et le modèle actifs avant de lancer l'opération — sans fournisseur
+  configuré, seul un rechargement sans traduction est proposé.
+- Une fiche déjà traduite n'est jamais renvoyée au fournisseur : seules celles qui n'ont
+  pas encore de `instructions_fr` sont soumises, pour qu'un rechargement répété reste bon
+  marché.
+- Les illustrations sont vendorées dans le dépôt (`src/exercises/<id>/*.jpg`, licence
+  Unlicense) et copiées vers le stockage média (`/media/exercises/…`) au chargement,
+  jamais vers les statiques : le manifeste `collectstatic` est figé au build de l'image
+  Docker, avant que ces fichiers n'existent.
 
 ### Avatars
 

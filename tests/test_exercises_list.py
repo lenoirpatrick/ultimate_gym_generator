@@ -79,6 +79,56 @@ def test_les_consignes_sont_repliees_dans_la_carte(logged_client):
     assert "Placer la barre sur les trapèzes" in content
 
 
+def test_la_traduction_remplace_les_consignes_quand_disponible(logged_client):
+    """Issue #29 : un rechargement traduit doit primer sur l'anglais d'origine."""
+    from exercises.models import Exercise
+
+    squat = Exercise.objects.get(slug="Barbell_Squat")
+    squat.instructions_fr = ["Consigne traduite en français."]
+    squat.save()
+
+    content = logged_client.get(reverse("exercises:list")).content.decode()
+
+    assert "Consigne traduite en français." in content
+    assert "Placer la barre sur les trapèzes" not in content
+
+
+def test_les_illustrations_apparaissent_dans_la_carte(logged_client, settings):
+    settings.MEDIA_URL = "/media/"
+
+    content = logged_client.get(reverse("exercises:list")).content.decode()
+
+    assert '<img src="/media/exercises/Barbell_Squat/0.jpg"' in content
+
+
+def test_une_vignette_pointe_vers_son_agrandissement(logged_client):
+    """Issue #29 : cliquer sur une photo doit l'agrandir, sans script custom."""
+    from exercises.models import Exercise
+
+    squat = Exercise.objects.get(slug="Barbell_Squat")
+    content = logged_client.get(reverse("exercises:list")).content.decode()
+
+    cible = f"exo-{squat.pk}-photo-0"
+    assert f'href="#{cible}"' in content
+    assert f'id="{cible}"' in content
+
+
+def test_le_panneau_agrandi_se_referme(logged_client):
+    content = logged_client.get(reverse("exercises:list")).content.decode()
+
+    assert 'class="ugg-lightbox__backdrop"' in content
+    assert "Fermer l'agrandissement" in content
+
+
+def test_une_fiche_sans_consigne_ni_illustration_ne_deplie_rien(logged_client):
+    """Text_Only_Exercise n'a ni consigne ni image : pas de panneau à déplier pour elle."""
+    content = logged_client.get(reverse("exercises:list")).content.decode()
+
+    # Barbell_Squat, Calf_Stretch et Dumbbell_Bench_Press ont de quoi déplier ;
+    # Text_Only_Exercise n'en a pas — voir tests/fixtures/exercises.json.
+    assert content.count('class="ugg-disclosure ugg-exercise__steps') == 3
+
+
 def test_les_cinq_criteres_sont_proposes(logged_client):
     content = logged_client.get(reverse("exercises:list")).content.decode()
 

@@ -126,6 +126,9 @@ class Exercise(models.Model):
     # Consignes ordonnées et chemins d'illustrations : listes lues telles quelles,
     # jamais filtrées ni jointes — un document convient mieux qu'une table.
     instructions = models.JSONField("consignes", default=list, blank=True)
+    #: Traduction IA des consignes, vide tant qu'un rechargement traduit n'a pas
+    #: eu lieu (issue #29). L'affichage retombe sur `instructions` en anglais.
+    instructions_fr = models.JSONField("consignes (français)", default=list, blank=True)
     images = models.JSONField("illustrations", default=list, blank=True)
 
     class Meta:
@@ -139,3 +142,8 @@ class Exercise(models.Model):
 
     def __str__(self) -> str:
         return self.name
+
+    @property
+    def image_urls(self) -> list[str]:
+        """Adresses des illustrations, vendorées sous le stockage média (issue #29)."""
+        return [f"{settings.MEDIA_URL}exercises/{path}" for path in self.images]

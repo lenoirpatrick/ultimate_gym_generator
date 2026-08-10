@@ -10,4 +10,6 @@ urlpatterns = [
     path("<int:pk>/favori/", views.toggle_favorite, name="toggle_favorite"),
     path("chargement/", views.loading, name="loading"),
     path("chargement/lot/", views.load_batch, name="load_batch"),
+    path("recharger/", views.reload_catalog, name="reload"),
+    path("recharger/lot/", views.reload_batch, name="reload_batch"),
 ]
