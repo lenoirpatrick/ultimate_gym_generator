@@ -211,13 +211,9 @@
     nextBtn.addEventListener("click", () => goTo(index + 1));
     stopBtn.addEventListener("click", () => dialog.close());
 
-    // Fermeture au clic sur le fond, comme les autres panneaux du projet
-    // (voir .ugg-lightbox) — Échap ferme déjà nativement un <dialog> modal.
-    dialog.addEventListener("click", (event) => {
-        if (event.target === dialog) dialog.close();
-    });
-
-    // Point de sortie unique : Échap, Arrêter, ou clic sur le fond y passent
-    // tous, natif ou déclenché — le décompte s'arrête toujours avec la modale.
+    // Pas de fermeture au clic sur le fond : une séance en cours ne doit pas
+    // s'interrompre d'un geste accidentel. Seul « Arrêter » — ou Échap, natif
+    // au <dialog> — y met fin ; les deux passent par le même événement
+    // « close », qui arrête toujours le décompte.
     dialog.addEventListener("close", stopInterval);
 })();

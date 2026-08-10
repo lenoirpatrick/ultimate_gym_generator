@@ -199,6 +199,12 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
   JavaScript à écrire pour ça — seule règle du projet où un vrai script est nécessaire
   (`core/static/core/js/workout_timer.js`), un décompte ne pouvant pas exister en CSS
   pur. Absent si la séance n'a aucun exercice (`timeline` vide).
+- La modale occupe **toute la taille de l'écran**, sur tous les formats — pas de carte
+  centrée au-delà de `40rem` comme les autres panneaux du projet : une séance en cours ne
+  se consulte pas dans une fenêtre, elle prend l'écran. Contrairement au tiroir de
+  navigation et au `.ugg-lightbox`, le clic sur le fond **ne referme pas** la modale — un
+  effort en cours ne doit pas s'interrompre d'un geste accidentel ; seuls le bouton
+  « Arrêter » et Échap (natif au `<dialog>`) y mettent fin.
 - L'ordre chronologique réel — un tour de circuit ou HIIT enchaîne tous ses exercices
   avant de le répéter (round-robin), un Tabata ou une pyramide épuisent un exercice avant
   de passer au suivant — est calculé côté serveur par `workouts.timer.build_timeline`,

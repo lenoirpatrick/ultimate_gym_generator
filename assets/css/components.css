@@ -1260,10 +1260,11 @@
    MINUTEUR DE SÉANCE (issue #35)
    ========================================================================= */
 
-/* Plein écran au pouce ; carte centrée dès qu'il y a la place de dérouler.
-   `[open]` seul porte `display: flex` — une règle non conditionnée
-   l'emporterait sur le `display: none` de l'agent utilisateur pour
-   `dialog:not([open])` (l'origine "auteur" gagne toujours sur l'origine
+/* Plein écran sur toute la taille de l'affichage, quel que soit le format :
+   une séance se suit en cours d'effort, pas dans une fenêtre qu'on referme
+   d'un clic à côté. `[open]` seul porte `display: flex` — une règle non
+   conditionnée l'emporterait sur le `display: none` de l'agent utilisateur
+   pour `dialog:not([open])` (l'origine "auteur" gagne toujours sur l'origine
    "agent utilisateur", quelle que soit la spécificité) et la modale resterait
    visible même fermée. */
 .ugg-timer {
@@ -1272,9 +1273,8 @@
     z-index: 60;
     flex-direction: column;
     width: 100%;
-    max-width: 32rem;
-    max-height: 100vh;
-    margin: 0 auto;
+    height: 100dvh;
+    margin: 0;
     padding: 0;
     border: none;
     background: var(--ugg-surface);
@@ -1288,19 +1288,6 @@
 
 .ugg-timer::backdrop {
     background: var(--ugg-overlay);
-}
-
-@media (min-width: 40rem) {
-    .ugg-timer {
-        inset: auto;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        max-height: min(90vh, 44rem);
-        border: 1px solid var(--ugg-border);
-        border-radius: var(--ugg-radius-lg);
-        box-shadow: var(--ugg-shadow-card);
-    }
 }
 
 .ugg-timer__display {
