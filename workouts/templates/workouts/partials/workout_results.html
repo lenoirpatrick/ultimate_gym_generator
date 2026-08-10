@@ -6,7 +6,7 @@ voir workouts.views.workout_list.
     {% for workout in workouts %}
         <article class="ugg-card flex flex-wrap items-center gap-4 p-4">
             <a href="{% url 'workouts:detail' workout.pk %}" class="min-w-0 flex-1 no-underline">
-                <p class="font-semibold">{{ workout.get_format_display }}</p>
+                <p class="font-semibold">{{ workout.display_name }}</p>
                 <p class="mt-1 text-sm text-muted">
                     {{ workout.created_at|date:"j F Y, H:i" }}
                 </p>
@@ -14,6 +14,9 @@ voir workouts.views.workout_list.
 
             <p class="flex flex-wrap gap-2">
                 <span class="ugg-tag ugg-tag--accent">{{ workout.planned_minutes }} min</span>
+                {% if workout.name %}
+                    <span class="ugg-tag">{{ workout.get_format_display }}</span>
+                {% endif %}
                 {% for muscle in workout.muscles.all %}
                     <span class="ugg-tag">{{ muscle.name }}</span>
                 {% empty %}

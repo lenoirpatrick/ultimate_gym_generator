@@ -251,6 +251,107 @@ def test_sans_favori_le_filtre_invite_a_en_marquer_un(logged_client, user):
 
 
 # --------------------------------------------------------------------------- #
+# Nom (issue #28)
+# --------------------------------------------------------------------------- #
+
+
+def test_une_seance_sans_nom_affiche_le_format(logged_client, user):
+    composer(logged_client, workout_format=Workout.Format.TABATA)
+    workout = Workout.objects.get(user=user)
+
+    assert workout.display_name == workout.get_format_display()
+
+    content = logged_client.get(reverse("workouts:detail", args=[workout.pk])).content.decode()
+    assert workout.get_format_display() in content
+
+
+def test_une_seance_se_renomme(logged_client, user):
+    composer(logged_client)
+    workout = Workout.objects.get(user=user)
+
+    response = logged_client.post(
+        reverse("workouts:rename", args=[workout.pk]),
+        {"name": "Jambes du lundi"},
+        follow=True,
+    )
+
+    workout.refresh_from_db()
+    assert workout.name == "Jambes du lundi"
+    assert workout.display_name == "Jambes du lundi"
+    assert "Jambes du lundi" in response.content.decode()
+
+
+def test_le_nom_est_debarrasse_des_espaces_superflus(logged_client, user):
+    composer(logged_client)
+    workout = Workout.objects.get(user=user)
+
+    logged_client.post(reverse("workouts:rename", args=[workout.pk]), {"name": "  Dos  "})
+
+    workout.refresh_from_db()
+    assert workout.name == "Dos"
+
+
+def test_un_nom_vide_revient_au_format(logged_client, user):
+    composer(logged_client)
+    workout = Workout.objects.get(user=user)
+    logged_client.post(reverse("workouts:rename", args=[workout.pk]), {"name": "Jambes"})
+
+    logged_client.post(reverse("workouts:rename", args=[workout.pk]), {"name": ""})
+
+    workout.refresh_from_db()
+    assert workout.name == ""
+    assert workout.display_name == workout.get_format_display()
+
+
+def test_le_nom_est_tronque_a_la_longueur_maximale(logged_client, user):
+    composer(logged_client)
+    workout = Workout.objects.get(user=user)
+
+    logged_client.post(reverse("workouts:rename", args=[workout.pk]), {"name": "x" * 200})
+
+    workout.refresh_from_db()
+    assert len(workout.name) == 80
+
+
+def test_le_format_rejoint_les_etiquettes_quand_un_nom_est_defini(logged_client, user):
+    composer(logged_client, workout_format=Workout.Format.TABATA)
+    workout = Workout.objects.get(user=user)
+    logged_client.post(reverse("workouts:rename", args=[workout.pk]), {"name": "Jambes"})
+
+    content = logged_client.get(reverse("workouts:detail", args=[workout.pk])).content.decode()
+
+    assert "Jambes" in content
+    assert workout.get_format_display() in content
+
+
+def test_l_historique_affiche_le_nom_choisi(logged_client, user):
+    composer(logged_client)
+    workout = Workout.objects.get(user=user)
+    logged_client.post(reverse("workouts:rename", args=[workout.pk]), {"name": "Jambes"})
+
+    content = logged_client.get(reverse("workouts:list")).content.decode()
+
+    assert "Jambes" in content
+
+
+def test_le_renommage_refuse_la_methode_get(logged_client, user):
+    composer(logged_client)
+    workout = Workout.objects.get(user=user)
+
+    assert logged_client.get(reverse("workouts:rename", args=[workout.pk])).status_code == 405
+
+
+def test_on_ne_renomme_pas_la_seance_d_un_autre(logged_client, staff_client, user):
+    composer(logged_client)
+    workout = Workout.objects.get(user=user)
+
+    response = staff_client.post(reverse("workouts:rename", args=[workout.pk]), {"name": "Piraté"})
+
+    assert response.status_code == 404
+    assert Workout.objects.get(pk=workout.pk).name == ""
+
+
+# --------------------------------------------------------------------------- #
 # Suppression
 # --------------------------------------------------------------------------- #
 

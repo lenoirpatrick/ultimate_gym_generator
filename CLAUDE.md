@@ -178,6 +178,11 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
 - Une séance se marque en **favori** au même titre qu'un exercice (voir « Bascules
   d'état » ci-dessous) ; l'historique propose alors le même critère « Mes favoris
   uniquement » que le catalogue.
+- Une séance peut être **nommée** (`Workout.name`, facultatif). Le nom remplace alors
+  l'intitulé du format en tête d'écran (`Workout.display_name`), et le format rejoint
+  les étiquettes pour ne pas se perdre. Le contrôle de renommage est un panneau
+  repliable (`.ugg-disclosure`, partagé avec les consignes d'exercice), révisable depuis
+  l'écran de détail uniquement — la liste ne fait qu'afficher le nom choisi.
 
 ### Bascules d'état (favori)
 

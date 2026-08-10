@@ -776,7 +776,16 @@
     gap: var(--ugg-space-2);
 }
 
-.ugg-exercise__steps > summary {
+.ugg-exercise__steps ol {
+    padding-left: var(--ugg-space-4);
+    list-style: decimal;
+    color: var(--ugg-text-muted);
+}
+
+/* Panneau repliable générique, hors contexte de filtre — consignes d'exercice,
+   renommage d'une séance. Accentué et capitalisé, sans chevron ni compteur
+   (contrairement à `.ugg-filter`, réservé aux critères de recherche). */
+.ugg-disclosure > summary {
     min-height: var(--ugg-touch-target);
     display: flex;
     align-items: center;
@@ -786,12 +795,6 @@
     letter-spacing: var(--ugg-tracking-label);
     text-transform: uppercase;
     color: var(--ugg-accent);
-}
-
-.ugg-exercise__steps ol {
-    padding-left: var(--ugg-space-4);
-    list-style: decimal;
-    color: var(--ugg-text-muted);
 }
 
 /* =========================================================================

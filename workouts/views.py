@@ -91,6 +91,28 @@ def workout_coaching(request: HttpRequest, pk: int) -> HttpResponse:
     return render(request, "workouts/partials/coaching.html", {"notes": notes})
 
 
+#: Doit rester égal à `max_length` du champ `Workout.name` — voir la troncature
+#: défensive dans `workout_rename`.
+NAME_MAX_LENGTH = 80
+
+
+@login_required
+@require_POST
+def workout_rename(request: HttpRequest, pk: int) -> HttpResponse:
+    """Renomme une séance. Un nom vide revient à l'intitulé du format.
+
+    Pas de `Form` pour un seul champ facultatif : la longueur est tronquée
+    défensivement plutôt que de faire échouer l'envoi pour un enjeu si faible.
+    """
+    workout = get_object_or_404(Workout, pk=pk, user=request.user)
+    workout.name = request.POST.get("name", "").strip()[:NAME_MAX_LENGTH]
+    workout.save(update_fields=["name"])
+
+    if request.headers.get("HX-Request"):
+        return render(request, "workouts/partials/name.html", {"workout": workout})
+    return redirect("workouts:detail", pk=workout.pk)
+
+
 @login_required
 @require_POST
 def workout_toggle_favorite(request: HttpRequest, pk: int) -> HttpResponse:

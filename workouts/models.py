@@ -33,6 +33,11 @@ class Workout(models.Model):
     )
     created_at = models.DateTimeField("créée le", auto_now_add=True)
 
+    #: Facultatif : deux séances du même format sont sinon indiscernables dans
+    #: l'historique. Vide, l'intitulé de secours reste le format — voir
+    #: `display_name`.
+    name = models.CharField("nom", max_length=80, blank=True)
+
     duration_minutes = models.PositiveSmallIntegerField("durée", choices=Duration.choices)
     format = models.CharField("type de travail", max_length=12, choices=Format.choices)
     muscles = models.ManyToManyField(Muscle, verbose_name="parties du corps", blank=True)
@@ -69,6 +74,11 @@ class Workout(models.Model):
 
     def __str__(self) -> str:
         return f"{self.get_format_display()} — {self.duration_minutes} min"
+
+    @property
+    def display_name(self) -> str:
+        """Nom choisi par l'utilisateur, ou l'intitulé du format à défaut."""
+        return self.name or self.get_format_display()
 
     @property
     def planned_minutes(self) -> int:

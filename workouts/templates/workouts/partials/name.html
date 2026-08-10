@@ -1,0 +1,39 @@
+{% comment %}
+Titre d'une séance et contrôle de renommage — voir workouts.views.workout_rename.
+
+Un nom personnalisé remplace l'intitulé du format en tête ; le format rejoint
+alors les étiquettes de la séance (workout_detail.html) pour ne pas se perdre.
+Pas de Form pour un seul champ facultatif : la vue tronque défensivement.
+
+Attend `workout`.
+{% endcomment %}
+<div id="workout-name">
+    <div class="flex flex-wrap items-start justify-between gap-3">
+        <h1 class="ugg-title text-3xl">{{ workout.display_name }}</h1>
+        {% include "workouts/partials/favorite_button.html" with workout=workout %}
+    </div>
+
+    <details class="ugg-disclosure mt-3">
+        <summary>Renommer la séance</summary>
+        <form method="post"
+              action="{% url 'workouts:rename' workout.pk %}"
+              hx-post="{% url 'workouts:rename' workout.pk %}"
+              hx-target="#workout-name"
+              hx-swap="outerHTML"
+              class="mt-3 flex flex-wrap items-end gap-3">
+            {% csrf_token %}
+            <div class="ugg-field min-w-48 flex-1">
+                <label class="ugg-field__label" for="id_workout_name_{{ workout.pk }}">Nom</label>
+                <div class="ugg-field__control">
+                    <input type="text"
+                           name="name"
+                           id="id_workout_name_{{ workout.pk }}"
+                           maxlength="80"
+                           value="{{ workout.name }}"
+                           placeholder="{{ workout.get_format_display }}">
+                </div>
+            </div>
+            <button type="submit" class="ugg-btn ugg-btn--ghost">Enregistrer</button>
+        </form>
+    </details>
+</div>
