@@ -34,6 +34,15 @@ def test_accueil_est_public(client):
     assert client.get(reverse("core:home")).status_code == 200
 
 
+@pytest.mark.django_db
+def test_le_pied_de_page_credite_le_referentiel_d_exercices(client):
+    """Issue #33 : le catalogue et ses illustrations viennent de free-exercise-db."""
+    content = client.get(reverse("core:home")).content.decode()
+
+    assert "https://github.com/yuhonas/free-exercise-db" in content
+    assert "Unlicense" in content
+
+
 # --------------------------------------------------------------------------- #
 # Socle mobile (issue #24)
 # --------------------------------------------------------------------------- #

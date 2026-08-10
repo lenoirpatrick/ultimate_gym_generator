@@ -173,7 +173,20 @@ docker compose run --rm web python manage.py load_exercises
 
 Ajouter `--force` pour réimporter un catalogue déjà chargé, après avoir
 remplacé le fichier source. Celui-ci se déplace avec
-`DJANGO_EXERCISES_SOURCE` si tu veux fournir ton propre référentiel.
+`DJANGO_EXERCISES_SOURCE` si tu veux fournir ton propre référentiel ; les
+illustrations vendorées suivent le même principe avec
+`DJANGO_EXERCISES_IMAGES_SOURCE` (répertoire `<id>/0.jpg`, `<id>/1.jpg` par
+exercice — voir `src/exercises/`).
+
+Consignes en français et traduction unitaire : voir « Recharger le
+référentiel » (Configuration → Admin, réservé au personnel) et le bouton
+« Traduire cette fiche » sur une fiche non traduite — les deux dépendent d'un
+fournisseur IA actif (`/settings/ai/`).
+
+**Origine et licence.** Le catalogue (`src/exercises.json`) et ses
+illustrations (`src/exercises/`) proviennent de
+[`yuhonas/free-exercise-db`](https://github.com/yuhonas/free-exercise-db),
+publié sous licence Unlicense (domaine public).
 
 ### Fournisseurs d'IA
 
