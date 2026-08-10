@@ -216,14 +216,23 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
   courant porte le temps décompté en grand ; un effort en répétitions (pyramide) affiche
   la cible et attend une confirmation manuelle plutôt qu'un décompte qui n'aurait pas de
   sens.
+- Cinq secondes de **préparation**, décomptées avant le premier pas, pour le temps de se
+  mettre en place — pas encore comptées dans l'avancement de la séance.
+- La **barre de progression** chiffre l'avancement de la séance entière (pas de la seule
+  phase en cours) : elle avance en continu au fil du décompte du pas courant, pas par
+  à-coups à chaque changement de pas ; la préparation ne compte pas encore. Un effort en
+  répétitions y avance dès qu'il est atteint, faute de chronomètre pour le fractionner.
 - Trois commandes seulement : **Pause** (indisponible sur un pas en répétitions, rien à
   mettre en pause), **Passer** (avance manuellement, y compris pour confirmer un pas en
   répétitions) et **Arrêter** (`.ugg-btn--danger`, nouvelle variante de `.ugg-btn`).
-- Des sons marquent le début de la séance, la fin, et chaque changement de phase (début
-  d'effort, début de repos) — **synthétisés via l'API Web Audio**, pas des fichiers
-  embarqués : aucune dépendance externe, aucune question de licence, fonctionne hors
-  connexion. Le repos se distingue de l'effort par le libellé affiché autant que par la
-  tonalité, jamais par la seule couleur.
+- Des sons marquent le début de la séance, la fin, chaque changement de phase (début
+  d'effort, début de repos), et un bip discret par seconde sur les **quatre dernières
+  secondes** de tout décompte (préparation comprise) — **synthétisés via l'API Web
+  Audio**, pas des fichiers embarqués : aucune dépendance externe, aucune question de
+  licence, fonctionne hors connexion. Uniquement des ondes sinusoïdales ou triangulaires,
+  jamais carrées — le buzzer numérique ne correspond à aucune identité sonore du projet.
+  Le repos se distingue de l'effort par le libellé affiché autant que par la tonalité,
+  jamais par la seule couleur.
 
 ### Bascules d'état (favori)
 

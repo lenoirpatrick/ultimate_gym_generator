@@ -12,6 +12,10 @@
 (() => {
     "use strict";
 
+    // Temps laissé pour se mettre en place avant le premier pas — pas encore
+    // décompté dans l'avancement de la séance, voir overallPercent().
+    const PREP_SECONDS = 5;
+
     const dialog = document.getElementById("minuteur-modal");
     const opener = document.getElementById("lancer-seance");
     if (!dialog || !opener) return;
@@ -41,33 +45,39 @@
     let audioCtx = null;
     let currentStepEl = null;
 
-    function tone(frequency, start, duration, type) {
+    function tone(frequency, start, duration, type, peakGain) {
         const osc = audioCtx.createOscillator();
         const gain = audioCtx.createGain();
         osc.type = type || "sine";
         osc.frequency.value = frequency;
         gain.gain.setValueAtTime(0.0001, start);
-        gain.gain.exponentialRampToValueAtTime(0.25, start + 0.02);
+        gain.gain.exponentialRampToValueAtTime(peakGain || 0.2, start + 0.015);
         gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
         osc.connect(gain).connect(audioCtx.destination);
         osc.start(start);
         osc.stop(start + duration + 0.05);
     }
 
+    // Sinusoïdales et triangulaires uniquement : une onde carrée sonne comme
+    // un buzzer d'ancien jeu vidéo, pas comme un repère de salle de sport.
     function playCue(name) {
         if (!audioCtx) return;
         const now = audioCtx.currentTime;
         if (name === "start") {
-            tone(523, now, 0.12);
-            tone(784, now + 0.15, 0.16);
+            tone(523, now, 0.14, "sine");
+            tone(784, now + 0.16, 0.2, "sine");
         } else if (name === "end") {
-            tone(784, now, 0.14);
-            tone(659, now + 0.16, 0.14);
-            tone(523, now + 0.32, 0.22);
+            tone(784, now, 0.16, "sine");
+            tone(659, now + 0.18, 0.16, "sine");
+            tone(523, now + 0.36, 0.28, "sine");
         } else if (name === "work") {
-            tone(880, now, 0.15, "square");
+            tone(880, now, 0.18, "triangle");
         } else if (name === "rest") {
-            tone(392, now, 0.2, "square");
+            tone(440, now, 0.22, "sine");
+        } else if (name === "tick") {
+            // Un bip discret par seconde sur les quatre dernières secondes
+            // d'un décompte — la préparation comme un effort chronométré.
+            tone(660, now, 0.08, "sine", 0.14);
         }
     }
 
@@ -102,15 +112,36 @@
 
     function updateClock() {
         clockEl.textContent = formatClock(Math.max(0, remaining));
-        const percent = total > 0 ? Math.round(((total - remaining) / total) * 100) : 0;
+    }
+
+    // Avancement de la séance entière (pas de la seule phase en cours) : la
+    // préparation ne compte pas encore (index < 0), un pas en répétitions
+    // (sans chronomètre) compte pour lui-même dès qu'il est atteint, et un
+    // pas chronométré avance en continu au fil de son propre décompte plutôt
+    // que par à-coups à chaque changement de pas.
+    function overallPercent() {
+        if (index < 0) return 0;
+        if (index >= steps.length) return 100;
+        const step = steps[index];
+        const fraction = step.seconds ? (total - remaining) / total : 0;
+        return Math.min(100, Math.round(((index + fraction) / steps.length) * 100));
+    }
+
+    function updateProgress() {
+        const percent = overallPercent();
         fillEl.style.width = `${percent}%`;
         trackEl.setAttribute("aria-valuenow", String(percent));
-        percentEl.textContent = `${percent} %`;
+        const stepNumber = Math.min(Math.max(index + 1, 0), steps.length);
+        percentEl.textContent = `${percent} % · ${stepNumber} / ${steps.length}`;
     }
 
     function tick() {
         remaining -= 1;
         updateClock();
+        updateProgress();
+        if (remaining > 0 && remaining <= 4) {
+            playCue("tick");
+        }
         if (remaining <= 0) {
             stopInterval();
             goTo(index + 1);
@@ -131,18 +162,17 @@
         phaseEl.textContent = step.phase === "work" ? "Effort" : "Repos";
         exerciseEl.textContent = exerciseName(step.itemId);
         lapEl.textContent = step.totalLaps > 1 ? `Tour ${step.lap} / ${step.totalLaps}` : "";
+        progressWrap.hidden = false;
 
         if (step.seconds === null) {
             // Effort en répétitions (pyramide) : pas de décompte, confirmation manuelle.
             clockEl.hidden = true;
             repsEl.hidden = false;
             repsEl.textContent = `${step.reps} répétitions`;
-            progressWrap.hidden = true;
             pauseBtn.disabled = true;
         } else {
             clockEl.hidden = false;
             repsEl.hidden = true;
-            progressWrap.hidden = false;
             pauseBtn.disabled = false;
             pauseBtn.textContent = "Pause";
             remaining = step.seconds;
@@ -151,6 +181,7 @@
             intervalId = window.setInterval(tick, 1000);
         }
 
+        updateProgress();
         playCue(step.phase);
         announceEl.textContent = `${phaseEl.textContent} : ${exerciseEl.textContent}`;
     }
@@ -163,6 +194,7 @@
         lapEl.textContent = "";
         clockEl.hidden = true;
         repsEl.hidden = true;
+        updateProgress();
         progressWrap.hidden = true;
         pauseBtn.disabled = true;
         nextBtn.disabled = true;
@@ -182,6 +214,32 @@
         stopBtn.textContent = "Arrêter";
     }
 
+    // Cinq secondes pour se mettre en place avant le premier pas, plutôt que
+    // de décompter dès la fermeture de la porte du casier.
+    function startPrep() {
+        stopInterval();
+        index = -1;
+        const first = steps[0];
+        highlight(first.itemId);
+        dialog.dataset.phase = "prep";
+        phaseEl.textContent = "Préparation";
+        exerciseEl.textContent = exerciseName(first.itemId);
+        lapEl.textContent = "";
+
+        clockEl.hidden = false;
+        repsEl.hidden = true;
+        progressWrap.hidden = false;
+        pauseBtn.disabled = false;
+        pauseBtn.textContent = "Pause";
+
+        remaining = PREP_SECONDS;
+        total = PREP_SECONDS;
+        updateClock();
+        updateProgress();
+        announceEl.textContent = `Préparation : ${exerciseEl.textContent}`;
+        intervalId = window.setInterval(tick, 1000);
+    }
+
     opener.addEventListener("click", () => {
         if (!audioCtx) {
             const AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -193,7 +251,7 @@
         reset();
         dialog.showModal();
         playCue("start");
-        goTo(0);
+        startPrep();
     });
 
     pauseBtn.addEventListener("click", () => {
