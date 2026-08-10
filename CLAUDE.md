@@ -76,6 +76,24 @@ Tu interviens avec **deux casquettes simultanées**, jamais l'une sans l'autre.
 Couleurs, typographie, espacements, rayons, ombres et durées d'animation y sont définis une
 seule fois. Aucune valeur graphique en dur ailleurs dans le code.
 
+### Navigation principale
+
+- Deux niveaux, séparés par une seule question : **s'en sert-on à chaque visite, ou
+  le règle-t-on une fois ?** Les entrées quotidiennes (séances, exercices, favoris)
+  restent en clair dans la barre ; tout ce qui se configure passe derrière un menu
+  **Configuration**, groupé par responsabilité (« Admin », « Utilisateur »).
+- Sous `40rem`, la barre disparaît et **tout** rejoint le même tiroir, dont le bouton
+  s'intitule alors « Menu ». Une rangée de boutons alignés ne tient pas sur un téléphone.
+- Les entrées sont décrites **une seule fois**, dans `core/nav.py` — jamais réécrites
+  dans un gabarit. Barre et tiroir rendent la même structure via
+  `core/templates/core/partials/nav_group.html`.
+- Un groupe vidé de ses entrées n'est pas rendu : un intitulé « Admin » sans rien
+  dessous laisse croire à un droit manquant plutôt qu'à une section sans objet.
+- Ouverture par `<details>`, sans JavaScript : le panneau se referme à la navigation
+  et à `Échap`, pas au clic extérieur — limite assumée.
+- L'écran courant porte `aria-current="page"` et un liseré d'accent, jamais une
+  simple différence de couleur.
+
 ### Spinners et indicateurs de chargement
 
 - Tout indicateur de chargement est une **icône de sport animée** : haltère en rotation

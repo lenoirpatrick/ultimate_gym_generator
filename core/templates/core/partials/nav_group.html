@@ -1,0 +1,19 @@
+{% comment %}
+Un groupe d'entrées du menu. Sert la barre comme le tiroir : les liens sont
+décrits une seule fois, dans core/nav.py.
+
+Attend `group` (core.nav.NavGroup) et `current_view`. `headless` supprime
+l'intitulé — la barre n'a pas besoin de titrer trois liens alignés.
+{% endcomment %}
+<div class="ugg-nav__group{% if extra_class %} {{ extra_class }}{% endif %}">
+    {% if not headless %}
+        <p class="ugg-nav__heading">{{ group.label }}</p>
+    {% endif %}
+    {% for link in group.links %}
+        <a href="{% url link.view %}"
+           class="ugg-nav__link"
+           {% if link.view == current_view %}aria-current="page"{% endif %}>
+            {{ link.label }}
+        </a>
+    {% endfor %}
+</div>
