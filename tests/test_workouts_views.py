@@ -617,3 +617,46 @@ def test_avec_un_fournisseur_le_bouton_de_traduction_apparait(logged_client, use
 
     assert "Traduire cette fiche" in content
     assert reverse("exercises:translate", args=[squat.pk]) in content
+
+
+# --------------------------------------------------------------------------- #
+# Minuteur de séance (issue #35)
+# --------------------------------------------------------------------------- #
+
+
+def test_le_bouton_lancer_la_seance_apparait(logged_client, user):
+    squat = Exercise.objects.get(slug="Barbell_Squat")
+    workout = build_workout(user, squat)
+
+    content = logged_client.get(reverse("workouts:detail", args=[workout.pk])).content.decode()
+
+    assert 'id="lancer-seance"' in content
+    assert "Lancer la séance" in content
+    assert 'id="minuteur-modal"' in content
+    assert "core/js/workout_timer.js" in content
+
+
+def test_le_deroule_chronometre_est_transmis_en_json(logged_client, user):
+    squat = Exercise.objects.get(slug="Barbell_Squat")
+    workout = build_workout(user, squat)
+
+    content = logged_client.get(reverse("workouts:detail", args=[workout.pk])).content.decode()
+
+    assert 'id="minuteur-donnees"' in content
+    # Trois rounds de répétitions, un repos entre chacun : six pas.
+    assert content.count('"itemId"') == 6
+
+
+def test_sans_exercice_le_bouton_de_lancement_n_apparait_pas(logged_client, user):
+    """Une séance sans exercice ne peut rien chronométrer — le bouton serait mort."""
+    workout = Workout.objects.create(
+        user=user,
+        duration_minutes=Workout.Duration.THIRTY,
+        format=Workout.Format.CIRCUIT,
+        planned_seconds=0,
+    )
+
+    content = logged_client.get(reverse("workouts:detail", args=[workout.pk])).content.decode()
+
+    assert 'id="lancer-seance"' not in content
+    assert 'id="minuteur-modal"' not in content

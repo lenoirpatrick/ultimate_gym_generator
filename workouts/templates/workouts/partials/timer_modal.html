@@ -1,0 +1,46 @@
+{% comment %}
+Modale de suivi d'exécution (issue #35) : minuteur, timeline en surbrillance,
+Pause / Passer / Arrêter, sons de transition. Le décompte et la surbrillance
+sont pilotés par `core/static/core/js/workout_timer.js`, à partir du JSON
+ci-dessous — voir `workouts.timer.build_timeline` pour l'ordre chronologique
+réel (un tour de circuit enchaîne tous ses exercices avant de le répéter, un
+Tabata ou une pyramide épuisent un exercice avant de passer au suivant).
+
+Un <dialog> natif porte gratuitement le piège de focus, la fermeture à Échap
+et le retour de focus au déclencheur — aucun script à écrire pour ça.
+
+Attend `workout`, `timeline` (workouts.timer.build_timeline, sérialisée ici).
+{% endcomment %}
+{{ timeline|json_script:"minuteur-donnees" }}
+<dialog id="minuteur-modal" class="ugg-timer" aria-label="Suivi de la séance">
+    <div class="ugg-timer__display">
+        <p class="ugg-timer__phase" id="minuteur-phase">Prêt</p>
+        <p class="ugg-timer__exercise" id="minuteur-exercice"></p>
+        <p class="ugg-timer__meta" id="minuteur-tour"></p>
+
+        <p class="ugg-timer__clock" id="minuteur-horloge" hidden>00:00</p>
+        <p class="ugg-timer__reps" id="minuteur-reps" hidden></p>
+
+        <div class="ugg-progress mt-4" id="minuteur-progress">
+            <p class="ugg-progress__head">
+                <span>Temps restant dans cette phase</span>
+                <span class="ugg-progress__value" id="minuteur-pourcentage">0&nbsp;%</span>
+            </p>
+            <div class="ugg-progress__track" id="minuteur-barre" role="progressbar"
+                 aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"
+                 aria-label="Avancement de la phase en cours">
+                <div class="ugg-progress__fill" id="minuteur-remplissage" style="width: 0%"></div>
+            </div>
+        </div>
+
+        <div class="ugg-timer__controls">
+            <button type="button" id="minuteur-pause" class="ugg-btn ugg-btn--ghost">Pause</button>
+            <button type="button" id="minuteur-suivant" class="ugg-btn ugg-btn--ghost">Passer</button>
+            <button type="button" id="minuteur-stop" class="ugg-btn ugg-btn--danger">Arrêter</button>
+        </div>
+
+        <p class="sr-only" id="minuteur-annonce" aria-live="polite"></p>
+    </div>
+
+    {% include "workouts/partials/timer_timeline.html" with workout=workout %}
+</dialog>

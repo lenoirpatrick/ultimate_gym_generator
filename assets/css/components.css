@@ -366,6 +366,19 @@
     background: var(--ugg-surface-sunken);
 }
 
+/* Action qui interrompt (Arrêter le minuteur) : jamais la seule action
+   destructive du projet à ne pas se distinguer visuellement. */
+.ugg-btn--danger {
+    background: transparent;
+    border-color: var(--ugg-danger);
+    color: var(--ugg-danger);
+}
+
+.ugg-btn--danger:hover:not([disabled]) {
+    background: var(--ugg-danger);
+    color: var(--ugg-surface-raised);
+}
+
 .ugg-field {
     display: flex;
     flex-direction: column;
@@ -1241,4 +1254,163 @@
 
 @media (min-width: 40rem) {
     .ugg-empty { padding: var(--ugg-space-12) var(--ugg-space-6); }
+}
+
+/* =========================================================================
+   MINUTEUR DE SÉANCE (issue #35)
+   ========================================================================= */
+
+/* Plein écran au pouce ; carte centrée dès qu'il y a la place de dérouler.
+   `[open]` seul porte `display: flex` — une règle non conditionnée
+   l'emporterait sur le `display: none` de l'agent utilisateur pour
+   `dialog:not([open])` (l'origine "auteur" gagne toujours sur l'origine
+   "agent utilisateur", quelle que soit la spécificité) et la modale resterait
+   visible même fermée. */
+.ugg-timer {
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    flex-direction: column;
+    width: 100%;
+    max-width: 32rem;
+    max-height: 100vh;
+    margin: 0 auto;
+    padding: 0;
+    border: none;
+    background: var(--ugg-surface);
+    color: var(--ugg-text);
+    overflow: hidden;
+}
+
+.ugg-timer[open] {
+    display: flex;
+}
+
+.ugg-timer::backdrop {
+    background: var(--ugg-overlay);
+}
+
+@media (min-width: 40rem) {
+    .ugg-timer {
+        inset: auto;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        max-height: min(90vh, 44rem);
+        border: 1px solid var(--ugg-border);
+        border-radius: var(--ugg-radius-lg);
+        box-shadow: var(--ugg-shadow-card);
+    }
+}
+
+.ugg-timer__display {
+    flex: none;
+    padding: calc(var(--ugg-space-6) + var(--ugg-safe-top)) var(--ugg-space-4) var(--ugg-space-4);
+    border-bottom: 1px solid var(--ugg-border);
+    text-align: center;
+}
+
+.ugg-timer__phase {
+    font-family: var(--ugg-font-display);
+    font-size: 0.8125rem;
+    font-weight: 700;
+    letter-spacing: var(--ugg-tracking-label);
+    text-transform: uppercase;
+    color: var(--ugg-accent);
+}
+
+/* Le repos se distingue de l'effort sans dépendre de la seule couleur : le
+   libellé du texte porte déjà la différence (« Effort » / « Repos »). */
+.ugg-timer[data-phase="rest"] .ugg-timer__phase {
+    color: var(--ugg-text-muted);
+}
+
+.ugg-timer__exercise {
+    margin-top: var(--ugg-space-1);
+    font-size: 1.125rem;
+    font-weight: 700;
+    overflow-wrap: break-word;
+}
+
+.ugg-timer__meta {
+    margin-top: var(--ugg-space-1);
+    font-size: 0.8125rem;
+    color: var(--ugg-text-muted);
+}
+
+.ugg-timer__clock {
+    margin-top: var(--ugg-space-3);
+    font-family: var(--ugg-font-display);
+    font-size: 3.5rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: var(--ugg-tracking-display);
+}
+
+.ugg-timer__reps {
+    margin-top: var(--ugg-space-3);
+    font-family: var(--ugg-font-display);
+    font-size: 2.5rem;
+    font-weight: 700;
+}
+
+.ugg-timer__controls {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: var(--ugg-space-3);
+    margin-top: var(--ugg-space-4);
+}
+
+.ugg-timer__timeline {
+    display: grid;
+    align-content: start;
+    gap: var(--ugg-space-1);
+    padding: var(--ugg-space-3);
+    padding-bottom: calc(var(--ugg-space-3) + var(--ugg-safe-bottom));
+    overflow-y: auto;
+}
+
+.ugg-timer__step {
+    display: flex;
+    align-items: center;
+    gap: var(--ugg-space-3);
+    min-width: 0;
+    padding: var(--ugg-space-2) var(--ugg-space-3);
+    border-radius: var(--ugg-radius-md);
+}
+
+/* Le pas en cours se reconnaît à un liseré et un fond, jamais à la seule
+   couleur du texte (CLAUDE.md § Bascules d'état, même principe). */
+.ugg-timer__step--current {
+    background: var(--ugg-surface-sunken);
+    box-shadow: inset 3px 0 0 var(--ugg-accent);
+}
+
+.ugg-timer__step-photo {
+    flex: none;
+    width: 2.75rem;
+    height: 2.75rem;
+    border: 1px solid var(--ugg-border);
+    border-radius: var(--ugg-radius-sm);
+    object-fit: cover;
+}
+
+.ugg-timer__step-photo--empty {
+    background: var(--ugg-surface-sunken);
+}
+
+.ugg-timer__step-body {
+    display: grid;
+    min-width: 0;
+}
+
+.ugg-timer__step-name {
+    font-weight: 600;
+    overflow-wrap: break-word;
+}
+
+.ugg-timer__step-timing {
+    font-size: 0.8125rem;
+    color: var(--ugg-text-muted);
 }

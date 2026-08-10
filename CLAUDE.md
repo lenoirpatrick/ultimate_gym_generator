@@ -191,6 +191,34 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
   « Cartes de catalogue ». Sans consigne ni image, la fiche reste un simple texte : rien à
   déplier ne doit pas se présenter comme dépliable.
 
+### Minuteur de séance (issue #35)
+
+- Un bouton **« Lancer la séance »** (`.ugg-btn--primary`) ouvre un `<dialog>` natif
+  (`.ugg-timer`, `workouts/partials/timer_modal.html`) : piège de focus, fermeture à
+  Échap et retour de focus au déclencheur viennent gratuitement de l'élément, sans
+  JavaScript à écrire pour ça — seule règle du projet où un vrai script est nécessaire
+  (`core/static/core/js/workout_timer.js`), un décompte ne pouvant pas exister en CSS
+  pur. Absent si la séance n'a aucun exercice (`timeline` vide).
+- L'ordre chronologique réel — un tour de circuit ou HIIT enchaîne tous ses exercices
+  avant de le répéter (round-robin), un Tabata ou une pyramide épuisent un exercice avant
+  de passer au suivant — est calculé côté serveur par `workouts.timer.build_timeline`,
+  jamais recalculé en JavaScript : le script ne fait qu'égrainer la liste de pas
+  (`json_script`) et mettre à jour l'affichage.
+- La modale affiche la **timeline simplifiée** (`workouts/partials/timer_timeline.html`,
+  un item par exercice avec sa photo — pas un pas par pas du minuteur) et met en
+  surbrillance l'exercice en cours (liseré d'accent, jamais la seule couleur). Le pas
+  courant porte le temps décompté en grand ; un effort en répétitions (pyramide) affiche
+  la cible et attend une confirmation manuelle plutôt qu'un décompte qui n'aurait pas de
+  sens.
+- Trois commandes seulement : **Pause** (indisponible sur un pas en répétitions, rien à
+  mettre en pause), **Passer** (avance manuellement, y compris pour confirmer un pas en
+  répétitions) et **Arrêter** (`.ugg-btn--danger`, nouvelle variante de `.ugg-btn`).
+- Des sons marquent le début de la séance, la fin, et chaque changement de phase (début
+  d'effort, début de repos) — **synthétisés via l'API Web Audio**, pas des fichiers
+  embarqués : aucune dépendance externe, aucune question de licence, fonctionne hors
+  connexion. Le repos se distingue de l'effort par le libellé affiché autant que par la
+  tonalité, jamais par la seule couleur.
+
 ### Bascules d'état (favori)
 
 - Une bascule affiche **toujours son libellé** à côté de l'icône : une étoile seule ne dit

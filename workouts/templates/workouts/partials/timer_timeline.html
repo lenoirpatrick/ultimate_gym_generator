@@ -1,0 +1,36 @@
+{% comment %}
+Timeline simplifiée du minuteur de séance (issue #35) : un repère visuel par
+exercice — temps, nom, photo — pour se retrouver d'un coup d'œil pendant
+l'effort. `data-item-id` sert de clé à `workout_timer.js` pour mettre en
+surbrillance le pas en cours ; l'ordre chronologique réel (tours de circuit
+entrelacés, exercices de tabata/pyramide épuisés un à un) est calculé côté
+serveur par `workouts.timer.build_timeline` et transmis en JSON — cette liste
+reste groupée par exercice, pas par pas de minuteur.
+
+Attend `workout`.
+{% endcomment %}
+<ol class="ugg-timer__timeline">
+    {% for block in workout.blocks %}
+        {% for item in block.items %}
+            <li class="ugg-timer__step" data-item-id="{{ item.pk }}">
+                {% with photo=item.exercise.image_urls|first %}
+                    {% if photo %}
+                        <img src="{{ photo }}" alt="" loading="lazy" class="ugg-timer__step-photo">
+                    {% else %}
+                        <span class="ugg-timer__step-photo ugg-timer__step-photo--empty" aria-hidden="true"></span>
+                    {% endif %}
+                {% endwith %}
+                <span class="ugg-timer__step-body">
+                    <span class="ugg-timer__step-name">{{ item.exercise.name }}</span>
+                    <span class="ugg-timer__step-timing">
+                        {% if item.is_timed %}
+                            {{ item.work_seconds }}&nbsp;s effort · {{ item.rest_seconds }}&nbsp;s repos · × {{ item.rounds }}
+                        {% else %}
+                            {{ item.reps|join:" · " }} répétitions · {{ item.rest_seconds }}&nbsp;s repos
+                        {% endif %}
+                    </span>
+                </span>
+            </li>
+        {% endfor %}
+    {% endfor %}
+</ol>

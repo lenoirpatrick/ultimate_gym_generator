@@ -8,7 +8,7 @@ from django.views.decorators.http import require_POST
 
 from aiproviders.clients import get_active_client
 
-from . import coaching, generator
+from . import coaching, generator, timer
 from .forms import WorkoutForm
 from .models import Workout
 
@@ -76,6 +76,8 @@ def workout_detail(request: HttpRequest, pk: int) -> HttpResponse:
         # Bouton de traduction unitaire du rappel d'exercice (issue #31) :
         # un seul calcul par écran plutôt qu'un par exercice du déroulé.
         "can_translate": get_active_client() is not None,
+        # Déroulé chronométré du minuteur de suivi (issue #35).
+        "timeline": timer.build_timeline(workout),
     }
     return render(request, "workouts/workout_detail.html", context)
 

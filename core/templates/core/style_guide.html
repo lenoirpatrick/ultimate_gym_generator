@@ -196,7 +196,41 @@
         <div class="mt-6 flex flex-wrap items-center gap-3">
             <button class="ugg-btn ugg-btn--primary">Action principale</button>
             <button class="ugg-btn ugg-btn--ghost">Action secondaire</button>
+            <button class="ugg-btn ugg-btn--danger">Interrompre</button>
             <button class="ugg-btn ugg-btn--primary" disabled>Indisponible</button>
+        </div>
+    </section>
+
+    <section class="mt-12">
+        <h2 class="ugg-title text-xl">Minuteur de séance</h2>
+        <p class="mt-2 max-w-2xl text-muted">
+            Affichage figé du <code class="font-mono">&lt;dialog&gt;</code> de suivi
+            (issue #35) — le décompte, les sons et la surbrillance de la timeline sont
+            pilotés par <code class="font-mono">workout_timer.js</code> depuis l'écran
+            d'une séance. Le repos se distingue de l'effort par le libellé, pas
+            seulement par la couleur.
+        </p>
+        <div class="ugg-card mt-6 max-w-sm overflow-hidden p-0">
+            <div class="ugg-timer__display">
+                <p class="ugg-timer__phase">Effort</p>
+                <p class="ugg-timer__exercise">Pompes</p>
+                <p class="ugg-timer__meta">Tour 2 / 4</p>
+                <p class="ugg-timer__clock">00:32</p>
+                <div class="ugg-progress mt-4">
+                    <p class="ugg-progress__head">
+                        <span>Temps restant dans cette phase</span>
+                        <span class="ugg-progress__value">29&nbsp;%</span>
+                    </p>
+                    <div class="ugg-progress__track" role="presentation">
+                        <div class="ugg-progress__fill" style="width: 29%"></div>
+                    </div>
+                </div>
+                <div class="ugg-timer__controls">
+                    <button type="button" class="ugg-btn ugg-btn--ghost">Pause</button>
+                    <button type="button" class="ugg-btn ugg-btn--ghost">Passer</button>
+                    <button type="button" class="ugg-btn ugg-btn--danger">Arrêter</button>
+                </div>
+            </div>
         </div>
     </section>
 

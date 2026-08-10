@@ -1,6 +1,11 @@
 {% extends "core/base.html" %}
+{% load static %}
 
 {% block title %}Séance du {{ workout.created_at|date:"j F" }} — {{ site_name }}{% endblock %}
+
+{% block extra_scripts %}
+    <script src="{% static 'core/js/workout_timer.js' %}" defer></script>
+{% endblock %}
 
 {% block content %}
     {% comment %}
@@ -30,6 +35,12 @@
                 Demandé : {{ workout.duration_minutes }} min. Ce format se remplit par
                 blocs entiers — le reliquat sert d'échauffement ou de retour au calme.
             </p>
+        {% endif %}
+
+        {% if timeline %}
+            <button type="button" id="lancer-seance" class="ugg-btn ugg-btn--primary mt-6" aria-haspopup="dialog">
+                Lancer la séance
+            </button>
         {% endif %}
 
         {% comment %}
@@ -98,4 +109,8 @@
             <button type="submit" class="ugg-btn ugg-btn--ghost">Supprimer cette séance</button>
         </form>
     </div>
+
+    {% if timeline %}
+        {% include "workouts/partials/timer_modal.html" with workout=workout timeline=timeline %}
+    {% endif %}
 {% endblock %}
