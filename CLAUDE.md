@@ -76,6 +76,23 @@ Tu interviens avec **deux casquettes simultanées**, jamais l'une sans l'autre.
 Couleurs, typographie, espacements, rayons, ombres et durées d'animation y sont définis une
 seule fois. Aucune valeur graphique en dur ailleurs dans le code.
 
+### Socle mobile
+
+- **Une seule rupture d'affichage dans tout le projet : `40rem`** — celle de `sm:` chez
+  Tailwind, notée `--ugg-breakpoint-wide` dans `tokens.css`. En dessous, on est à une
+  main sur un téléphone ; au-dessus, il y a la place de dérouler. Toute règle
+  responsive s'écrit **mobile d'abord** : le cas étroit est le cas par défaut, la
+  version large arrive dans un `@media (min-width: 40rem)`.
+- Le gabarit demande `viewport-fit=cover` ; l'encoche et la barre système sont reprises
+  par `--ugg-safe-top` / `--ugg-safe-bottom` (en-tête et pied de page).
+- L'en-tête est **collant** : on descend dans une séance sans perdre l'accès au menu.
+- La couleur de barre du navigateur (`<meta name="theme-color">`) double `--ugg-surface`
+  pour les deux schémas — une balise `meta` ne sait pas lire une variable CSS. Les deux
+  valeurs se modifient **avec** le token, jamais séparément.
+- Rien ne doit provoquer de défilement horizontal : `overflow-wrap: break-word` sur le
+  corps, `min-width: 0` sur les conteneurs susceptibles d'être serrés (`.ugg-card`,
+  `.ugg-set`, groupes de navigation).
+
 ### Navigation principale
 
 - Deux niveaux, séparés par une seule question : **s'en sert-on à chaque visite, ou

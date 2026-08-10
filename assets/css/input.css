@@ -3,18 +3,30 @@
 
 @import "tailwindcss";
 
-/* Fichiers scannés pour déterminer les classes utilitaires à générer. */
+/* Fichiers scannés pour déterminer les classes utilitaires à générer.
+   Tailwind 4 explore aussi le projet de lui-même ; la liste reste écrite pour
+   qu'on voie d'un coup d'œil ce qui compose l'interface, et elle doit donc citer
+   toutes les applications. */
 @source "../../accounts/**/*.html";
 @source "../../aiproviders/**/*.html";
 @source "../../exercises/**/*.html";
+@source "../../workouts/**/*.html";
 @source "../../core/**/*.{html,py}";
 
 @import "./tokens.css";
 @import "./components.css";
+
+/* Un téléphone en paysage ne doit pas décider seul de la taille du texte. */
+html {
+    -webkit-text-size-adjust: 100%;
+}
 
 body {
     background: var(--ugg-surface);
     color: var(--ugg-text);
     font-family: var(--ugg-font-body);
     -webkit-font-smoothing: antialiased;
+    /* Une adresse de fournisseur ou un nom d'exercice à rallonge se coupe
+       plutôt que de pousser toute la page en défilement horizontal. */
+    overflow-wrap: break-word;
 }

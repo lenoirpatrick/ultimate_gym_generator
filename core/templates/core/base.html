@@ -2,9 +2,20 @@
 <html lang="fr">
 <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    {% comment %}
+    `viewport-fit=cover` : l'application se consulte à la salle, sur téléphone.
+    Les marges d'encoche sont ensuite reprises par --ugg-safe-top / -bottom.
+    {% endcomment %}
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <title>{% block title %}{{ site_name }}{% endblock %}</title>
     <meta name="description" content="{% block description %}Générateur de programmes sportifs assisté par IA.{% endblock %}">
+    {% comment %}
+    Couleur de la barre du navigateur. Une balise `meta` ne sait pas lire une
+    variable CSS : ces deux valeurs doublent --ugg-surface (assets/css/tokens.css)
+    et se modifient avec elle.
+    {% endcomment %}
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f4f7f5">
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0b0d0c">
     <link rel="stylesheet" href="{% static 'core/css/app.css' %}">
     <script src="{% static 'core/js/htmx.min.js' %}" defer></script>
 </head>
@@ -84,7 +95,7 @@
     {% block content %}{% endblock %}
 </main>
 
-<footer class="mt-12 border-t border-line">
+<footer class="ugg-footer mt-12 border-t border-line">
     <div class="mx-auto max-w-5xl px-4 py-6 text-sm text-muted">
         Ultimate Gym Generator
         {% if debug %}

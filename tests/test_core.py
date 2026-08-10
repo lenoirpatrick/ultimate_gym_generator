@@ -35,6 +35,20 @@ def test_accueil_est_public(client):
 
 
 # --------------------------------------------------------------------------- #
+# Socle mobile (issue #24)
+# --------------------------------------------------------------------------- #
+
+
+@pytest.mark.django_db
+def test_le_gabarit_couvre_l_encoche_et_colore_la_barre_du_navigateur(client):
+    """Sans `viewport-fit=cover`, les marges --ugg-safe-* n'ont aucun effet."""
+    content = client.get(reverse("core:home")).content.decode()
+
+    assert "viewport-fit=cover" in content
+    assert content.count('name="theme-color"') == 2
+
+
+# --------------------------------------------------------------------------- #
 # Navigation principale (issue #23)
 # --------------------------------------------------------------------------- #
 

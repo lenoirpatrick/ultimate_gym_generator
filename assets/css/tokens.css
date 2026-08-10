@@ -71,6 +71,19 @@
 
     /* --- Cible tactile minimale (accessibilité) --------------------------- */
     --ugg-touch-target: 44px;
+
+    /* --- Encoche et barre système (iOS, Android) --------------------------- */
+    /* Le gabarit demande `viewport-fit=cover` : sans ces marges, l'en-tête
+       passerait sous l'encoche et le pied sous la barre de navigation. */
+    --ugg-safe-top: env(safe-area-inset-top, 0px);
+    --ugg-safe-bottom: env(safe-area-inset-bottom, 0px);
+
+    /* --- Seuil de bascule d'affichage --------------------------------------- */
+    /* Une seule rupture dans tout le projet : en dessous, on est à une main sur
+       un téléphone ; au-dessus, il y a la place de dérouler. Les media queries
+       ne pouvant pas lire une variable, la valeur est répétée en clair — c'est
+       ici qu'elle se décide. */
+    --ugg-breakpoint-wide: 40rem;
 }
 
 /* Thème sombre : par préférence système, sauf choix explicite « clair ». */
