@@ -126,8 +126,16 @@ class EquipmentForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.fields["step_kg"].help_text = "Écart entre deux crans, en kilogrammes."
 
-        if self.instance.pk and self.instance.weights:
-            self.initial["weights"] = ", ".join(_format(w) for w in self.instance.weights)
+        # `weights` est à la fois un champ du modèle (une liste JSON) et un champ de
+        # formulaire déclaré ci-dessus (un texte) : `ModelForm.__init__` peuple
+        # `self.initial["weights"]` avec la liste brute avant que ce constructeur ne
+        # s'exécute. Sans réécriture systématique, une liste vide (mode réglable ou
+        # sans charge — la grande majorité des lignes) laissait passer `[]` telle
+        # quelle, que le widget affichait comme le texte littéral « [] » ; resoumettre
+        # la ligne sans y toucher échouait alors avec « "[]" n'est pas un poids »,
+        # empêchant tout réenregistrement d'une ligne existante. Toujours recalculer,
+        # y compris pour une liste vide.
+        self.initial["weights"] = ", ".join(_format(w) for w in self.instance.weights or [])
 
     def clean_weights(self) -> list[float]:
         """Accepte « 8, 12, 16 » — et refuse ce qui n'est pas un poids."""

@@ -281,3 +281,87 @@ def test_les_deux_groupes_de_charge_restent_postables(logged_client, user):
 
     assert 'name="form-0-weights"' in content
     assert 'name="form-0-min_kg"' in content
+
+
+# --------------------------------------------------------------------------- #
+# Réenregistrement d'une ligne sans charges figées
+# --------------------------------------------------------------------------- #
+#
+# `weights` est à la fois un champ du modèle (liste JSON) et un champ de
+# formulaire déclaré (texte) : `ModelForm.__init__` peuple `self.initial`
+# avec la liste brute du modèle avant que `EquipmentForm.__init__` ne la
+# retraduise en texte — une liste vide laissait passer telle quelle, affichée
+# comme le texte littéral « [] ». Reposter cette valeur sans y toucher
+# échouait alors la validation (« "[]" n'est pas un poids »), empêchant tout
+# réenregistrement d'une ligne existante — le symptôme signalé. La
+# suppression, elle, n'était pas concernée : Django ignore les erreurs de
+# validation d'une ligne de formset marquée DELETE.
+
+
+def test_une_liste_de_charges_vide_ne_s_affiche_pas_comme_des_crochets(user):
+    from accounts.forms import EquipmentForm
+
+    item = creer(user, equipment="dumbbell", mode="adjustable", min_kg=2, max_kg=24, step_kg=2)
+
+    assert EquipmentForm(instance=item).initial["weights"] == ""
+
+
+def test_reenregistrer_une_ligne_reglable_sans_y_toucher_reussit(logged_client, user):
+    """Poste la valeur telle que `EquipmentForm` la propose réellement au rendu —
+    un payload « form-0-weights »: "" écrit à la main n'aurait pas rejoué le bug,
+    dont l'origine est précisément ce que le formulaire place dans `initial`."""
+    from accounts.forms import EquipmentForm
+
+    item = creer(user, equipment="dumbbell", mode="adjustable", min_kg=2, max_kg=24, step_kg=2)
+    weights_as_rendered = str(EquipmentForm(instance=item).initial["weights"])
+
+    response = logged_client.post(
+        reverse("accounts:equipment"),
+        payload(
+            **{
+                "form-TOTAL_FORMS": "1",
+                "form-INITIAL_FORMS": "1",
+                "form-0-id": str(item.pk),
+                "form-0-equipment": "dumbbell",
+                "form-0-mode": "adjustable",
+                "form-0-weights": weights_as_rendered,
+                "form-0-min_kg": "2",
+                "form-0-max_kg": "24",
+                "form-0-step_kg": "2",
+            }
+        ),
+    )
+
+    assert response.status_code == 302
+    item.refresh_from_db()
+    assert item.min_kg == Decimal("2")
+
+
+def test_une_ligne_reglable_se_retire_sans_y_avoir_touche(logged_client, user):
+    """La suppression n'était pas bloquée par le bug ci-dessus (Django ignore la
+    validation d'une ligne DELETE), mais autant fixer aussi ce comportement."""
+    from accounts.forms import EquipmentForm
+
+    item = creer(user, equipment="dumbbell", mode="adjustable", min_kg=2, max_kg=24, step_kg=2)
+    weights_as_rendered = str(EquipmentForm(instance=item).initial["weights"])
+
+    response = logged_client.post(
+        reverse("accounts:equipment"),
+        payload(
+            **{
+                "form-TOTAL_FORMS": "1",
+                "form-INITIAL_FORMS": "1",
+                "form-0-id": str(item.pk),
+                "form-0-equipment": "dumbbell",
+                "form-0-mode": "adjustable",
+                "form-0-weights": weights_as_rendered,
+                "form-0-min_kg": "2",
+                "form-0-max_kg": "24",
+                "form-0-step_kg": "2",
+                "form-0-DELETE": "on",
+            }
+        ),
+    )
+
+    assert response.status_code == 302
+    assert not UserEquipment.objects.filter(pk=item.pk).exists()
