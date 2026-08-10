@@ -157,7 +157,7 @@ def test_le_formulaire_affiche_une_bulle_d_aide_par_format(logged_client):
 
 def test_le_declencheur_du_format_n_englobe_pas_le_panneau_de_temps(logged_client):
     """Un <summary> imbriqué dans le <label> du radio partage son clic avec lui :
-    le panneau « Ajuster les temps » doit rester hors du <label>."""
+    le panneau « Ajuster les réglages » doit rester hors du <label>."""
     content = logged_client.get(reverse("workouts:create")).content.decode()
 
     assert '<label class="ugg-format__select">' in content
@@ -169,7 +169,42 @@ def test_le_panneau_de_temps_reste_un_declencheur_independant(logged_client):
     content = logged_client.get(reverse("workouts:create")).content.decode()
 
     assert content.count('<details class="ugg-format__tune">') == 4
-    assert content.count("<summary>Ajuster les temps</summary>") == 4
+    assert content.count("<summary>Ajuster les réglages</summary>") == 4
+
+
+# --------------------------------------------------------------------------- #
+# Pic de répétitions de la pyramide, réglable (issue #34)
+# --------------------------------------------------------------------------- #
+
+
+def test_le_pic_de_repetitions_n_apparait_que_pour_la_pyramide(logged_client):
+    content = logged_client.get(reverse("workouts:create")).content.decode()
+
+    assert content.count("Répétitions au pic") == 1
+    assert 'name="reps_pyramid" value="12" min="6" max="20"' in content
+
+
+def test_un_pic_personnalise_est_transmis_et_enregistre(logged_client, user):
+    composer(
+        logged_client,
+        workout_format=Workout.Format.PYRAMID,
+        reps_pyramid="8",
+    )
+
+    workout = Workout.objects.get(user=user)
+    assert workout.peak_reps == 8
+    assert max(workout.items.first().reps) == 8
+
+
+def test_le_pic_d_un_format_non_retenu_n_empeche_pas_l_envoi(logged_client, user):
+    """Régler la pyramide puis composer un Circuit ne doit pas être bloqué par elle."""
+    composer(
+        logged_client,
+        workout_format=Workout.Format.CIRCUIT,
+        reps_pyramid="9999",
+    )
+
+    assert Workout.objects.filter(user=user).exists()
 
 
 # --------------------------------------------------------------------------- #

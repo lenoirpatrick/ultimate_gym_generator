@@ -138,6 +138,58 @@ def test_un_format_inconnu_est_refuse():
 
 
 # --------------------------------------------------------------------------- #
+# Pic de répétitions de la pyramide, réglable (issue #34)
+# --------------------------------------------------------------------------- #
+
+
+@pytest.mark.parametrize("peak", [6, 7, 8, 10, 11, 12, 20])
+def test_une_pyramide_reglee_reste_symetrique_quel_que_soit_le_pic(peak):
+    """Un pic impair (7, 11) ne doit ni casser la symétrie ni sauter le plancher."""
+    shape = generator._pyramid_shape(peak)
+
+    assert shape == shape[::-1]
+    assert min(shape) == generator.PYRAMID_FLOOR_REPS
+    assert max(shape) == peak
+
+
+def test_le_pic_par_defaut_est_douze():
+    blueprint = generator.build_blueprint(Workout.Format.PYRAMID, 15)
+
+    assert max(blueprint.slots[0].reps) == 12
+
+
+def test_un_pic_personnalise_remplace_le_defaut():
+    blueprint = generator.build_blueprint(Workout.Format.PYRAMID, 15, peak_reps=8)
+
+    assert blueprint.slots[0].reps == [8, 6, 8]
+
+
+def test_un_pic_hors_bornes_est_borne():
+    trop_bas = generator.build_blueprint(Workout.Format.PYRAMID, 15, peak_reps=1)
+    trop_haut = generator.build_blueprint(Workout.Format.PYRAMID, 60, peak_reps=999)
+
+    assert min(trop_bas.slots[0].reps) == generator.MIN_PYRAMID_PEAK
+    assert max(trop_bas.slots[0].reps) == generator.MIN_PYRAMID_PEAK
+    assert max(trop_haut.slots[0].reps) == generator.MAX_PYRAMID_PEAK
+
+
+def test_un_pic_plus_bas_laisse_de_la_place_pour_plus_d_exercices():
+    """C'est l'algorithme d'adaptation demandé par l'issue #34 : une pyramide
+    plus courte doit libérer du temps pour répéter le mouvement plus souvent."""
+    haut = generator.build_blueprint(Workout.Format.PYRAMID, 20, peak_reps=20)
+    bas = generator.build_blueprint(Workout.Format.PYRAMID, 20, peak_reps=6)
+
+    assert bas.needed >= haut.needed
+
+
+def test_le_pic_ne_concerne_que_la_pyramide():
+    """Un pic transmis à un autre format ne doit provoquer ni erreur ni effet."""
+    blueprint = generator.build_blueprint(Workout.Format.TABATA, 20, peak_reps=8)
+
+    assert blueprint.slots[0].reps == []
+
+
+# --------------------------------------------------------------------------- #
 # Temps personnalisés (issue #26)
 # --------------------------------------------------------------------------- #
 

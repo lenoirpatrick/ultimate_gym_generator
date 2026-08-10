@@ -41,13 +41,15 @@ def _tuning_field_name(workout_format: str, kind: str) -> str:
 
 @dataclass(frozen=True)
 class FormatOption:
-    """Un format de travail à afficher, avec son réglage de temps éventuel."""
+    """Un format de travail à afficher, avec ses réglages éventuels."""
 
     radio: forms.BoundField
     label: str
     hint: str
     work_field: forms.BoundField | None
     rest_field: forms.BoundField
+    #: Pic de répétitions — seule la pyramide en a un (issue #34).
+    reps_field: forms.BoundField | None
 
 
 @dataclass(frozen=True)
@@ -65,11 +67,12 @@ class MuscleRegion:
 class WorkoutForm(forms.Form):
     """Paramètres d'une séance à composer.
 
-    Les temps d'effort et de repos sont réglables par format (issue #26) : un
-    champ facultatif par format et par grandeur, généré depuis
-    `generator.FORMAT_PERIODS` plutôt que recopié à la main. `clean` ne retient
-    que la paire correspondant au format effectivement coché — régler un format
-    qu'on ne choisit pas ne peut donc pas bloquer l'envoi.
+    Les temps d'effort et de repos sont réglables par format (issue #26), ainsi
+    que le pic de répétitions de la pyramide (issue #34) : un champ facultatif
+    par format et par grandeur, généré depuis `generator.FORMAT_PERIODS` plutôt
+    que recopié à la main. `clean` ne retient que les réglages correspondant au
+    format effectivement coché — régler un format qu'on ne choisit pas ne peut
+    donc pas bloquer l'envoi.
     """
 
     duration_minutes = forms.TypedChoiceField(
@@ -126,6 +129,14 @@ class WorkoutForm(forms.Form):
                     min_value=generator.MIN_WORK_SECONDS,
                     max_value=generator.MAX_WORK_SECONDS,
                 )
+            if periods.peak_reps is not None:
+                self.fields[_tuning_field_name(value, "reps")] = forms.IntegerField(
+                    label="Répétitions au pic",
+                    required=False,
+                    initial=periods.peak_reps,
+                    min_value=generator.MIN_PYRAMID_PEAK,
+                    max_value=generator.MAX_PYRAMID_PEAK,
+                )
             self.fields[_tuning_field_name(value, "rest")] = forms.IntegerField(
                 label="Repos (s)",
                 required=False,
@@ -141,6 +152,7 @@ class WorkoutForm(forms.Form):
         options = []
         for value, label in Workout.Format.choices:
             work_key = _tuning_field_name(value, "work")
+            reps_key = _tuning_field_name(value, "reps")
             options.append(
                 FormatOption(
                     radio=radios[value],
@@ -148,6 +160,7 @@ class WorkoutForm(forms.Form):
                     hint=FORMAT_HINTS.get(value, ""),
                     work_field=self[work_key] if work_key in self.fields else None,
                     rest_field=self[_tuning_field_name(value, "rest")],
+                    reps_field=self[reps_key] if reps_key in self.fields else None,
                 )
             )
         return options
@@ -172,18 +185,21 @@ class WorkoutForm(forms.Form):
         cleaned = super().clean()
         chosen = cleaned.get("workout_format")
 
-        # Seule la paire de temps du format choisi compte : une valeur hors
-        # bornes laissée dans un format qu'on n'a pas retenu ne doit ni
-        # apparaître dans le résultat, ni faire échouer l'envoi.
+        # Seuls les réglages du format choisi comptent : une valeur hors bornes
+        # laissée dans un format qu'on n'a pas retenu ne doit ni apparaître
+        # dans le résultat, ni faire échouer l'envoi.
         active = set()
         if chosen:
             work_key = _tuning_field_name(chosen, "work")
             if work_key in self.fields:
                 active.add(work_key)
+            reps_key = _tuning_field_name(chosen, "reps")
+            if reps_key in self.fields:
+                active.add(reps_key)
             active.add(_tuning_field_name(chosen, "rest"))
 
         for name in list(self.fields):
-            if name.startswith(("work_", "rest_")) and name not in active:
+            if name.startswith(("work_", "rest_", "reps_")) and name not in active:
                 self._errors.pop(name, None)
                 cleaned.pop(name, None)
 
@@ -193,4 +209,5 @@ class WorkoutForm(forms.Form):
         cleaned["rest_seconds"] = (
             cleaned.get(_tuning_field_name(chosen, "rest")) if chosen else None
         )
+        cleaned["peak_reps"] = cleaned.get(_tuning_field_name(chosen, "reps")) if chosen else None
         return cleaned

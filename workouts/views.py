@@ -48,6 +48,7 @@ def workout_create(request: HttpRequest) -> HttpResponse:
                     favorites_ratio=form.cleaned_data["favorites_ratio"],
                     work_seconds=form.cleaned_data["work_seconds"],
                     rest_seconds=form.cleaned_data["rest_seconds"],
+                    peak_reps=form.cleaned_data["peak_reps"],
                     equipment=form.cleaned_data.get("equipment"),
                 )
             except generator.GenerationError as exc:

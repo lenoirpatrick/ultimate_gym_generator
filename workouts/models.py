@@ -60,6 +60,11 @@ class Workout(models.Model):
     #: rouverte doit dire avec quels réglages elle a été composée.
     work_seconds = models.PositiveSmallIntegerField("effort demandé (s)", null=True, blank=True)
     rest_seconds = models.PositiveSmallIntegerField("repos demandé (s)", null=True, blank=True)
+    #: Pic de répétitions demandé pour une pyramide (issue #34) — sans objet
+    #: pour les autres formats, par symétrie avec `work_seconds`.
+    peak_reps = models.PositiveSmallIntegerField(
+        "pic de répétitions demandé", null=True, blank=True
+    )
 
     #: Durée réellement occupée par le déroulé. Elle n'atteint pas toujours la
     #: durée demandée : un format se remplit par blocs entiers.

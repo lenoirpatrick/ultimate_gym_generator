@@ -214,13 +214,18 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
   libellé du champ, « Durée (minutes) ».
 - Le **type de travail** est une carte par format (`.ugg-format`), avec une bulle d'aide
   (`.ugg-hint`) qui explique le principe — déclenchée au survol **et** au focus clavier,
-  jamais au survol seul. Les temps d'effort/repos de chaque format sont réglables, mais
-  **une seule paire de champs est visible à la fois** : elle ne se révèle que pour le
-  format coché (`.ugg-format:has(input:checked) .ugg-format__tune`, CSS pur). Le radio
-  n'est associé qu'à la tête de carte (`.ugg-format__select`, un `<label>` distinct) —
-  jamais à la carte entière : un `<summary>` imbriqué dans le `<label>` du radio partage
-  son clic avec lui, et le panneau « Ajuster les temps » n'ouvrait plus (issue #32). Le
-  panneau reste un déclencheur `<details>` indépendant, hors de tout `<label>`.
+  jamais au survol seul. Les intervalles de chaque format sont réglables (effort/repos ;
+  pour la pyramide, le pic de répétitions à la place de l'effort, issue #34), mais **un
+  seul jeu de champs est visible à la fois** : il ne se révèle que pour le format coché
+  (`.ugg-format:has(input:checked) .ugg-format__tune`, CSS pur). Le radio n'est associé
+  qu'à la tête de carte (`.ugg-format__select`, un `<label>` distinct) — jamais à la carte
+  entière : un `<summary>` imbriqué dans le `<label>` du radio partage son clic avec lui,
+  et le panneau « Ajuster les réglages » n'ouvrait plus (issue #32). Le panneau reste un
+  déclencheur `<details>` indépendant, hors de tout `<label>`. Le pic de la pyramide est
+  un plancher fixe (`generator.PYRAMID_FLOOR_REPS`, 6) et un pic réglable — jamais une
+  suite de répétitions éditable pas à pas, qui suggérerait une précision que l'algorithme
+  de remplissage ne garantit pas ; le nombre d'exercices retenus s'adapte automatiquement
+  au pic choisi, une pyramide étant un bloc indivisible (`generator._pyramid_shapes`).
 - Une **part de favoris** ou toute autre proportion à choix fermé passe par un contrôle
   segmenté (`.ugg-segmented`), jamais par un `<select>` natif — il n'appartient à aucun
   langage visuel du projet.

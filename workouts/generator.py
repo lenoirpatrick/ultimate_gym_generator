@@ -31,27 +31,25 @@ EXCLUDED_CATEGORIES = ("stretching",)
 #: Secondes par répétition, pour estimer la durée d'une série chiffrée.
 SECONDS_PER_REP = 3
 
-#: Formes de pyramide, de la plus longue à la plus courte. Le générateur retient
-#: celle qui occupe le mieux la durée demandée : une pyramide est un bloc
-#: indivisible, et s'entêter sur la forme canonique laisserait parfois un tiers
-#: de la séance vide.
-PYRAMID_SHAPES = (
-    (12, 10, 8, 6, 8, 10, 12),
-    (10, 8, 6, 8, 10),
-    (8, 6, 8),
-)
+#: Plancher d'une pyramide : en dessous, l'exercice devient un échauffement,
+#: pas un temps de travail. Le pic est réglable (issue #34) ; le plancher, non.
+PYRAMID_FLOOR_REPS = 6
+MIN_PYRAMID_PEAK = PYRAMID_FLOOR_REPS
+MAX_PYRAMID_PEAK = 20
 
 
 @dataclass(frozen=True)
 class Periods:
-    """Temps par défaut d'un format : effort, repos entre séries, récupération
-    entre blocs. `work` vaut `None` pour la pyramide, qui se compte en
-    répétitions et non en secondes.
+    """Réglages par défaut d'un format : effort, repos entre séries, récupération
+    entre blocs, pic de répétitions. `work` vaut `None` pour la pyramide, qui se
+    compte en répétitions et non en secondes ; `peak_reps` ne vaut quelque chose
+    que pour elle (issue #34).
     """
 
     work: int | None
     rest: int
     recovery: int
+    peak_reps: int | None = None
 
 
 #: Recette de chaque format. Rassemblées ici plutôt que dispersées dans les
@@ -61,7 +59,7 @@ FORMAT_PERIODS: dict[str, Periods] = {
     Workout.Format.TABATA: Periods(work=20, rest=10, recovery=60),
     Workout.Format.HIIT: Periods(work=40, rest=20, recovery=60),
     Workout.Format.CIRCUIT: Periods(work=45, rest=15, recovery=90),
-    Workout.Format.PYRAMID: Periods(work=None, rest=75, recovery=0),
+    Workout.Format.PYRAMID: Periods(work=None, rest=75, recovery=0, peak_reps=12),
 }
 
 #: Bornes appliquées aux temps personnalisés, côté formulaire comme côté
@@ -186,19 +184,49 @@ def _circuit(seconds: int, work: int, rest: int, recovery: int, label: str) -> B
     return Blueprint(slots, total)
 
 
-def _pyramid(seconds: int, rest: int) -> Blueprint:
+def _pyramid_ladder(peak: int) -> list[int]:
+    """Paliers de répétitions, du pic demandé jusqu'au plancher, par pas de deux.
+
+    Toujours terminé par `PYRAMID_FLOOR_REPS`, quelle que soit la parité du pic
+    — un pic impair ne doit pas sauter le plancher (issue #34).
+    """
+    ladder = []
+    current = peak
+    while current > PYRAMID_FLOOR_REPS:
+        ladder.append(current)
+        current -= 2
+    ladder.append(PYRAMID_FLOOR_REPS)
+    return ladder
+
+
+def _pyramid_shape(peak: int) -> list[int]:
+    """Pyramide symétrique : descend du pic au plancher, puis remonte."""
+    descending = _pyramid_ladder(peak)
+    return descending + descending[-2::-1]
+
+
+def _pyramid_shapes(peak: int) -> list[list[int]]:
+    """Échelle de pyramides, du pic demandé au plus court. Le générateur retient
+    celle qui occupe le mieux la durée demandée : une pyramide est un bloc
+    indivisible, et s'entêter sur le pic demandé laisserait parfois un tiers de
+    la séance vide.
+    """
+    return [_pyramid_shape(p) for p in _pyramid_ladder(peak)]
+
+
+def _pyramid(seconds: int, rest: int, peak: int) -> Blueprint:
     """Répétitions décroissantes puis croissantes, une pyramide par exercice."""
     candidates = []
-    for shape in PYRAMID_SHAPES:
+    for shape in _pyramid_shapes(peak):
         cost = sum(rep * SECONDS_PER_REP + rest for rep in shape)
         count = seconds // cost
         if count >= 1:
-            candidates.append((count * cost, list(shape), count, cost))
+            candidates.append((count * cost, shape, count, cost))
 
     if not candidates:
         # Durée plus courte que la plus petite pyramide : on en donne une seule,
         # la plus resserrée, quitte à mordre légèrement sur le temps annoncé.
-        shape = list(PYRAMID_SHAPES[-1])
+        shape = _pyramid_shape(PYRAMID_FLOOR_REPS)
         cost = sum(rep * SECONDS_PER_REP + rest for rep in shape)
         candidates = [(cost, shape, 1, cost)]
 
@@ -228,12 +256,14 @@ def build_blueprint(
     duration_minutes: int,
     work_seconds: int | None = None,
     rest_seconds: int | None = None,
+    peak_reps: int | None = None,
 ) -> Blueprint:
     """Déroulé et minutage du format demandé, sans exercice encore attribué.
 
-    `work_seconds` / `rest_seconds` remplacent, quand fournis, les valeurs par
-    défaut du format — bornés dans tous les cas : un formulaire mal rempli ne
-    doit pas produire une séance absurde plutôt qu'un message d'erreur.
+    `work_seconds` / `rest_seconds` / `peak_reps` remplacent, quand fournis, les
+    valeurs par défaut du format — bornés dans tous les cas : un formulaire mal
+    rempli ne doit pas produire une séance absurde plutôt qu'un message
+    d'erreur. `peak_reps` ne s'applique qu'à la pyramide (issue #34).
     """
     periods = FORMAT_PERIODS.get(workout_format)
     if periods is None:
@@ -248,13 +278,18 @@ def build_blueprint(
         work = work_seconds if work_seconds is not None else work
         work = _clamp(work, MIN_WORK_SECONDS, MAX_WORK_SECONDS)
 
+    peak = periods.peak_reps
+    if peak is not None:
+        peak = peak_reps if peak_reps is not None else peak
+        peak = _clamp(peak, MIN_PYRAMID_PEAK, MAX_PYRAMID_PEAK)
+
     if workout_format == Workout.Format.TABATA:
         return _tabata(seconds, work, rest, periods.recovery)
     if workout_format == Workout.Format.HIIT:
         return _circuit(seconds, work, rest, periods.recovery, label="HIIT")
     if workout_format == Workout.Format.CIRCUIT:
         return _circuit(seconds, work, rest, periods.recovery, label="Circuit")
-    return _pyramid(seconds, rest)
+    return _pyramid(seconds, rest, peak)
 
 
 # --------------------------------------------------------------------------- #
@@ -396,6 +431,7 @@ def generate(
     favorites_ratio: int = 25,
     work_seconds: int | None = None,
     rest_seconds: int | None = None,
+    peak_reps: int | None = None,
     equipment: list[str] | None = None,
     rng: random.Random | None = None,
 ) -> Workout:
@@ -403,12 +439,15 @@ def generate(
 
     `equipment` restreint le matériel configuré retenu pour cette séance
     (issue #32) — `None` le prend en entier, comme avant cette option.
+    `peak_reps` ne s'applique qu'à la pyramide (issue #34).
     """
     # Tirage de variété, pas de secret : le générateur standard convient, et un
     # `Random` injectable rend la composition reproductible en test.
     rng = rng or random.Random()  # noqa: S311
 
-    blueprint = build_blueprint(workout_format, duration_minutes, work_seconds, rest_seconds)
+    blueprint = build_blueprint(
+        workout_format, duration_minutes, work_seconds, rest_seconds, peak_reps
+    )
     exercises = select_exercises(user, muscles, blueprint.needed, favorites_ratio, rng, equipment)
     options = load_options(user, equipment)
 
@@ -419,6 +458,7 @@ def generate(
         favorites_ratio=favorites_ratio,
         work_seconds=work_seconds,
         rest_seconds=rest_seconds,
+        peak_reps=peak_reps,
         planned_seconds=blueprint.total_seconds,
     )
     if muscles:

@@ -1,12 +1,14 @@
 {% comment %}
 Type de travail : une carte par format, avec une bulle d'aide expliquant le
-principe et, repliés, les temps d'effort/repos de ce format. Seule la carte du
-format coché révèle ses champs — géré en CSS pur par `.ugg-format`, aucun
+principe et, repliés, les intervalles de ce format — temps d'effort/repos, et
+pour la pyramide, pic de répétitions (issue #34). Seule la carte du format
+coché révèle ses champs — géré en CSS pur par `.ugg-format`, aucun
 JavaScript.
 
 Le radio n'est associé qu'à la tête de carte (`.ugg-format__select`) : le
-panneau « Ajuster les temps » reste hors du <label>, pour que son <summary>
-garde son propre clic plutôt que de le partager avec le radio (issue #32).
+panneau « Ajuster les réglages » reste hors du <label>, pour que son
+<summary> garde son propre clic plutôt que de le partager avec le radio
+(issue #32).
 
 Attend `options` (form.format_options).
 {% endcomment %}
@@ -27,12 +29,15 @@ Attend `options` (form.format_options).
             </label>
 
             <details class="ugg-format__tune">
-                <summary>Ajuster les temps</summary>
+                <summary>Ajuster les réglages</summary>
                 <div class="mt-3 grid gap-3 sm:grid-cols-2">
                     {% if option.work_field %}
                         {% include "core/components/field.html" with field=option.work_field %}
                     {% endif %}
                     {% include "core/components/field.html" with field=option.rest_field %}
+                    {% if option.reps_field %}
+                        {% include "core/components/field.html" with field=option.reps_field %}
+                    {% endif %}
                 </div>
             </details>
         </div>
