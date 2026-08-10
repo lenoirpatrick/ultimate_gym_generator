@@ -54,10 +54,19 @@ MUSCLE_PARAM = "muscle"
 #: les autres se décrivent par une énumération fermée.
 FAVORITES_PARAM = "favoris"
 
+#: Recherche texte libre, sur le nom de l'exercice. Se cumule (ET) avec les
+#: autres critères, comme n'importe lequel d'entre eux.
+SEARCH_PARAM = "recherche"
+
 
 def selected_values(params, name: str, allowed: set[str]) -> list[str]:
     """Valeurs cochées pour un critère, réduites à celles qui existent."""
     return [value for value in params.getlist(name) if value in allowed]
+
+
+def search_query(params) -> str:
+    """Texte recherché, débarrassé des espaces superflus."""
+    return params.get(SEARCH_PARAM, "").strip()
 
 
 def build_groups(params) -> list[FilterGroup]:
@@ -104,6 +113,10 @@ def filter_exercises(params, user) -> QuerySet[Exercise]:
     marked = Favorite.objects.filter(user=user.pk, exercise=OuterRef("pk"))
     queryset = Exercise.objects.annotate(is_favorite=Exists(marked))
 
+    query = search_query(params)
+    if query:
+        queryset = queryset.filter(name__icontains=query)
+
     if favorites_only(params):
         queryset = queryset.filter(is_favorite=True)
 
@@ -127,4 +140,8 @@ def filter_exercises(params, user) -> QuerySet[Exercise]:
 
 
 def has_active_filters(groups: list[FilterGroup], params) -> bool:
-    return favorites_only(params) or any(group.selected_count for group in groups)
+    return (
+        favorites_only(params)
+        or bool(search_query(params))
+        or any(group.selected_count for group in groups)
+    )

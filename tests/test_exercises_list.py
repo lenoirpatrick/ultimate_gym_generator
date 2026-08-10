@@ -157,6 +157,58 @@ def test_deux_types_d_exercice_s_additionnent(logged_client):
     assert noms(response) == ["Barbell Squat", "Calf Stretch", "Dumbbell Bench Press"]
 
 
+# --------------------------------------------------------------------------- #
+# Recherche texte (issue #27)
+# --------------------------------------------------------------------------- #
+
+
+def test_la_recherche_filtre_par_nom(logged_client):
+    response = logged_client.get(URL, {"recherche": "squat"})
+
+    assert noms(response) == ["Barbell Squat"]
+
+
+def test_la_recherche_est_insensible_a_la_casse(logged_client):
+    response = logged_client.get(URL, {"recherche": "SQUAT"})
+
+    assert noms(response) == ["Barbell Squat"]
+
+
+def test_la_recherche_se_cumule_avec_un_critere(logged_client):
+    """« Bench » et débutant ne réunit personne : le développé couché est intermédiaire."""
+    response = logged_client.get(URL, {"recherche": "bench", "niveau": "beginner"})
+
+    assert noms(response) == []
+
+
+def test_une_recherche_sans_resultat_propose_de_tout_effacer(logged_client):
+    response = logged_client.get(URL, {"recherche": "zzz"})
+
+    content = response.content.decode()
+    assert noms(response) == []
+    assert "Aucun exercice ne correspond" in content
+    assert "Tout effacer" in content
+
+
+def test_la_recherche_compte_comme_filtre_actif(logged_client):
+    content = logged_client.get(URL, {"recherche": "squat"}).content.decode()
+
+    assert "Tout effacer" in content
+
+
+def test_la_valeur_recherchee_est_conservee_a_l_affichage(logged_client):
+    content = logged_client.get(URL, {"recherche": "squat"}).content.decode()
+
+    assert 'value="squat"' in content
+
+
+def test_le_declencheur_htmx_debounce_la_saisie(logged_client):
+    """Aucun script custom : HTMX débounce lui-même la frappe."""
+    content = logged_client.get(reverse("exercises:list")).content.decode()
+
+    assert "keyup changed delay:400ms from:#recherche-input" in content
+
+
 def test_le_filtre_par_niveau_et_par_effort(logged_client):
     response = logged_client.get(URL, {"effort": "push", "niveau": "intermediate"})
 

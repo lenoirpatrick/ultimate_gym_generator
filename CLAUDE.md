@@ -159,6 +159,10 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
 - Le catalogue s'ouvre sur le **type d'exercice** (`Exercise.Category` : étirement,
   cardio, renforcement…), premier des critères — c'est celui qui écarte le plus de
   fiches d'un seul geste.
+- Une **recherche texte** (`.ugg-search`, champ `type="search"`) se cumule (ET) avec les
+  critères fermés, exactement comme l'un d'entre eux. Elle est **dynamique** — mise à
+  jour à la frappe — via un second déclencheur HTMX sur le même formulaire
+  (`keyup changed delay:400ms from:#recherche-input`), sans aucun script custom.
 
 ### Blocs de séance
 

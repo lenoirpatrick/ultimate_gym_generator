@@ -56,6 +56,7 @@ def _render_catalog(request: HttpRequest, params, favorites_page: bool = False) 
         "total": Exercise.objects.count(),
         "filtered": filters.has_active_filters(groups, params),
         "favorites_only": filters.favorites_only(params),
+        "search_query": filters.search_query(params),
         "favorites_page": favorites_page,
         # Les liens du bloc de résultats doivent rester sur l'écran courant :
         # « Tout effacer » depuis les favoris ne renvoie pas au catalogue entier.

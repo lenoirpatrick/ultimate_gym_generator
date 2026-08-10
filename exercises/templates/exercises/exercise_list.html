@@ -31,12 +31,30 @@
           method="get"
           action="{{ base_url }}"
           hx-get="{{ base_url }}"
-          hx-trigger="change"
+          hx-trigger="change, keyup changed delay:400ms from:#recherche-input"
           hx-target="#resultats"
           hx-push-url="true"
           hx-indicator="#recherche-en-cours">
 
-        <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {% comment %}
+        Recherche texte, débouncée côté HTMX (400 ms) : aucun script custom,
+        juste un second déclencheur sur le formulaire déjà en place.
+        {% endcomment %}
+        <div class="ugg-search">
+            <svg class="ugg-search__icon" viewBox="0 0 24 24" aria-hidden="true"
+                 fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                <circle cx="10.5" cy="10.5" r="6.5" />
+                <path d="M20 20l-4.8-4.8" />
+            </svg>
+            <input type="search"
+                   id="recherche-input"
+                   name="recherche"
+                   value="{{ search_query }}"
+                   placeholder="Rechercher un exercice…"
+                   aria-label="Rechercher un exercice">
+        </div>
+
+        <div class="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {% for group in groups %}
                 {% include "exercises/partials/filter_group.html" with group=group %}
             {% endfor %}

@@ -488,6 +488,54 @@
 }
 
 /* =========================================================================
+   RECHERCHE TEXTE (issue #27)
+   ========================================================================= */
+
+/* Pilule de recherche : icône loupe inline, croix natif de `type="search"`
+   pour vider. Mise à jour débouncée côté HTMX (`keyup changed delay:400ms`),
+   aucun script custom. */
+.ugg-search {
+    display: flex;
+    align-items: center;
+    gap: var(--ugg-space-2);
+    min-height: var(--ugg-touch-target);
+    padding: 0 var(--ugg-space-3);
+    border: 1px solid var(--ugg-border);
+    border-radius: var(--ugg-radius-lg);
+    background: var(--ugg-surface-raised);
+}
+
+.ugg-search:has(input:focus-visible) {
+    outline: 3px solid var(--ugg-focus);
+    outline-offset: 2px;
+}
+
+.ugg-search__icon {
+    flex: none;
+    width: 1.25rem;
+    height: 1.25rem;
+    color: var(--ugg-text-muted);
+}
+
+.ugg-search input {
+    flex: 1;
+    min-width: 0;
+    border: 0;
+    background: transparent;
+    color: var(--ugg-text);
+    font-family: var(--ugg-font-body);
+    font-size: 1rem; /* 16px : empêche le zoom automatique sur iOS */
+}
+
+.ugg-search input:focus {
+    outline: none;
+}
+
+.ugg-search input::placeholder {
+    color: var(--ugg-text-muted);
+}
+
+/* =========================================================================
    FILTRES ET CARTES DE CATALOGUE (issue #20)
    ========================================================================= */
 
