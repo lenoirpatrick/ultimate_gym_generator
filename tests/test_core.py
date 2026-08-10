@@ -150,3 +150,15 @@ def test_style_guide_expose_les_composants_de_seance(client, settings):
     assert "ugg-hint__bubble" in content
     assert "ugg-segmented" in content
     assert "Haut du corps" in content
+
+
+@pytest.mark.django_db
+def test_style_guide_expose_une_icone_par_materiel(client, settings):
+    """Issue #37 : une icône par valeur du référentiel Exercise.Equipment."""
+    from exercises.models import Exercise
+
+    settings.DEBUG = True
+
+    content = client.get(reverse("core:style_guide")).content.decode()
+
+    assert content.count("<svg") >= len(Exercise.Equipment.choices)

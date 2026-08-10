@@ -232,3 +232,52 @@ def test_le_profil_mene_au_materiel(logged_client):
     content = logged_client.get(reverse("accounts:profile")).content.decode()
 
     assert reverse("accounts:equipment") in content
+
+
+# --------------------------------------------------------------------------- #
+# Mode conditionnel et icônes (issue #37)
+# --------------------------------------------------------------------------- #
+
+
+def test_le_mode_se_choisit_par_puces_pas_par_menu_deroulant(logged_client):
+    """Un `<select>` n'aurait pas permis la bascule CSS pure des champs de charge."""
+    content = logged_client.get(reverse("accounts:equipment")).content.decode()
+
+    assert '<select name="form-0-mode"' not in content
+    assert 'name="form-0-mode" value="fixed"' in content
+    assert 'name="form-0-mode" value="adjustable"' in content
+    assert 'name="form-0-mode" value="bodyweight"' in content
+
+
+def test_chaque_ligne_scope_ses_bascules_css(logged_client, user):
+    """`.ugg-equipment-row` doit envelopper le mode et les deux groupes de champs
+    pour que `:has()` puisse ne révéler que celui qui correspond (issue #37)."""
+    creer(user, equipment="dumbbell", mode="adjustable", min_kg=2, max_kg=10, step_kg=2)
+
+    content = logged_client.get(reverse("accounts:equipment")).content.decode()
+
+    assert content.count("ugg-equipment-row") >= 2  # ligne existante + ligne vide
+    assert "ugg-equipment__weights" in content
+    assert "ugg-equipment__range" in content
+
+
+def test_une_icone_existe_pour_chaque_materiel_du_referentiel(logged_client):
+    from django.template.defaultfilters import slugify
+
+    from exercises.models import Exercise
+
+    content = logged_client.get(reverse("accounts:equipment")).content.decode()
+
+    for value, _label in Exercise.Equipment.choices:
+        assert f"ugg-equipment__icon--{slugify(value)}" in content
+
+
+def test_les_deux_groupes_de_charge_restent_postables(logged_client, user):
+    """La bascule CSS ne modifie pas ce qui est validé côté serveur : les deux
+    groupes de champs restent dans le formulaire, seul leur affichage change."""
+    creer(user, equipment="kettlebells", mode="fixed", weights=[8, 12, 16])
+
+    content = logged_client.get(reverse("accounts:equipment")).content.decode()
+
+    assert 'name="form-0-weights"' in content
+    assert 'name="form-0-min_kg"' in content

@@ -117,6 +117,10 @@ class EquipmentForm(forms.ModelForm):
     class Meta:
         model = UserEquipment
         fields = ("equipment", "mode", "weights", "min_kg", "max_kg", "step_kg")
+        # Rendu en `.ugg-segmented` (trois choix fermés) plutôt qu'en `<select>` : le
+        # gabarit peut alors ne révéler que les champs du mode coché, en CSS pur, sur
+        # le même patron que `.ugg-format__tune` (issue #37).
+        widgets = {"mode": forms.RadioSelect}
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)

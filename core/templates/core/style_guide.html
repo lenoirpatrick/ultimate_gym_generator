@@ -166,6 +166,25 @@
     </section>
 
     <section class="mt-12">
+        <h2 class="ugg-title text-xl">Icônes de matériel</h2>
+        <p class="mt-2 text-muted">
+            Un tracé par valeur du référentiel (<code class="font-mono">Exercise.Equipment</code>),
+            utilisé sur l'écran de déclaration du matériel pour suivre le type choisi
+            (issue #37). Purement décoratif — le nom reste toujours affiché en texte.
+        </p>
+        <div class="mt-6 grid grid-cols-3 gap-4 sm:grid-cols-6">
+            {% for value, label in equipment_choices %}
+                <div class="ugg-card p-4 text-center">
+                    <div class="mx-auto h-7 w-7">
+                        {% include "core/components/equipment_icon.html" with equipment=value %}
+                    </div>
+                    <p class="mt-2 text-xs text-muted">{{ label }}</p>
+                </div>
+            {% endfor %}
+        </div>
+    </section>
+
+    <section class="mt-12">
         <h2 class="ugg-title text-xl">Régions du corps</h2>
         <p class="mt-2 text-muted">
             Même présentation que les filtres du catalogue, pour regrouper dix-sept

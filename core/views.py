@@ -109,5 +109,7 @@ def style_guide(request: HttpRequest) -> HttpResponse:
             # durée, les cartes de format, le contrôle segmenté et les régions
             # du corps avec leurs propres composants (issue #26).
             "workout_form_demo": WorkoutForm(),
+            # Une icône par matériel du référentiel (issue #37).
+            "equipment_choices": Exercise.Equipment.choices,
         },
     )

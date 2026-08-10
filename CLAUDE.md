@@ -293,6 +293,27 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
   transmis à `workouts.generator.generate` qui l'intersecte avec le matériel réellement
   possédé — la liste soumise ne peut jamais accorder un matériel non configuré.
 
+### Matériel de l'utilisateur (`accounts:equipment`, issue #37)
+
+- Le **mode de charge** (sans charge / figée / réglable) se choisit par puces
+  `.ugg-segmented` (`EquipmentForm.Meta.widgets = {"mode": forms.RadioSelect}`), jamais
+  par `<select>` — un `<select>` n'aurait permis aucune bascule CSS des champs qui en
+  dépendent. Seul le groupe du mode coché se révèle (`.ugg-equipment__weights` en mode
+  figé, `.ugg-equipment__range` en mode réglable), sur le même patron `:has()` que
+  `.ugg-format__tune` : les montrer tous deux en permanence avait fini par rendre
+  introuvable celui qu'on cherchait. Chaque ligne du formset porte sa propre classe de
+  portée, `.ugg-equipment-row` — les sélecteurs `:has()` ciblent
+  `input[name$="-mode"][value="…"]`, qui fonctionne quel que soit l'index du formset
+  Django, sans jamais retomber dans le piège d'un sélecteur trop large qui masquerait
+  aussi d'autres champs (voir issue #36 suite, `.ugg-format input`).
+- Une **icône** (`core/components/equipment_icon.html`) suit le matériel choisi dans le
+  `<select>` de chaque ligne, sur le même principe : les douze pictogrammes du
+  référentiel `Exercise.Equipment` sont tous rendus, un seul visible via
+  `.ugg-equipment-row:has(select[…] option[value="…"]:checked)`. Purement décoratif
+  (`aria-hidden`) — le nom du matériel reste toujours affiché en texte à côté ; si
+  `:has()` sur un `<option>:checked` n'est pas pris en charge par un navigateur,
+  l'icône reste simplement invisible, sans rien retirer au formulaire.
+
 ### Cartes de catalogue
 
 - Une carte présente les caractéristiques qui servent à **décider**, pas la fiche

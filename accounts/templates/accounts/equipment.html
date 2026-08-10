@@ -22,7 +22,13 @@
 
             <div class="grid gap-4">
                 {% for form in formset %}
-                    <fieldset class="ugg-card p-4">
+                    {% comment %}
+                    `.ugg-equipment-row` scope les bascules CSS pures de cette ligne :
+                    seuls les champs du mode coché se révèlent
+                    (`.ugg-equipment__weights` / `__range`), et l'icône suit le matériel
+                    choisi (`.ugg-equipment__icon`) — voir components.css (issue #37).
+                    {% endcomment %}
+                    <fieldset class="ugg-card ugg-equipment-row p-4">
                         <legend class="sr-only">Matériel {{ forloop.counter }}</legend>
                         {{ form.id }}
 
@@ -31,21 +37,41 @@
                         {% endfor %}
 
                         <div class="grid gap-4 sm:grid-cols-2">
-                            {% include "core/components/field.html" with field=form.equipment %}
-                            {% include "core/components/field.html" with field=form.mode %}
+                            <div>
+                                {% include "core/components/field.html" with field=form.equipment %}
+                                <div class="ugg-equipment__icons mt-2" aria-hidden="true">
+                                    {% for value, label in equipment_choices %}
+                                        <span class="ugg-equipment__icon ugg-equipment__icon--{{ value|slugify }}">
+                                            {% include "core/components/equipment_icon.html" with equipment=value %}
+                                        </span>
+                                    {% endfor %}
+                                </div>
+                            </div>
+
+                            <fieldset class="ugg-field">
+                                <legend class="ugg-field__label">{{ form.mode.label }}</legend>
+                                <div class="ugg-segmented mt-2">
+                                    {% for radio in form.mode %}
+                                        <label>
+                                            {{ radio.tag }}
+                                            <span>{{ radio.choice_label }}</span>
+                                        </label>
+                                    {% endfor %}
+                                </div>
+                            </fieldset>
                         </div>
 
                         {% comment %}
-                        Les deux façons de décrire les charges sont montrées ensemble :
-                        seule celle qui correspond au mode choisi est validée. Les
-                        masquer demanderait du JavaScript pour un gain douteux — on
-                        perdrait la lisibilité au clavier et sans script.
+                        Seul le groupe du mode coché se révèle (issue #37) : les deux
+                        façons de décrire les charges n'ont de sens que l'une à la fois,
+                        et les montrer toutes deux avait fini par rendre invisible celle
+                        qu'on cherchait.
                         {% endcomment %}
-                        <div class="mt-4 grid gap-4 sm:grid-cols-2">
+                        <div class="ugg-equipment__weights mt-4 grid gap-4 sm:grid-cols-2">
                             {% include "core/components/field.html" with field=form.weights %}
                         </div>
 
-                        <div class="mt-4 grid gap-4 sm:grid-cols-3">
+                        <div class="ugg-equipment__range mt-4 grid gap-4 sm:grid-cols-3">
                             {% include "core/components/field.html" with field=form.min_kg %}
                             {% include "core/components/field.html" with field=form.max_kg %}
                             {% include "core/components/field.html" with field=form.step_kg %}

@@ -7,6 +7,8 @@ from django.contrib.auth.decorators import login_required, user_passes_test
 from django.http import Http404, HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 
+from exercises.models import Exercise
+
 from .forms import (
     EquipmentFormSet,
     FirstRunForm,
@@ -104,7 +106,13 @@ def equipment(request: HttpRequest) -> HttpResponse:
     else:
         formset = EquipmentFormSet(queryset=queryset)
 
-    return render(request, "accounts/equipment.html", {"formset": formset})
+    context = {
+        "formset": formset,
+        # Icône par matériel (issue #37) : une par valeur du référentiel, affichée ou
+        # non selon la sélection en cours — voir `.ugg-equipment__icon` (CSS pur).
+        "equipment_choices": Exercise.Equipment.choices,
+    }
+    return render(request, "accounts/equipment.html", context)
 
 
 @login_required

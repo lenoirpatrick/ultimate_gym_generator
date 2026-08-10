@@ -1405,3 +1405,62 @@
     font-size: 0.8125rem;
     color: var(--ugg-text-muted);
 }
+
+/* =========================================================================
+   MATÉRIEL : MODE CONDITIONNEL ET ICÔNES (issue #37)
+   ========================================================================= */
+
+/* `.ugg-equipment-row` (le <fieldset> d'une ligne) scope les deux bascules
+   suivantes : elle porte à la fois le radio de mode et le <select> de
+   matériel, si bien que `:has()` peut révéler exactement ce que la ligne
+   décrit sans JavaScript — même patron que `.ugg-format__tune`. */
+.ugg-equipment__weights,
+.ugg-equipment__range {
+    display: none;
+}
+
+.ugg-equipment-row:has(input[name$="-mode"][value="fixed"]:checked) .ugg-equipment__weights {
+    display: grid;
+}
+
+.ugg-equipment-row:has(input[name$="-mode"][value="adjustable"]:checked) .ugg-equipment__range {
+    display: grid;
+}
+
+/* Icône du matériel choisi : les douze tracés sont tous rendus
+   (`core/components/equipment_icon.html`), un seul visible à la fois.
+   Purement décoratif (`aria-hidden`) — si `:has()` sur un <option>:checked
+   n'est pas pris en charge, l'icône reste simplement invisible et le
+   formulaire garde tout son sens sans elle. */
+.ugg-equipment__icons {
+    display: flex;
+    align-items: center;
+    min-height: 1.75rem;
+}
+
+.ugg-equipment__icon {
+    display: none;
+    width: 1.75rem;
+    height: 1.75rem;
+    color: var(--ugg-text-muted);
+}
+
+.ugg-equipment__icon svg {
+    width: 100%;
+    height: 100%;
+}
+
+.ugg-equipment-row:has(select[name$="-equipment"] option[value="body only"]:checked) .ugg-equipment__icon--body-only,
+.ugg-equipment-row:has(select[name$="-equipment"] option[value="barbell"]:checked) .ugg-equipment__icon--barbell,
+.ugg-equipment-row:has(select[name$="-equipment"] option[value="dumbbell"]:checked) .ugg-equipment__icon--dumbbell,
+.ugg-equipment-row:has(select[name$="-equipment"] option[value="kettlebells"]:checked) .ugg-equipment__icon--kettlebells,
+.ugg-equipment-row:has(select[name$="-equipment"] option[value="cable"]:checked) .ugg-equipment__icon--cable,
+.ugg-equipment-row:has(select[name$="-equipment"] option[value="machine"]:checked) .ugg-equipment__icon--machine,
+.ugg-equipment-row:has(select[name$="-equipment"] option[value="bands"]:checked) .ugg-equipment__icon--bands,
+.ugg-equipment-row:has(select[name$="-equipment"] option[value="e-z curl bar"]:checked) .ugg-equipment__icon--e-z-curl-bar,
+.ugg-equipment-row:has(select[name$="-equipment"] option[value="medicine ball"]:checked) .ugg-equipment__icon--medicine-ball,
+.ugg-equipment-row:has(select[name$="-equipment"] option[value="exercise ball"]:checked) .ugg-equipment__icon--exercise-ball,
+.ugg-equipment-row:has(select[name$="-equipment"] option[value="foam roll"]:checked) .ugg-equipment__icon--foam-roll,
+.ugg-equipment-row:has(select[name$="-equipment"] option[value="other"]:checked) .ugg-equipment__icon--other {
+    display: block;
+}
