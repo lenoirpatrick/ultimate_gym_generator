@@ -1041,7 +1041,11 @@
     cursor: pointer;
 }
 
-.ugg-format input {
+/* Seul le radio (dans `.ugg-format__select`) doit être masqué visuellement —
+   `.ugg-format input` seul ciblait aussi les champs Effort/Repos du panneau
+   de réglages, plus bas dans la même carte : invisibles bien que présents et
+   fonctionnels, ils semblaient introuvables (issue #36 suite). */
+.ugg-format__select input {
     position: absolute;
     width: 1px;
     height: 1px;
