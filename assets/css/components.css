@@ -1004,12 +1004,17 @@
     outline-offset: 2px;
 }
 
-/* Carte de format de travail : radio masqué, tête de carte cliquable. Les
-   temps réglables ne se révèlent que pour le format coché — une seule paire
-   de champs visible à la fois, sans JavaScript.
+/* Carte de format de travail : radio masqué, tête de carte cliquable. Le
+   panneau de réglages de chaque carte se déplie indépendamment de son radio —
+   masquer celui d'un format tant qu'il n'est pas coché avait rendu le
+   réglage introuvable en pratique (issue #36 suite) : rien n'indiquait qu'il
+   fallait d'abord sélectionner le format avant de pouvoir seulement l'ouvrir.
+   Seule la couleur de bordure et du libellé montre le format réellement
+   retenu ; consulter ou régler les autres ne change rien tant qu'on ne les
+   sélectionne pas.
 
    Le déclencheur du radio (`.ugg-format__select`, un <label>) ne couvre que
-   la tête de la carte — jamais le panneau « Ajuster les temps » : imbriquer
+   la tête de la carte — jamais le panneau « Ajuster les réglages » : imbriquer
    un <summary> dans un <label> fait que le clic est capté par les deux à la
    fois, et le second n'obtient plus le sien (issue #32). Le panneau doit
    rester un déclencheur indépendant, hors du <label>. */
@@ -1056,14 +1061,9 @@
 }
 
 .ugg-format__tune {
-    display: none;
     margin-top: var(--ugg-space-3);
     padding-top: var(--ugg-space-3);
     border-top: 1px solid var(--ugg-border);
-}
-
-.ugg-format:has(input:checked) .ugg-format__tune {
-    display: block;
 }
 
 .ugg-format__tune summary {

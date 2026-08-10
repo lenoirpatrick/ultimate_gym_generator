@@ -258,14 +258,18 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
 - Le **type de travail** est une carte par format (`.ugg-format`), avec une bulle d'aide
   (`.ugg-hint`) qui explique le principe — déclenchée au survol **et** au focus clavier,
   jamais au survol seul. Les intervalles de chaque format sont réglables (effort/repos ;
-  pour la pyramide, le pic de répétitions à la place de l'effort, issue #34), mais **un
-  seul jeu de champs est visible à la fois** : il ne se révèle que pour le format coché
-  (`.ugg-format:has(input:checked) .ugg-format__tune`, CSS pur). Le radio n'est associé
-  qu'à la tête de carte (`.ugg-format__select`, un `<label>` distinct) — jamais à la carte
-  entière : un `<summary>` imbriqué dans le `<label>` du radio partage son clic avec lui,
-  et le panneau « Ajuster les réglages » n'ouvrait plus (issue #32). Le panneau reste un
-  déclencheur `<details>` indépendant, hors de tout `<label>`. Le pic de la pyramide est
-  un plancher fixe (`generator.PYRAMID_FLOOR_REPS`, 6) et un pic réglable — jamais une
+  pour la pyramide, le pic de répétitions à la place de l'effort, issue #34) : le panneau
+  « Ajuster les réglages » de **chaque** carte se déplie indépendamment de son radio —
+  masquer celui d'un format tant qu'il n'était pas coché avait rendu le réglage
+  introuvable en pratique (issue #36 suite : rien ne montrait qu'il fallait d'abord
+  sélectionner le format pour seulement pouvoir l'ouvrir). Consulter ou régler la carte
+  d'un format non retenu ne change rien à la génération ; seules la couleur de bordure et
+  du libellé (`.ugg-format:has(input:checked)`) indiquent celui réellement choisi. Le
+  radio n'est associé qu'à la tête de carte (`.ugg-format__select`, un `<label>` distinct)
+  — jamais à la carte entière : un `<summary>` imbriqué dans le `<label>` du radio partage
+  son clic avec lui, et le panneau « Ajuster les réglages » n'ouvrait plus (issue #32). Le
+  panneau reste un déclencheur `<details>` indépendant, hors de tout `<label>`. Le pic de
+  la pyramide est un plancher fixe (`generator.PYRAMID_FLOOR_REPS`, 6) et un pic réglable — jamais une
   suite de répétitions éditable pas à pas, qui suggérerait une précision que l'algorithme
   de remplissage ne garantit pas ; le nombre d'exercices retenus s'adapte automatiquement
   au pic choisi, une pyramide étant un bloc indivisible (`generator._pyramid_shapes`).

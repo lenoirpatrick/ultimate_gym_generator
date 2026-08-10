@@ -1,9 +1,14 @@
 {% comment %}
 Type de travail : une carte par format, avec une bulle d'aide expliquant le
 principe et, repliés, les intervalles de ce format — temps d'effort/repos, et
-pour la pyramide, pic de répétitions (issue #34). Seule la carte du format
-coché révèle ses champs — géré en CSS pur par `.ugg-format`, aucun
-JavaScript.
+pour la pyramide, pic de répétitions (issue #34).
+
+Le panneau « Ajuster les réglages » de chaque carte se déplie indépendamment
+de son radio : masquer celui d'un format tant qu'il n'était pas coché rendait
+le réglage introuvable en pratique (issue #36 suite). Seule la couleur de la
+carte et de son libellé (`.ugg-format:has(input:checked)`) montre le format
+réellement retenu à la génération — consulter ou régler les autres ne change
+rien tant qu'on ne les sélectionne pas.
 
 Le radio n'est associé qu'à la tête de carte (`.ugg-format__select`) : le
 panneau « Ajuster les réglages » reste hors du <label>, pour que son
