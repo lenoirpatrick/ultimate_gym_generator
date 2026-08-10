@@ -7,12 +7,19 @@ entrelacés, exercices de tabata/pyramide épuisés un à un) est calculé côt�
 serveur par `workouts.timer.build_timeline` et transmis en JSON — cette liste
 reste groupée par exercice, pas par pas de minuteur.
 
+`data-equipment` / `data-muscles` alimentent le panneau « exercice en cours »
+du tiers bas de l'écran (`.ugg-timer__current`) : plutôt que de dupliquer ces
+informations pour chaque pas du JSON, le script les relit depuis la ligne
+correspondante de cette timeline au moment de mettre en surbrillance.
+
 Attend `workout`.
 {% endcomment %}
 <ol class="ugg-timer__timeline">
     {% for block in workout.blocks %}
         {% for item in block.items %}
-            <li class="ugg-timer__step" data-item-id="{{ item.pk }}">
+            <li class="ugg-timer__step" data-item-id="{{ item.pk }}"
+                data-equipment="{{ item.exercise.get_equipment_display|default:'Poids du corps' }}"
+                data-muscles="{% for muscle in item.exercise.primary_muscles.all %}{{ muscle.name }}{% if not forloop.last %} · {% endif %}{% endfor %}">
                 {% with photo=item.exercise.image_urls|first %}
                     {% if photo %}
                         <img src="{{ photo }}" alt="" loading="lazy" class="ugg-timer__step-photo">

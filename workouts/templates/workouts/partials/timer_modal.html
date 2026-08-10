@@ -9,6 +9,11 @@ Tabata ou une pyramide épuisent un exercice avant de passer au suivant).
 Un <dialog> natif porte gratuitement le piège de focus, la fermeture à Échap
 et le retour de focus au déclencheur — aucun script à écrire pour ça.
 
+Le panneau « exercice en cours » (`.ugg-timer__current`) occupe le tiers bas
+de l'écran : photo et repères (matériel, muscles principaux) de l'exercice
+actif, plus grands et plus lisibles que la ligne de la timeline — qui reste
+disponible juste au-dessus pour le contexte des pas à venir.
+
 Attend `workout`, `timeline` (workouts.timer.build_timeline, sérialisée ici).
 {% endcomment %}
 {{ timeline|json_script:"minuteur-donnees" }}
@@ -43,4 +48,15 @@ Attend `workout`, `timeline` (workouts.timer.build_timeline, sérialisée ici).
     </div>
 
     {% include "workouts/partials/timer_timeline.html" with workout=workout %}
+
+    <div class="ugg-timer__current" id="minuteur-exercice-actuel" hidden>
+        <img class="ugg-timer__current-photo" id="minuteur-exercice-actuel-photo" src="" alt="" hidden>
+        <div class="ugg-timer__current-body">
+            <p class="ugg-timer__current-name" id="minuteur-exercice-actuel-nom"></p>
+            <p class="ugg-timer__current-tags">
+                <span class="ugg-tag ugg-tag--accent" id="minuteur-exercice-actuel-materiel"></span>
+                <span class="ugg-tag" id="minuteur-exercice-actuel-muscles" hidden></span>
+            </p>
+        </div>
+    </div>
 </dialog>

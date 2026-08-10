@@ -1354,11 +1354,16 @@
 }
 
 .ugg-timer__timeline {
+    /* `flex: 1 1 auto` seul ne suffit pas à borner la hauteur d'un enfant flex
+       dont le contenu dépasse l'espace disponible — sans `min-height: 0`, la
+       liste grandirait avec son contenu au lieu de défiler en interne, et le
+       panneau `.ugg-timer__current` qui la suit n'aurait plus de place. */
+    flex: 1 1 auto;
+    min-height: 0;
     display: grid;
     align-content: start;
     gap: var(--ugg-space-1);
     padding: var(--ugg-space-3);
-    padding-bottom: calc(var(--ugg-space-3) + var(--ugg-safe-bottom));
     overflow-y: auto;
 }
 
@@ -1404,6 +1409,49 @@
 .ugg-timer__step-timing {
     font-size: 0.8125rem;
     color: var(--ugg-text-muted);
+}
+
+/* Exercice en cours, tenu au tiers bas de l'écran : plus grand et plus
+   lisible qu'une ligne de la timeline, pour s'y référer d'un coup d'œil
+   pendant l'effort sans avoir à chercher la bonne ligne dans la liste. */
+.ugg-timer__current {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: var(--ugg-space-4);
+    min-height: 30vh;
+    max-height: 38vh;
+    padding: var(--ugg-space-4);
+    padding-bottom: calc(var(--ugg-space-4) + var(--ugg-safe-bottom));
+    border-top: 1px solid var(--ugg-border);
+    background: var(--ugg-surface-raised);
+}
+
+.ugg-timer__current-photo {
+    flex: 1 1 40%;
+    height: 100%;
+    max-width: 45%;
+    border-radius: var(--ugg-radius-md);
+    object-fit: cover;
+}
+
+.ugg-timer__current-body {
+    min-width: 0;
+    flex: 1 1 auto;
+}
+
+.ugg-timer__current-name {
+    font-family: var(--ugg-font-display);
+    font-size: 1.375rem;
+    font-weight: 700;
+    overflow-wrap: break-word;
+}
+
+.ugg-timer__current-tags {
+    margin-top: var(--ugg-space-3);
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--ugg-space-2);
 }
 
 /* =========================================================================

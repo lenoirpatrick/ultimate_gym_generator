@@ -37,6 +37,11 @@
     const pauseBtn = document.getElementById("minuteur-pause");
     const nextBtn = document.getElementById("minuteur-suivant");
     const stopBtn = document.getElementById("minuteur-stop");
+    const currentPanel = document.getElementById("minuteur-exercice-actuel");
+    const currentPhoto = document.getElementById("minuteur-exercice-actuel-photo");
+    const currentName = document.getElementById("minuteur-exercice-actuel-nom");
+    const currentEquipment = document.getElementById("minuteur-exercice-actuel-materiel");
+    const currentMuscles = document.getElementById("minuteur-exercice-actuel-muscles");
 
     let index = -1;
     let remaining = 0;
@@ -93,6 +98,34 @@
         if (currentStepEl) {
             currentStepEl.classList.add("ugg-timer__step--current");
             currentStepEl.scrollIntoView({ block: "nearest" });
+            updateCurrentExercisePanel(currentStepEl);
+        }
+    }
+
+    // Panneau du tiers bas de l'écran : relit la ligne de la timeline plutôt
+    // que de dupliquer photo/matériel/muscles dans le JSON du minuteur.
+    function updateCurrentExercisePanel(stepEl) {
+        const photo = stepEl.querySelector(".ugg-timer__step-photo");
+        const name = stepEl.querySelector(".ugg-timer__step-name");
+
+        currentPanel.hidden = false;
+        currentName.textContent = name ? name.textContent : "";
+        currentEquipment.textContent = stepEl.dataset.equipment || "";
+
+        if (stepEl.dataset.muscles) {
+            currentMuscles.hidden = false;
+            currentMuscles.textContent = stepEl.dataset.muscles;
+        } else {
+            currentMuscles.hidden = true;
+        }
+
+        if (photo && photo.tagName === "IMG") {
+            currentPhoto.src = photo.src;
+            currentPhoto.alt = "";
+            currentPhoto.hidden = false;
+        } else {
+            currentPhoto.hidden = true;
+            currentPhoto.removeAttribute("src");
         }
     }
 
@@ -201,6 +234,7 @@
         stopBtn.textContent = "Fermer";
         if (currentStepEl) currentStepEl.classList.remove("ugg-timer__step--current");
         currentStepEl = null;
+        currentPanel.hidden = true;
         playCue("end");
         announceEl.textContent = "Séance terminée.";
     }

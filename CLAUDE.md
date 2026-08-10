@@ -219,6 +219,14 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
   courant porte le temps décompté en grand ; un effort en répétitions (pyramide) affiche
   la cible et attend une confirmation manuelle plutôt qu'un décompte qui n'aurait pas de
   sens.
+- Le **tiers bas de l'écran** (`.ugg-timer__current`) reprend l'exercice en cours en
+  grand — photo, matériel, muscles principaux — pour s'y référer d'un coup d'œil sans
+  chercher la bonne ligne dans la timeline, qui reste au-dessus pour le contexte des pas
+  à venir. Alimenté par JavaScript à chaque changement de pas (`highlight()`, dans
+  `workout_timer.js`) : il relit la ligne correspondante de la timeline plutôt que de
+  dupliquer photo/matériel/muscles dans le JSON du minuteur — une seule source pour ces
+  informations. Absent d'exercice sans photo : l'image se masque plutôt que d'afficher
+  un cadre vide.
 - Cinq secondes de **préparation**, décomptées avant le premier pas, pour le temps de se
   mettre en place — pas encore comptées dans l'avancement de la séance.
 - La **barre de progression** chiffre l'avancement de la séance entière (pas de la seule

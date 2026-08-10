@@ -67,7 +67,9 @@ def workout_create(request: HttpRequest) -> HttpResponse:
 def workout_detail(request: HttpRequest, pk: int) -> HttpResponse:
     """Déroulé d'une séance. Filtré sur l'utilisateur : une séance ne se partage pas."""
     workout = get_object_or_404(
-        Workout.objects.prefetch_related("muscles", "items__exercise"),
+        Workout.objects.prefetch_related(
+            "muscles", "items__exercise", "items__exercise__primary_muscles"
+        ),
         pk=pk,
         user=request.user,
     )

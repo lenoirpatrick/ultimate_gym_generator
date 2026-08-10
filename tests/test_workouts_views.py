@@ -660,3 +660,30 @@ def test_sans_exercice_le_bouton_de_lancement_n_apparait_pas(logged_client, user
 
     assert 'id="lancer-seance"' not in content
     assert 'id="minuteur-modal"' not in content
+
+
+def test_le_panneau_du_tiers_bas_est_present(logged_client, user):
+    """Issue #35 suite : l'exercice en cours se lit en grand au tiers bas de l'écran."""
+    squat = Exercise.objects.get(slug="Barbell_Squat")
+    workout = build_workout(user, squat)
+
+    content = logged_client.get(reverse("workouts:detail", args=[workout.pk])).content.decode()
+
+    assert 'id="minuteur-exercice-actuel"' in content
+    assert 'id="minuteur-exercice-actuel-photo"' in content
+    assert 'id="minuteur-exercice-actuel-nom"' in content
+    assert 'id="minuteur-exercice-actuel-materiel"' in content
+    assert 'id="minuteur-exercice-actuel-muscles"' in content
+
+
+def test_la_timeline_porte_le_materiel_et_les_muscles_de_chaque_exercice(logged_client, user):
+    """Le panneau du tiers bas relit ces attributs plutôt que de les dupliquer
+    dans le JSON du minuteur (voir workout_timer.js)."""
+    squat = Exercise.objects.get(slug="Barbell_Squat")
+    workout = build_workout(user, squat)
+
+    content = logged_client.get(reverse("workouts:detail", args=[workout.pk])).content.decode()
+
+    assert f'data-item-id="{workout.items.first().pk}"' in content
+    assert 'data-equipment="Barre"' in content
+    assert "data-muscles=" in content
