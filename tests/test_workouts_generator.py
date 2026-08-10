@@ -138,6 +138,57 @@ def test_un_format_inconnu_est_refuse():
 
 
 # --------------------------------------------------------------------------- #
+# Temps personnalisés (issue #26)
+# --------------------------------------------------------------------------- #
+
+
+def test_les_temps_personnalises_remplacent_ceux_du_format():
+    blueprint = generator.build_blueprint(
+        Workout.Format.TABATA, 20, work_seconds=30, rest_seconds=15
+    )
+    item = blueprint.slots[0]
+
+    assert (item.work_seconds, item.rest_seconds) == (30, 15)
+
+
+def test_la_pyramide_n_expose_que_le_repos():
+    """Elle se compte en répétitions : lui fournir un effort n'a pas de sens."""
+    blueprint = generator.build_blueprint(
+        Workout.Format.PYRAMID, 15, work_seconds=99, rest_seconds=30
+    )
+
+    assert blueprint.slots[0].rest_seconds == 30
+    assert blueprint.slots[0].work_seconds is None
+
+
+@pytest.mark.parametrize(
+    ("work_seconds", "rest_seconds", "expected_work", "expected_rest"),
+    [
+        (1, 500, generator.MIN_WORK_SECONDS, generator.MAX_REST_SECONDS),
+        (500, -5, generator.MAX_WORK_SECONDS, generator.MIN_REST_SECONDS),
+    ],
+)
+def test_les_temps_personnalises_sont_bornes(
+    work_seconds, rest_seconds, expected_work, expected_rest
+):
+    """Un formulaire mal rempli ne doit pas produire une séance absurde."""
+    blueprint = generator.build_blueprint(
+        Workout.Format.HIIT, 20, work_seconds=work_seconds, rest_seconds=rest_seconds
+    )
+
+    assert blueprint.slots[0].work_seconds == expected_work
+    assert blueprint.slots[0].rest_seconds == expected_rest
+
+
+def test_sans_reglage_les_temps_par_defaut_du_format_restent_inchanges():
+    """Non-régression : un Tabata sans réglage reste 20 s / 10 s, 4 min par bloc."""
+    blueprint = generator.build_blueprint(Workout.Format.TABATA, 20)
+    item = blueprint.slots[0]
+
+    assert (item.work_seconds, item.rest_seconds, item.rounds) == (20, 10, 8)
+
+
+# --------------------------------------------------------------------------- #
 # Sélection des exercices
 # --------------------------------------------------------------------------- #
 
@@ -272,6 +323,16 @@ def test_la_seance_est_enregistree_avec_ses_parametres(user, halteres, rng):
     assert workout.duration_minutes == 30
     assert workout.favorites_ratio == 50
     assert [m.slug for m in workout.muscles.all()] == ["chest"]
+
+
+def test_les_temps_demandes_sont_enregistres_sur_la_seance(user, rng):
+    """Une séance rouverte doit dire avec quels réglages elle a été composée."""
+    workout = composer(
+        user, rng, workout_format=Workout.Format.HIIT, work_seconds=30, rest_seconds=30
+    )
+
+    assert (workout.work_seconds, workout.rest_seconds) == (30, 30)
+    assert workout.items.first().work_seconds == 30
 
 
 def test_le_deroule_est_ordonne_et_groupe(user, halteres, rng):

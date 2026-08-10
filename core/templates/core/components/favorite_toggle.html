@@ -1,0 +1,20 @@
+{% comment %}
+Bascule « favori » générique. Le libellé accompagne toujours l'étoile : une
+icône seule laisse deviner si elle montre l'état actuel ou l'action à venir.
+`aria-pressed` porte l'état pour les lecteurs d'écran ; le bouton se remplace
+lui-même à chaque bascule.
+
+Attend `url` (cible du POST), `pressed` (booléen), `label_on` / `label_off`.
+{% endcomment %}
+<button type="button"
+        class="ugg-favorite{% if pressed %} ugg-favorite--on{% endif %}"
+        aria-pressed="{{ pressed|yesno:"true,false" }}"
+        hx-post="{{ url }}"
+        hx-swap="outerHTML">
+    <svg class="ugg-favorite__icon" viewBox="0 0 24 24" aria-hidden="true"
+         fill="{% if pressed %}currentColor{% else %}none{% endif %}"
+         stroke="currentColor" stroke-width="2" stroke-linejoin="round">
+        <path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8L3.5 9.7l5.9-.9z" />
+    </svg>
+    <span>{% if pressed %}{{ label_on }}{% else %}{{ label_off }}{% endif %}</span>
+</button>

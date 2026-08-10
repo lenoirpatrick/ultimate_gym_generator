@@ -1,0 +1,15 @@
+{% comment %}
+Durée d'une séance : une règle graduée plutôt qu'une liste de radios verticale.
+Six valeurs possibles, donc six crans — on ne peut pas tomber entre deux.
+Navigation clavier native au groupe de radios (← →), aucun JavaScript.
+
+Attend `field` (form.duration_minutes).
+{% endcomment %}
+<div class="ugg-ruler">
+    {% for radio in field %}
+        <label class="ugg-ruler__tick">
+            {{ radio.tag }}
+            <span class="ugg-ruler__value">{{ radio.data.value }} min</span>
+        </label>
+    {% endfor %}
+</div>

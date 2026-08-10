@@ -46,6 +46,47 @@ MUSCLE_NAMES: dict[str, str] = {
 }
 
 
+#: Regroupement d'affichage des muscles par région du corps (issue #26).
+#: Le tronc est séparé du haut du corps : le gainage est un travail à part
+#: entière, pas un sous-produit du buste. Un slug absent d'ici (import futur
+#: qui introduirait un nouveau groupe musculaire) rejoint « Autres » plutôt que
+#: d'être perdu — voir `group_by_region`.
+MUSCLE_REGIONS: dict[str, tuple[str, ...]] = {
+    "Haut du corps": ("chest", "shoulders", "biceps", "triceps", "forearms", "neck"),
+    "Dos": ("lats", "traps", "middle back", "lower back"),
+    "Tronc": ("abdominals",),
+    "Bas du corps": (
+        "quadriceps",
+        "hamstrings",
+        "glutes",
+        "calves",
+        "abductors",
+        "adductors",
+    ),
+}
+
+#: Libellé du groupe accueillant un muscle inconnu des régions ci-dessus.
+OTHER_REGION = "Autres"
+
+
+def group_by_region(muscles) -> dict[str, list]:
+    """Range des muscles par région, dans l'ordre de `MUSCLE_REGIONS`.
+
+    Un groupe qui ne contient aucun des muscles fournis n'apparaît pas dans le
+    résultat : un écran de sélection n'a pas à afficher une section vide.
+    """
+    slug_to_region = {slug: region for region, slugs in MUSCLE_REGIONS.items() for slug in slugs}
+
+    grouped: dict[str, list] = {region: [] for region in MUSCLE_REGIONS}
+    grouped[OTHER_REGION] = []
+
+    for muscle in muscles:
+        region = slug_to_region.get(muscle.slug, OTHER_REGION)
+        grouped[region].append(muscle)
+
+    return {region: items for region, items in grouped.items() if items}
+
+
 class CatalogError(Exception):
     """Source de catalogue absente ou illisible, avec un message actionnable."""
 

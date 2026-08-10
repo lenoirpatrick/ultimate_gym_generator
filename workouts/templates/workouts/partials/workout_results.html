@@ -1,0 +1,35 @@
+{% comment %}
+Grille des séances. Bloc remplacé à chaque changement du filtre « favoris » —
+voir workouts.views.workout_list.
+{% endcomment %}
+<div class="grid gap-3">
+    {% for workout in workouts %}
+        <article class="ugg-card flex flex-wrap items-center gap-4 p-4">
+            <a href="{% url 'workouts:detail' workout.pk %}" class="min-w-0 flex-1 no-underline">
+                <p class="font-semibold">{{ workout.get_format_display }}</p>
+                <p class="mt-1 text-sm text-muted">
+                    {{ workout.created_at|date:"j F Y, H:i" }}
+                </p>
+            </a>
+
+            <p class="flex flex-wrap gap-2">
+                <span class="ugg-tag ugg-tag--accent">{{ workout.planned_minutes }} min</span>
+                {% for muscle in workout.muscles.all %}
+                    <span class="ugg-tag">{{ muscle.name }}</span>
+                {% empty %}
+                    <span class="ugg-tag">Tout le corps</span>
+                {% endfor %}
+            </p>
+
+            {% include "workouts/partials/favorite_button.html" with workout=workout %}
+        </article>
+    {% empty %}
+        {% if favorites_only %}
+            {% url 'workouts:list' as all_url %}
+            {% include "core/components/empty_state.html" with title="Aucun favori" body="Marque une séance en favori pour la retrouver ici." action_url=all_url action_label="Voir toutes les séances" %}
+        {% else %}
+            {% url 'workouts:create' as create_url %}
+            {% include "core/components/empty_state.html" with title="Aucune séance" body="Compose ta première séance : durée, parties du corps et type de travail suffisent." action_url=create_url action_label="Nouvelle séance" %}
+        {% endif %}
+    {% endfor %}
+</div>

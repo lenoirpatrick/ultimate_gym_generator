@@ -127,6 +127,56 @@
     </section>
 
     <section class="mt-12">
+        <h2 class="ugg-title text-xl">Règle de durée</h2>
+        <p class="mt-2 text-muted">
+            Six valeurs possibles, donc six crans — on ne peut pas tomber entre deux.
+            Navigation clavier native au groupe de radios (← →), aucun JavaScript.
+        </p>
+        <div class="ugg-card mt-6 max-w-md p-6">
+            {% include "workouts/partials/duration_ruler.html" with field=workout_form_demo.duration_minutes %}
+        </div>
+    </section>
+
+    <section class="mt-12">
+        <h2 class="ugg-title text-xl">Cartes de format et bulle d'aide</h2>
+        <p class="mt-2 text-muted">
+            La bulle se déclenche au survol <strong>et</strong> au focus clavier —
+            atteignable au doigt comme au clavier. Les temps réglables ne se révèlent
+            que pour la carte cochée : une seule paire de champs visible à la fois.
+        </p>
+        <div class="mt-6 max-w-xl">
+            {% include "workouts/partials/format_options.html" with options=workout_form_demo.format_options %}
+        </div>
+    </section>
+
+    <section class="mt-12">
+        <h2 class="ugg-title text-xl">Contrôle segmenté</h2>
+        <p class="mt-2 text-muted">
+            Remplace un <code class="font-mono">&lt;select&gt;</code> natif, qui
+            n'appartenait à aucun langage visuel du projet.
+        </p>
+        <div class="ugg-segmented mt-6 max-w-xl">
+            {% for radio in workout_form_demo.favorites_ratio %}
+                <label>
+                    {{ radio.tag }}
+                    <span>{{ radio.choice_label }}</span>
+                </label>
+            {% endfor %}
+        </div>
+    </section>
+
+    <section class="mt-12">
+        <h2 class="ugg-title text-xl">Régions du corps</h2>
+        <p class="mt-2 text-muted">
+            Même présentation que les filtres du catalogue, pour regrouper dix-sept
+            muscles sous quatre régions plutôt qu'une liste plate.
+        </p>
+        <div class="mt-6">
+            {% include "workouts/partials/muscle_regions.html" with regions=workout_form_demo.muscle_regions %}
+        </div>
+    </section>
+
+    <section class="mt-12">
         <h2 class="ugg-title text-xl">Couleurs</h2>
         <div class="mt-6 grid gap-3 sm:grid-cols-3 lg:grid-cols-5">
             {% for name, var in swatches %}

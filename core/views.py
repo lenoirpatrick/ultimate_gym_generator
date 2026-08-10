@@ -57,6 +57,7 @@ def style_guide(request: HttpRequest) -> HttpResponse:
 
     from exercises.filters import FilterGroup, Option
     from exercises.models import Exercise
+    from workouts.forms import WorkoutForm
 
     user_model = get_user_model()
 
@@ -104,5 +105,9 @@ def style_guide(request: HttpRequest) -> HttpResponse:
                     ],
                 ),
             ],
+            # Formulaire réel, non lié à une soumission : illustre la règle de
+            # durée, les cartes de format, le contrôle segmenté et les régions
+            # du corps avec leurs propres composants (issue #26).
+            "workout_form_demo": WorkoutForm(),
         },
     )

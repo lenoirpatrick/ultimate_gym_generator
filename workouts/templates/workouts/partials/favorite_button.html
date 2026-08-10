@@ -1,0 +1,8 @@
+{% comment %}
+Bascule « favori » d'une séance. Voir exercises/partials/favorite_button.html
+pour l'équivalent côté catalogue — les deux enveloppent le même composant.
+
+Attend `workout`.
+{% endcomment %}
+{% url 'workouts:toggle_favorite' workout.pk as url %}
+{% include "core/components/favorite_toggle.html" with url=url pressed=workout.is_favorite label_on="Retirer des favoris" label_off="Ajouter aux favoris" %}

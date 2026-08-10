@@ -31,9 +31,6 @@ EXCLUDED_CATEGORIES = ("stretching",)
 #: Secondes par répétition, pour estimer la durée d'une série chiffrée.
 SECONDS_PER_REP = 3
 
-#: Repos entre deux séries d'une pyramide.
-PYRAMID_REST = 75
-
 #: Formes de pyramide, de la plus longue à la plus courte. Le générateur retient
 #: celle qui occupe le mieux la durée demandée : une pyramide est un bloc
 #: indivisible, et s'entêter sur la forme canonique laisserait parfois un tiers
@@ -43,6 +40,42 @@ PYRAMID_SHAPES = (
     (10, 8, 6, 8, 10),
     (8, 6, 8),
 )
+
+
+@dataclass(frozen=True)
+class Periods:
+    """Temps par défaut d'un format : effort, repos entre séries, récupération
+    entre blocs. `work` vaut `None` pour la pyramide, qui se compte en
+    répétitions et non en secondes.
+    """
+
+    work: int | None
+    rest: int
+    recovery: int
+
+
+#: Recette de chaque format. Rassemblées ici plutôt que dispersées dans les
+#: fonctions de minutage, pour que le formulaire de séance puisse proposer un
+#: réglage par format sans dupliquer ces valeurs (issue #26).
+FORMAT_PERIODS: dict[str, Periods] = {
+    Workout.Format.TABATA: Periods(work=20, rest=10, recovery=60),
+    Workout.Format.HIIT: Periods(work=40, rest=20, recovery=60),
+    Workout.Format.CIRCUIT: Periods(work=45, rest=15, recovery=90),
+    Workout.Format.PYRAMID: Periods(work=None, rest=75, recovery=0),
+}
+
+#: Bornes appliquées aux temps personnalisés, côté formulaire comme côté
+#: générateur : un effort de moins de 5 s ou un repos de plus de 3 min ne
+#: correspond à aucun entraînement réel.
+MIN_WORK_SECONDS = 5
+MAX_WORK_SECONDS = 180
+MIN_REST_SECONDS = 0
+MAX_REST_SECONDS = 180
+
+
+def _clamp(value: int, low: int, high: int) -> int:
+    return max(low, min(high, value))
+
 
 #: Remplissage jugé suffisant. On garde la pyramide la plus complète qui
 #: l'atteint, plutôt que celle qui remplit le mieux : viser le seul remplissage
@@ -94,9 +127,9 @@ class Blueprint:
 # --------------------------------------------------------------------------- #
 
 
-def _tabata(seconds: int) -> Blueprint:
-    """Blocs d'un exercice : 8 fois (20 s d'effort, 10 s de repos), 1 min entre blocs."""
-    work, rest, rounds, recovery = 20, 10, 8, 60
+def _tabata(seconds: int, work: int, rest: int, recovery: int) -> Blueprint:
+    """Blocs d'un exercice : 8 séries d'effort/repos, une pause entre chaque bloc."""
+    rounds = 8
     block = rounds * (work + rest)
 
     count = max(1, (seconds + recovery) // (block + recovery))
@@ -153,11 +186,11 @@ def _circuit(seconds: int, work: int, rest: int, recovery: int, label: str) -> B
     return Blueprint(slots, total)
 
 
-def _pyramid(seconds: int) -> Blueprint:
+def _pyramid(seconds: int, rest: int) -> Blueprint:
     """Répétitions décroissantes puis croissantes, une pyramide par exercice."""
     candidates = []
     for shape in PYRAMID_SHAPES:
-        cost = sum(rep * SECONDS_PER_REP + PYRAMID_REST for rep in shape)
+        cost = sum(rep * SECONDS_PER_REP + rest for rep in shape)
         count = seconds // cost
         if count >= 1:
             candidates.append((count * cost, list(shape), count, cost))
@@ -166,7 +199,7 @@ def _pyramid(seconds: int) -> Blueprint:
         # Durée plus courte que la plus petite pyramide : on en donne une seule,
         # la plus resserrée, quitte à mordre légèrement sur le temps annoncé.
         shape = list(PYRAMID_SHAPES[-1])
-        cost = sum(rep * SECONDS_PER_REP + PYRAMID_REST for rep in shape)
+        cost = sum(rep * SECONDS_PER_REP + rest for rep in shape)
         candidates = [(cost, shape, 1, cost)]
 
     # Les formes sont parcourues de la plus complète à la plus courte : la
@@ -182,7 +215,7 @@ def _pyramid(seconds: int) -> Blueprint:
             block_label=f"Pyramide {index + 1}",
             exercise_rank=index,
             rounds=len(reps),
-            rest_seconds=PYRAMID_REST,
+            rest_seconds=rest,
             reps=reps,
         )
         for index in range(count)
@@ -190,20 +223,38 @@ def _pyramid(seconds: int) -> Blueprint:
     return Blueprint(slots, count * per_exercise)
 
 
-def build_blueprint(workout_format: str, duration_minutes: int) -> Blueprint:
-    """Déroulé et minutage du format demandé, sans exercice encore attribué."""
+def build_blueprint(
+    workout_format: str,
+    duration_minutes: int,
+    work_seconds: int | None = None,
+    rest_seconds: int | None = None,
+) -> Blueprint:
+    """Déroulé et minutage du format demandé, sans exercice encore attribué.
+
+    `work_seconds` / `rest_seconds` remplacent, quand fournis, les valeurs par
+    défaut du format — bornés dans tous les cas : un formulaire mal rempli ne
+    doit pas produire une séance absurde plutôt qu'un message d'erreur.
+    """
+    periods = FORMAT_PERIODS.get(workout_format)
+    if periods is None:
+        raise GenerationError(f"Type de travail inconnu : {workout_format}.")
+
     seconds = duration_minutes * 60
+    rest = rest_seconds if rest_seconds is not None else periods.rest
+    rest = _clamp(rest, MIN_REST_SECONDS, MAX_REST_SECONDS)
+
+    work = periods.work
+    if work is not None:
+        work = work_seconds if work_seconds is not None else work
+        work = _clamp(work, MIN_WORK_SECONDS, MAX_WORK_SECONDS)
 
     if workout_format == Workout.Format.TABATA:
-        return _tabata(seconds)
+        return _tabata(seconds, work, rest, periods.recovery)
     if workout_format == Workout.Format.HIIT:
-        return _circuit(seconds, work=40, rest=20, recovery=60, label="HIIT")
+        return _circuit(seconds, work, rest, periods.recovery, label="HIIT")
     if workout_format == Workout.Format.CIRCUIT:
-        return _circuit(seconds, work=45, rest=15, recovery=90, label="Circuit")
-    if workout_format == Workout.Format.PYRAMID:
-        return _pyramid(seconds)
-
-    raise GenerationError(f"Type de travail inconnu : {workout_format}.")
+        return _circuit(seconds, work, rest, periods.recovery, label="Circuit")
+    return _pyramid(seconds, rest)
 
 
 # --------------------------------------------------------------------------- #
@@ -324,6 +375,8 @@ def generate(
     workout_format: str,
     muscles: list[str],
     favorites_ratio: int = 25,
+    work_seconds: int | None = None,
+    rest_seconds: int | None = None,
     rng: random.Random | None = None,
 ) -> Workout:
     """Compose et enregistre une séance."""
@@ -331,7 +384,7 @@ def generate(
     # `Random` injectable rend la composition reproductible en test.
     rng = rng or random.Random()  # noqa: S311
 
-    blueprint = build_blueprint(workout_format, duration_minutes)
+    blueprint = build_blueprint(workout_format, duration_minutes, work_seconds, rest_seconds)
     exercises = select_exercises(user, muscles, blueprint.needed, favorites_ratio, rng)
     options = load_options(user)
 
@@ -340,6 +393,8 @@ def generate(
         duration_minutes=duration_minutes,
         format=workout_format,
         favorites_ratio=favorites_ratio,
+        work_seconds=work_seconds,
+        rest_seconds=rest_seconds,
         planned_seconds=blueprint.total_seconds,
     )
     if muscles:

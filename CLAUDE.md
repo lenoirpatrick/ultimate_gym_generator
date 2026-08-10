@@ -171,6 +171,9 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
 - Les conseils rédigés par l'IA sont un **habillage** : ils arrivent après la séance, et
   leur absence ne produit aucun message. Une erreur de fournisseur devant un entraînement
   prêt n'apprend rien à personne.
+- Une séance se marque en **favori** au même titre qu'un exercice (voir « Bascules
+  d'état » ci-dessous) ; l'historique propose alors le même critère « Mes favoris
+  uniquement » que le catalogue.
 
 ### Bascules d'état (favori)
 
@@ -178,8 +181,32 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
   pas si elle montre l'état actuel ou l'action à venir. Le libellé nomme l'action
   (« Ajouter aux favoris » / « Retirer des favoris »).
 - L'état est porté par `aria-pressed`, jamais par la seule couleur.
-- Composant : `exercises/templates/exercises/partials/favorite_button.html`. Le bouton se
-  remplace lui-même (`hx-swap="outerHTML"`) — pas de rechargement pour un simple marquage.
+- Composant partagé : `core/templates/core/components/favorite_toggle.html`, paramétré
+  `url` / `pressed` / `label_on` / `label_off`. Chaque domaine (exercice, séance) fournit
+  son propre partiel fin qui l'enveloppe avec sa route — le composant lui-même ne connaît
+  ni exercice ni séance. Le bouton se remplace lui-même (`hx-swap="outerHTML"`) — pas de
+  rechargement pour un simple marquage.
+
+### Formulaire de composition d'une séance
+
+- La **durée** est une règle graduée (`.ugg-ruler`), pas une colonne de radios : chaque
+  valeur possible devient un cran, la valeur active est accentuée. Composant :
+  `workouts/templates/workouts/partials/duration_ruler.html`. Utilisable pour tout champ à
+  peu de valeurs numériques fixes — jamais pour une plage continue, qui appelle un vrai
+  curseur.
+- Le **type de travail** est une carte par format (`.ugg-format`), avec une bulle d'aide
+  (`.ugg-hint`) qui explique le principe — déclenchée au survol **et** au focus clavier,
+  jamais au survol seul. Les temps d'effort/repos de chaque format sont réglables, mais
+  **une seule paire de champs est visible à la fois** : elle ne se révèle que pour le
+  format coché (`input:checked ~ .ugg-format__tune`, CSS pur).
+- Une **part de favoris** ou toute autre proportion à choix fermé passe par un contrôle
+  segmenté (`.ugg-segmented`), jamais par un `<select>` natif — il n'appartient à aucun
+  langage visuel du projet.
+- Les **parties du corps** se regroupent par région (haut du corps, dos, tronc, bas du
+  corps) avec la présentation des filtres de catalogue (panneau repliable, compteur sur
+  l'onglet fermé) — voir `exercises.catalog.group_by_region` et
+  `workouts/templates/workouts/partials/muscle_regions.html`. Le champ reste un
+  `ModelMultipleChoiceField` unique ; le regroupement n'est qu'un habillage d'affichage.
 
 ### Cartes de catalogue
 

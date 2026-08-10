@@ -1,21 +1,9 @@
 {% comment %}
-Bascule « favori » d'un exercice.
-
-Le libellé accompagne toujours l'étoile : une icône seule laisse deviner si elle
-montre l'état actuel ou l'action à venir. `aria-pressed` porte l'état pour les
-lecteurs d'écran, et le bouton se remplace lui-même à chaque bascule.
+Bascule « favori » d'un exercice. Composant partagé promu en
+core/components/favorite_toggle.html (issue #26) : ce gabarit ne fait plus que
+fournir l'URL et le libellé propres à un exercice.
 
 Attend `exercise`, annoté de `is_favorite`.
 {% endcomment %}
-<button type="button"
-        class="ugg-favorite{% if exercise.is_favorite %} ugg-favorite--on{% endif %}"
-        aria-pressed="{{ exercise.is_favorite|yesno:"true,false" }}"
-        hx-post="{% url 'exercises:toggle_favorite' exercise.pk %}"
-        hx-swap="outerHTML">
-    <svg class="ugg-favorite__icon" viewBox="0 0 24 24" aria-hidden="true"
-         fill="{% if exercise.is_favorite %}currentColor{% else %}none{% endif %}"
-         stroke="currentColor" stroke-width="2" stroke-linejoin="round">
-        <path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8L3.5 9.7l5.9-.9z" />
-    </svg>
-    <span>{% if exercise.is_favorite %}Retirer des favoris{% else %}Ajouter aux favoris{% endif %}</span>
-</button>
+{% url 'exercises:toggle_favorite' exercise.pk as url %}
+{% include "core/components/favorite_toggle.html" with url=url pressed=exercise.is_favorite label_on="Retirer des favoris" label_off="Ajouter aux favoris" %}

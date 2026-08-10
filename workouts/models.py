@@ -43,9 +43,20 @@ class Workout(models.Model):
         help_text="Pourcentage d'exercices puisés dans les favoris.",
     )
 
+    #: Temps demandés à la composition. Conservés même quand le format ne les
+    #: retient pas tous (la pyramide n'utilise que le repos) : une séance
+    #: rouverte doit dire avec quels réglages elle a été composée.
+    work_seconds = models.PositiveSmallIntegerField("effort demandé (s)", null=True, blank=True)
+    rest_seconds = models.PositiveSmallIntegerField("repos demandé (s)", null=True, blank=True)
+
     #: Durée réellement occupée par le déroulé. Elle n'atteint pas toujours la
     #: durée demandée : un format se remplit par blocs entiers.
     planned_seconds = models.PositiveIntegerField("durée planifiée", default=0)
+
+    #: Séance mise de côté. Table à part écartée volontairement : une séance
+    #: n'a ni la variété ni le volume d'un catalogue d'exercices, un simple
+    #: booléen suffit à la retrouver dans l'historique.
+    is_favorite = models.BooleanField("favori", default=False)
 
     #: Rédigés par l'IA après coup, et mémorisés pour ne pas rappeler le
     #: fournisseur à chaque consultation.

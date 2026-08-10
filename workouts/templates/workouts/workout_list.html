@@ -11,29 +11,26 @@
         <a href="{% url 'workouts:create' %}" class="ugg-btn ugg-btn--primary">Nouvelle séance</a>
     </div>
 
-    <div class="mt-8 grid gap-3">
-        {% for workout in workouts %}
-            <a href="{% url 'workouts:detail' workout.pk %}"
-               class="ugg-card flex flex-wrap items-center gap-4 p-4 no-underline">
-                <div class="min-w-0 flex-1">
-                    <p class="font-semibold">{{ workout.get_format_display }}</p>
-                    <p class="mt-1 text-sm text-muted">
-                        {{ workout.created_at|date:"j F Y, H:i" }}
-                    </p>
-                </div>
+    {% comment %}
+    Même paramètre et même présentation que le critère « Mes favoris » du
+    catalogue d'exercices : une case isolée suffit pour un seul critère.
+    {% endcomment %}
+    <form method="get"
+          hx-get="{% url 'workouts:list' %}"
+          hx-trigger="change"
+          hx-target="#resultats"
+          hx-push-url="true"
+          class="mt-6">
+        <label class="ugg-filter__option ugg-filter__option--standalone">
+            <input type="checkbox" name="favoris" value="1" {% if favorites_only %}checked{% endif %}>
+            <span>Mes favoris uniquement</span>
+        </label>
+        <noscript>
+            <button type="submit" class="ugg-btn ugg-btn--primary mt-3">Filtrer</button>
+        </noscript>
+    </form>
 
-                <p class="flex flex-wrap gap-2">
-                    <span class="ugg-tag ugg-tag--accent">{{ workout.planned_minutes }} min</span>
-                    {% for muscle in workout.muscles.all %}
-                        <span class="ugg-tag">{{ muscle.name }}</span>
-                    {% empty %}
-                        <span class="ugg-tag">Tout le corps</span>
-                    {% endfor %}
-                </p>
-            </a>
-        {% empty %}
-            {% url 'workouts:create' as create_url %}
-            {% include "core/components/empty_state.html" with title="Aucune séance" body="Compose ta première séance : durée, parties du corps et type de travail suffisent." action_url=create_url action_label="Nouvelle séance" %}
-        {% endfor %}
+    <div id="resultats" class="mt-6" aria-live="polite">
+        {% include "workouts/partials/workout_results.html" %}
     </div>
 {% endblock %}

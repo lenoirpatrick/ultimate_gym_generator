@@ -9,5 +9,6 @@ urlpatterns = [
     path("nouvelle/", views.workout_create, name="create"),
     path("<int:pk>/", views.workout_detail, name="detail"),
     path("<int:pk>/conseils/", views.workout_coaching, name="coaching"),
+    path("<int:pk>/favori/", views.workout_toggle_favorite, name="toggle_favorite"),
     path("<int:pk>/supprimer/", views.workout_delete, name="delete"),
 ]

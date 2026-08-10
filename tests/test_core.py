@@ -117,3 +117,17 @@ def test_style_guide_expose_les_trois_spinners_en_debug(client, settings):
 
     for variant in ("dumbbell", "kettlebell", "runner"):
         assert f"ugg-spinner--{variant}" in content
+
+
+@pytest.mark.django_db
+def test_style_guide_expose_les_composants_de_seance(client, settings):
+    """Règle de durée, cartes de format, contrôle segmenté, régions du corps (issue #26)."""
+    settings.DEBUG = True
+
+    content = client.get(reverse("core:style_guide")).content.decode()
+
+    assert "ugg-ruler" in content
+    assert "ugg-format" in content
+    assert "ugg-hint__bubble" in content
+    assert "ugg-segmented" in content
+    assert "Haut du corps" in content

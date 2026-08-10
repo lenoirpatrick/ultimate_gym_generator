@@ -82,6 +82,46 @@ def test_une_demande_impossible_est_expliquee_dans_le_formulaire(logged_client, 
     assert not Workout.objects.filter(user=user).exists()
 
 
+def test_le_formulaire_affiche_les_regions_du_corps(logged_client):
+    """Découpage en quatre régions plutôt qu'une liste plate de dix-sept muscles."""
+    content = logged_client.get(reverse("workouts:create")).content.decode()
+
+    for region in ("Haut du corps", "Dos", "Tronc", "Bas du corps"):
+        assert region in content
+
+
+def test_le_formulaire_affiche_une_bulle_d_aide_par_format(logged_client):
+    content = logged_client.get(reverse("workouts:create")).content.decode()
+
+    assert content.count("ugg-hint__bubble") == 4
+    assert "Huit séries d&#x27;un seul exercice" in content
+
+
+def test_les_temps_personnalises_sont_transmis_et_enregistres(logged_client, user):
+    composer(
+        logged_client,
+        workout_format=Workout.Format.HIIT,
+        work_hiit="30",
+        rest_hiit="45",
+    )
+
+    workout = Workout.objects.get(user=user)
+    assert (workout.work_seconds, workout.rest_seconds) == (30, 45)
+    assert workout.items.first().rest_seconds == 45
+
+
+def test_les_temps_d_un_format_non_retenu_n_empechent_pas_l_envoi(logged_client, user):
+    """Régler Tabata puis composer un Circuit ne doit pas être bloqué par Tabata."""
+    composer(
+        logged_client,
+        workout_format=Workout.Format.CIRCUIT,
+        work_tabata="9999",
+        rest_tabata="-5",
+    )
+
+    assert Workout.objects.filter(user=user).exists()
+
+
 def test_un_formulaire_invalide_ne_cree_rien(logged_client, user):
     response = logged_client.post(reverse("workouts:create"), payload(duration_minutes="7"))
 
@@ -141,6 +181,73 @@ def test_l_historique_est_cloisonne(logged_client, staff_client, user):
     content = staff_client.get(reverse("workouts:list")).content.decode()
 
     assert "Aucune séance" in content
+
+
+# --------------------------------------------------------------------------- #
+# Favori (issue #26)
+# --------------------------------------------------------------------------- #
+
+
+def test_une_seance_se_marque_favorite(logged_client, user):
+    composer(logged_client)
+    workout = Workout.objects.get(user=user)
+
+    response = logged_client.post(reverse("workouts:toggle_favorite", args=[workout.pk]))
+
+    workout.refresh_from_db()
+    assert workout.is_favorite is True
+    assert 'aria-pressed="true"' in response.content.decode()
+
+
+def test_la_bascule_favori_est_reversible(logged_client, user):
+    composer(logged_client)
+    workout = Workout.objects.get(user=user)
+
+    logged_client.post(reverse("workouts:toggle_favorite", args=[workout.pk]))
+    logged_client.post(reverse("workouts:toggle_favorite", args=[workout.pk]))
+
+    workout.refresh_from_db()
+    assert workout.is_favorite is False
+
+
+def test_la_bascule_favori_refuse_la_methode_get(logged_client, user):
+    composer(logged_client)
+    workout = Workout.objects.get(user=user)
+
+    assert (
+        logged_client.get(reverse("workouts:toggle_favorite", args=[workout.pk])).status_code == 405
+    )
+
+
+def test_on_ne_bascule_pas_le_favori_d_un_autre(logged_client, staff_client, user):
+    composer(logged_client)
+    workout = Workout.objects.get(user=user)
+
+    response = staff_client.post(reverse("workouts:toggle_favorite", args=[workout.pk]))
+
+    assert response.status_code == 404
+    assert not Workout.objects.get(pk=workout.pk).is_favorite
+
+
+def test_le_filtre_favoris_ne_garde_que_les_seances_marquees(logged_client, user):
+    composer(logged_client)
+    composer(logged_client, workout_format=Workout.Format.TABATA)
+    marque = Workout.objects.filter(user=user).first()
+    logged_client.post(reverse("workouts:toggle_favorite", args=[marque.pk]))
+
+    content = logged_client.get(reverse("workouts:list"), {"favoris": "1"}).content.decode()
+
+    assert content.count(reverse("workouts:detail", args=[marque.pk])) >= 1
+    autre = Workout.objects.filter(user=user).exclude(pk=marque.pk).first()
+    assert reverse("workouts:detail", args=[autre.pk]) not in content
+
+
+def test_sans_favori_le_filtre_invite_a_en_marquer_un(logged_client, user):
+    composer(logged_client)
+
+    content = logged_client.get(reverse("workouts:list"), {"favoris": "1"}).content.decode()
+
+    assert "Aucun favori" in content
 
 
 # --------------------------------------------------------------------------- #

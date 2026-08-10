@@ -1,0 +1,31 @@
+{% comment %}
+Parties du corps, groupées par région — voir workouts.forms.WorkoutForm.muscle_regions.
+Même présentation que les critères du catalogue d'exercices (CLAUDE.md § Filtres
+de catalogue) : panneau repliable, déplié dès qu'une case de la région est
+cochée, compteur de sélections visible sur l'onglet fermé.
+
+Attend `regions` (form.muscle_regions).
+{% endcomment %}
+<div class="grid gap-3 sm:grid-cols-2">
+    {% for region in regions %}
+        <details class="ugg-filter"{% if region.selected_count %} open{% endif %}>
+            <summary class="ugg-filter__summary">
+                <span>{{ region.label }}</span>
+                <span class="ugg-filter__badge-slot">
+                    {% if region.selected_count %}
+                        <span class="ugg-filter__badge">{{ region.selected_count }}</span>
+                    {% endif %}
+                </span>
+            </summary>
+            <fieldset class="ugg-filter__options">
+                <legend class="sr-only">{{ region.label }}</legend>
+                {% for box in region.boxes %}
+                    <label class="ugg-filter__option">
+                        {{ box.tag }}
+                        <span>{{ box.choice_label }}</span>
+                    </label>
+                {% endfor %}
+            </fieldset>
+        </details>
+    {% endfor %}
+</div>
