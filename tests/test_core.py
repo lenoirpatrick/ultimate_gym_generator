@@ -67,18 +67,28 @@ def entetes_de_menu(content: str) -> list[str]:
     return re.findall(r'<p class="ugg-nav__heading">\s*([^<]+?)\s*</p>', content)
 
 
-def test_le_menu_groupe_la_navigation_et_la_configuration(logged_client):
+def test_un_utilisateur_ordinaire_ne_voit_aucun_groupe_de_configuration(logged_client):
+    """Compte a rejoint Navigation (issue #38) ; Admin est réservé au personnel — il ne
+    reste donc plus aucun groupe de configuration pour un compte ordinaire."""
     content = logged_client.get(reverse("core:home")).content.decode()
 
-    assert entetes_de_menu(content) == ["Navigation", "Utilisateur"]
+    assert entetes_de_menu(content) == ["Navigation"]
 
 
 def test_le_groupe_admin_n_apparait_que_pour_le_personnel(staff_client):
     content = staff_client.get(reverse("core:home")).content.decode()
 
-    assert entetes_de_menu(content) == ["Navigation", "Admin", "Utilisateur"]
+    assert entetes_de_menu(content) == ["Navigation", "Admin"]
     assert reverse("aiproviders:list") in content
     assert reverse("accounts:user_list") in content
+
+
+def test_le_compte_personnel_est_accessible_sans_passer_par_la_configuration(logged_client):
+    """Le lien vers le profil est promu dans Navigation (issue #38) : plus besoin
+    d'ouvrir Configuration pour l'atteindre, ni en barre ni dans le tiroir."""
+    content = logged_client.get(reverse("core:home")).content.decode()
+
+    assert content.count(reverse("accounts:profile")) == 2
 
 
 def test_un_groupe_vide_n_est_pas_titre(logged_client):

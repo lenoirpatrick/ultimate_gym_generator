@@ -28,13 +28,16 @@ class NavGroup:
     links: tuple[NavLink, ...]
 
 
-#: Entrées quotidiennes : le parcours d'entraînement lui-même.
+#: Entrées quotidiennes : le parcours d'entraînement lui-même, et l'accès au
+#: compte personnel — consulté assez souvent pour ne pas se cacher derrière
+#: Configuration, qui ne rassemble plus que ce qui se règle une fois (issue #38).
 PRIMARY = NavGroup(
     "Navigation",
     (
         NavLink("Séances", "workouts:list"),
         NavLink("Exercices", "exercises:list"),
         NavLink("Favoris", "exercises:favorites"),
+        NavLink("Compte", "accounts:profile"),
     ),
 )
 
@@ -48,7 +51,6 @@ CONFIG: tuple[NavGroup, ...] = (
             NavLink("Référentiel", "exercises:reload", staff_only=True),
         ),
     ),
-    NavGroup("Utilisateur", (NavLink("Compte", "accounts:profile"),)),
 )
 
 

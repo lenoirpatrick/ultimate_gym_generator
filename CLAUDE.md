@@ -96,9 +96,12 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
 ### Navigation principale
 
 - Deux niveaux, séparés par une seule question : **s'en sert-on à chaque visite, ou
-  le règle-t-on une fois ?** Les entrées quotidiennes (séances, exercices, favoris)
-  restent en clair dans la barre ; tout ce qui se configure passe derrière un menu
-  **Configuration**, groupé par responsabilité (« Admin », « Utilisateur »).
+  le règle-t-on une fois ?** Les entrées quotidiennes (séances, exercices, favoris,
+  **compte personnel** — consulté trop souvent pour se cacher derrière un menu, issue
+  #38) restent en clair dans la barre ; tout ce qui se configure une fois passe derrière
+  un menu **Configuration**, groupé par responsabilité (aujourd'hui, un seul groupe :
+  « Admin », réservé au personnel — un groupe « Utilisateur » n'a plus lieu d'être
+  depuis que le compte a rejoint la barre).
 - Sous `40rem`, la barre disparaît et **tout** rejoint le même tiroir, dont le bouton
   s'intitule alors « Menu ». Une rangée de boutons alignés ne tient pas sur un téléphone.
 - Les entrées sont décrites **une seule fois**, dans `core/nav.py` — jamais réécrites
