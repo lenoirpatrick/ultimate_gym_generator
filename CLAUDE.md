@@ -370,13 +370,17 @@ Tout nouveau composant partagé y est ajouté en même temps qu'il est créé.
 
 ## Commits et suivi des issues
 
-- **Tout commit référence son issue.** Le message se termine par `Refs #<n>`, ou
-  `Closes #<n>` lorsque le commit achève le travail demandé. Sans ce lien, on ne
-  retrouve plus la demande derrière le code six mois plus tard.
+- **Tout commit référence son issue, deux fois.** L'identifiant apparaît dans le
+  **titre** (`(#12)` en fin de première ligne) autant que dans le **corps**
+  (`Refs #12` / `Closes #12`) : le titre seul fait le lien direct dans un
+  `git log --oneline` ou la liste des commits GitHub, sans avoir à ouvrir le
+  message complet ; le corps porte le mot-clé (`Closes`/`Fixes`) que GitHub
+  reconnaît pour fermer l'issue automatiquement à la fusion. Sans ce lien, on
+  ne retrouve plus la demande derrière le code six mois plus tard.
 - **Format du message :**
 
   ```
-  <verbe à l'impératif> <intention, pas implémentation>
+  <verbe à l'impératif> <intention, pas implémentation> (#12)
 
   <corps facultatif : le pourquoi, les arbitrages, ce qui est laissé de côté>
 
