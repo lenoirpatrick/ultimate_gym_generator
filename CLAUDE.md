@@ -254,6 +254,14 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
   Unlicense) et copiées vers le stockage média (`/media/exercises/…`) au chargement,
   jamais vers les statiques : le manifeste `collectstatic` est figé au build de l'image
   Docker, avant que ces fichiers n'existent.
+- Une fiche non traduite propose aussi un bouton **« Traduire cette fiche en français »**
+  (issue #31), dans le partiel commun `exercises/partials/description.html` — visible
+  depuis le catalogue comme depuis le rappel en séance. Contrairement au rechargement en
+  masse, ouvert à tout utilisateur connecté : le coût d'un appel pour une seule fiche est
+  négligeable, comparable aux conseils IA générés à chaque séance. Le bouton se remplace
+  lui-même (`hx-swap="outerHTML"`) ; un échec affiche un message et laisse le bouton en
+  place pour réessayer — seul cas où une panne de fournisseur IA reste visible, parce que
+  l'action est volontaire, pas une récupération en arrière-plan.
 
 ### Avatars
 

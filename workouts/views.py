@@ -7,6 +7,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
 from accounts.models import UserEquipment
+from aiproviders.clients import get_active_client
 
 from . import coaching, generator
 from .forms import WorkoutForm
@@ -75,7 +76,13 @@ def workout_detail(request: HttpRequest, pk: int) -> HttpResponse:
         pk=pk,
         user=request.user,
     )
-    return render(request, "workouts/workout_detail.html", {"workout": workout})
+    context = {
+        "workout": workout,
+        # Bouton de traduction unitaire du rappel d'exercice (issue #31) :
+        # un seul calcul par écran plutôt qu'un par exercice du déroulé.
+        "can_translate": get_active_client() is not None,
+    }
+    return render(request, "workouts/workout_detail.html", context)
 
 
 @login_required

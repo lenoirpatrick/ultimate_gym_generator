@@ -15,7 +15,7 @@ from django.views.decorators.http import require_POST
 
 from aiproviders.clients import get_active_client
 
-from . import catalog, filters
+from . import catalog, filters, translation
 from .models import Exercise, Favorite
 
 #: Cartes par page. Assez pour remplir un grand écran, assez peu pour qu'un
@@ -68,6 +68,10 @@ def _render_catalog(request: HttpRequest, params, favorites_page: bool = False) 
         # « Tout effacer » depuis les favoris ne renvoie pas au catalogue entier.
         "base_url": reverse("exercises:favorites" if favorites_page else "exercises:list"),
         "query": _query_without_page(params),
+        # Une fiche non traduite propose un bouton de traduction unitaire
+        # (issue #31), inutile à afficher si aucun fournisseur ne pourrait
+        # répondre — un seul appel par page plutôt qu'un par carte.
+        "can_translate": get_active_client() is not None,
     }
 
     if request.headers.get("HX-Request"):
@@ -92,6 +96,37 @@ def toggle_favorite(request: HttpRequest, pk: int) -> HttpResponse:
         request,
         "exercises/partials/favorite_button.html",
         {"exercise": exercise},
+    )
+
+
+@login_required
+@require_POST
+def translate_exercise(request: HttpRequest, pk: int) -> HttpResponse:
+    """Traduit une seule fiche à la demande (issue #31).
+
+    Distinct du rechargement en masse (issue #29) : ouvert à tout utilisateur,
+    pas seulement au personnel — le coût d'un appel pour une fiche est
+    négligeable, comparable aux conseils IA générés à chaque séance.
+    """
+    exercise = get_object_or_404(Exercise, pk=pk)
+    failed = False
+
+    if exercise.instructions and not exercise.instructions_fr:
+        translated = translation.translate_instructions(exercise.instructions)
+        if translated:
+            exercise.instructions_fr = translated
+            exercise.save(update_fields=["instructions_fr"])
+        else:
+            failed = True
+
+    return render(
+        request,
+        "exercises/partials/description.html",
+        {
+            "exercise": exercise,
+            "can_translate": get_active_client() is not None,
+            "translation_failed": failed,
+        },
     )
 
 

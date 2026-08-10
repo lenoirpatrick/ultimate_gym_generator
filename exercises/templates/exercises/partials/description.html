@@ -6,44 +6,69 @@ Partagé entre le catalogue (partials/card.html) et le rappel affiché en
 séance (workouts/workout_detail.html, issue #30) — le contenu est identique,
 seul le déclencheur qui l'ouvre diffère selon l'écran.
 
-Attend `exercise`.
+Le bloc s'enveloppe dans un id stable pour pouvoir se remplacer lui-même une
+fois traduit (issue #31, hx-swap="outerHTML" depuis le bouton ci-dessous).
+
+Attend `exercise`, `can_translate` (fournisseur IA actif ou non — calculé une
+fois par écran plutôt qu'une fois par fiche) et `translation_failed`
+(facultatif, mis par exercises.views.translate_exercise).
 {% endcomment %}
-{% if exercise.image_urls %}
-    <div class="ugg-exercise__gallery mt-3">
-        {% for url in exercise.image_urls %}
-            <a href="#exo-{{ exercise.pk }}-photo-{{ forloop.counter0 }}"
-               class="ugg-exercise__thumb"
-               aria-label="Agrandir la photo {{ forloop.counter }} de {{ exercise.name }}">
-                <img src="{{ url }}" alt="" loading="lazy" class="ugg-exercise__photo">
-            </a>
-        {% endfor %}
-    </div>
-    {% comment %}
-    Agrandissement en CSS pur (`:target`), sans script : la vignette pointe
-    vers son panneau, qui se referme par le fond ou la croix — jamais par
-    Échap, qu'aucune règle CSS ne peut intercepter sans JavaScript (même
-    limite assumée que le tiroir de navigation, CLAUDE.md).
-    {% endcomment %}
-    {% for url in exercise.image_urls %}
-        <div class="ugg-lightbox"
-             id="exo-{{ exercise.pk }}-photo-{{ forloop.counter0 }}"
-             role="dialog"
-             aria-modal="true"
-             aria-label="{{ exercise.name }}, photo {{ forloop.counter }}"
-             tabindex="-1">
-            <a href="#" class="ugg-lightbox__backdrop" tabindex="-1" aria-hidden="true"></a>
-            <img src="{{ url }}" alt="{{ exercise.name }}" class="ugg-lightbox__image">
-            <a href="#" class="ugg-lightbox__close" aria-label="Fermer l'agrandissement">
-                <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                    <path d="M6 6l12 12M18 6L6 18" />
-                </svg>
-                <span>Fermer</span>
-            </a>
+<div id="exercise-{{ exercise.pk }}-description">
+    {% if exercise.image_urls %}
+        <div class="ugg-exercise__gallery mt-3">
+            {% for url in exercise.image_urls %}
+                <a href="#exo-{{ exercise.pk }}-photo-{{ forloop.counter0 }}"
+                   class="ugg-exercise__thumb"
+                   aria-label="Agrandir la photo {{ forloop.counter }} de {{ exercise.name }}">
+                    <img src="{{ url }}" alt="" loading="lazy" class="ugg-exercise__photo">
+                </a>
+            {% endfor %}
         </div>
-    {% endfor %}
-{% endif %}
-<ol class="mt-3 grid gap-2 text-sm">
-    {% for step in exercise.instructions_fr|default:exercise.instructions %}
-        <li>{{ step }}</li>
-    {% endfor %}
-</ol>
+        {% comment %}
+        Agrandissement en CSS pur (`:target`), sans script : la vignette pointe
+        vers son panneau, qui se referme par le fond ou la croix — jamais par
+        Échap, qu'aucune règle CSS ne peut intercepter sans JavaScript (même
+        limite assumée que le tiroir de navigation, CLAUDE.md).
+        {% endcomment %}
+        {% for url in exercise.image_urls %}
+            <div class="ugg-lightbox"
+                 id="exo-{{ exercise.pk }}-photo-{{ forloop.counter0 }}"
+                 role="dialog"
+                 aria-modal="true"
+                 aria-label="{{ exercise.name }}, photo {{ forloop.counter }}"
+                 tabindex="-1">
+                <a href="#" class="ugg-lightbox__backdrop" tabindex="-1" aria-hidden="true"></a>
+                <img src="{{ url }}" alt="{{ exercise.name }}" class="ugg-lightbox__image">
+                <a href="#" class="ugg-lightbox__close" aria-label="Fermer l'agrandissement">
+                    <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                        <path d="M6 6l12 12M18 6L6 18" />
+                    </svg>
+                    <span>Fermer</span>
+                </a>
+            </div>
+        {% endfor %}
+    {% endif %}
+    <ol class="mt-3 grid gap-2 text-sm">
+        {% for step in exercise.instructions_fr|default:exercise.instructions %}
+            <li>{{ step }}</li>
+        {% endfor %}
+    </ol>
+    {% if exercise.instructions and not exercise.instructions_fr and can_translate %}
+        <div class="mt-3 flex items-center gap-3">
+            <button type="button"
+                    class="ugg-btn ugg-btn--ghost"
+                    hx-post="{% url 'exercises:translate' exercise.pk %}"
+                    hx-target="#exercise-{{ exercise.pk }}-description"
+                    hx-swap="outerHTML"
+                    hx-indicator="#exercise-{{ exercise.pk }}-traduction-en-cours">
+                Traduire cette fiche en français
+            </button>
+            <span id="exercise-{{ exercise.pk }}-traduction-en-cours" class="ugg-indicator">
+                {% include "core/components/spinner.html" with variant="runner" size="sm" label="Traduction en cours" %}
+            </span>
+        </div>
+    {% endif %}
+    {% if translation_failed %}
+        {% include "core/components/alert.html" with level="info" text="Traduction indisponible pour le moment. Réessaie plus tard." %}
+    {% endif %}
+</div>

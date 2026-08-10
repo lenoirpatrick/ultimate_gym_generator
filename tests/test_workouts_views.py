@@ -454,3 +454,31 @@ def test_le_reste_du_bloc_est_inchange(logged_client, user):
 
     assert "Barre" in content
     assert "10 · 10 · 10" in content
+
+
+# --------------------------------------------------------------------------- #
+# Traduction unitaire depuis la séance (issue #31)
+# --------------------------------------------------------------------------- #
+
+
+def test_sans_fournisseur_le_bouton_de_traduction_n_apparait_pas(logged_client, user):
+    squat = Exercise.objects.get(slug="Barbell_Squat")
+    workout = build_workout(user, squat)
+
+    content = logged_client.get(reverse("workouts:detail", args=[workout.pk])).content.decode()
+
+    assert "Traduire cette fiche" not in content
+
+
+def test_avec_un_fournisseur_le_bouton_de_traduction_apparait(logged_client, user, monkeypatch):
+    stub = type("Stub", (), {"generate": lambda self, prompt, **kwargs: "[]"})()
+    monkeypatch.setattr("exercises.views.get_active_client", lambda: stub)
+    monkeypatch.setattr("workouts.views.get_active_client", lambda: stub)
+
+    squat = Exercise.objects.get(slug="Barbell_Squat")
+    workout = build_workout(user, squat)
+
+    content = logged_client.get(reverse("workouts:detail", args=[workout.pk])).content.decode()
+
+    assert "Traduire cette fiche" in content
+    assert reverse("exercises:translate", args=[squat.pk]) in content
