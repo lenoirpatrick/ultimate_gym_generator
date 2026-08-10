@@ -1,0 +1,49 @@
+{% comment %}
+Détail d'un exercice : consignes traduites (repli sur l'anglais si aucune
+traduction n'existe, voir Exercise.instructions_fr) et galerie zoomable.
+
+Partagé entre le catalogue (partials/card.html) et le rappel affiché en
+séance (workouts/workout_detail.html, issue #30) — le contenu est identique,
+seul le déclencheur qui l'ouvre diffère selon l'écran.
+
+Attend `exercise`.
+{% endcomment %}
+{% if exercise.image_urls %}
+    <div class="ugg-exercise__gallery mt-3">
+        {% for url in exercise.image_urls %}
+            <a href="#exo-{{ exercise.pk }}-photo-{{ forloop.counter0 }}"
+               class="ugg-exercise__thumb"
+               aria-label="Agrandir la photo {{ forloop.counter }} de {{ exercise.name }}">
+                <img src="{{ url }}" alt="" loading="lazy" class="ugg-exercise__photo">
+            </a>
+        {% endfor %}
+    </div>
+    {% comment %}
+    Agrandissement en CSS pur (`:target`), sans script : la vignette pointe
+    vers son panneau, qui se referme par le fond ou la croix — jamais par
+    Échap, qu'aucune règle CSS ne peut intercepter sans JavaScript (même
+    limite assumée que le tiroir de navigation, CLAUDE.md).
+    {% endcomment %}
+    {% for url in exercise.image_urls %}
+        <div class="ugg-lightbox"
+             id="exo-{{ exercise.pk }}-photo-{{ forloop.counter0 }}"
+             role="dialog"
+             aria-modal="true"
+             aria-label="{{ exercise.name }}, photo {{ forloop.counter }}"
+             tabindex="-1">
+            <a href="#" class="ugg-lightbox__backdrop" tabindex="-1" aria-hidden="true"></a>
+            <img src="{{ url }}" alt="{{ exercise.name }}" class="ugg-lightbox__image">
+            <a href="#" class="ugg-lightbox__close" aria-label="Fermer l'agrandissement">
+                <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                    <path d="M6 6l12 12M18 6L6 18" />
+                </svg>
+                <span>Fermer</span>
+            </a>
+        </div>
+    {% endfor %}
+{% endif %}
+<ol class="mt-3 grid gap-2 text-sm">
+    {% for step in exercise.instructions_fr|default:exercise.instructions %}
+        <li>{{ step }}</li>
+    {% endfor %}
+</ol>

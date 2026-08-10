@@ -65,7 +65,15 @@
                                 </div>
 
                                 <div class="min-w-0 flex-1">
-                                    <p class="font-semibold">{{ item.exercise.name }}</p>
+                                    {% if item.exercise.instructions or item.exercise.image_urls %}
+                                        {# Rappel replié : de quoi se souvenir d'un exercice sans quitter la séance (issue #30). #}
+                                        <details class="ugg-disclosure ugg-disclosure--plain">
+                                            <summary>{{ item.exercise.name }}</summary>
+                                            {% include "exercises/partials/description.html" with exercise=item.exercise %}
+                                        </details>
+                                    {% else %}
+                                        <p class="font-semibold">{{ item.exercise.name }}</p>
+                                    {% endif %}
                                     <p class="mt-1 text-sm text-muted">
                                         {{ item.exercise.get_equipment_display|default:"Poids du corps" }}
                                         {% if item.load_summary %}

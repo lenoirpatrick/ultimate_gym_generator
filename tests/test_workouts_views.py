@@ -4,7 +4,8 @@ import pytest
 from django.urls import reverse
 
 from accounts.models import UserEquipment
-from workouts.models import Workout
+from exercises.models import Exercise
+from workouts.models import Workout, WorkoutExercise
 
 pytestmark = pytest.mark.django_db
 
@@ -378,3 +379,78 @@ def test_on_ne_supprime_pas_la_seance_d_un_autre(logged_client, staff_client, us
 
     assert staff_client.post(reverse("workouts:delete", args=[workout.pk])).status_code == 404
     assert Workout.objects.filter(pk=workout.pk).exists()
+
+
+# --------------------------------------------------------------------------- #
+# Rappel d'un exercice (issue #30)
+# --------------------------------------------------------------------------- #
+
+
+def build_workout(user, exercise):
+    """Séance à un seul exercice, construite directement — sans passer par le
+    générateur — pour savoir précisément quelle fiche sera affichée."""
+    workout = Workout.objects.create(
+        user=user,
+        duration_minutes=Workout.Duration.STANDARD,
+        format=Workout.Format.CIRCUIT,
+        planned_seconds=600,
+    )
+    WorkoutExercise.objects.create(
+        workout=workout,
+        position=1,
+        block_index=0,
+        block_label="Bloc 1",
+        exercise=exercise,
+        rounds=3,
+        reps=[10, 10, 10],
+        rest_seconds=60,
+    )
+    return workout
+
+
+def test_un_exercice_documente_se_deplie_dans_la_seance(logged_client, user):
+    """Cliquer sur l'exercice doit donner un rappel — consignes et images."""
+    squat = Exercise.objects.get(slug="Barbell_Squat")
+    workout = build_workout(user, squat)
+
+    content = logged_client.get(reverse("workouts:detail", args=[workout.pk])).content.decode()
+
+    assert '<details class="ugg-disclosure ugg-disclosure--plain">' in content
+    assert "<summary>Barbell Squat</summary>" in content
+    assert "Placer la barre sur les trapèzes" in content
+    assert 'class="ugg-exercise__gallery' in content
+    assert 'class="ugg-lightbox"' in content
+
+
+def test_un_exercice_sans_documentation_reste_un_simple_texte(logged_client, user):
+    """Sans consigne ni image, rien à déplier : pas de repli vide."""
+    minimal = Exercise.objects.get(slug="Text_Only_Exercise")
+    workout = build_workout(user, minimal)
+
+    content = logged_client.get(reverse("workouts:detail", args=[workout.pk])).content.decode()
+
+    assert '<p class="font-semibold">Text Only Exercise</p>' in content
+    assert "ugg-disclosure--plain" not in content
+
+
+def test_le_rappel_privilegie_la_traduction(logged_client, user):
+    squat = Exercise.objects.get(slug="Barbell_Squat")
+    squat.instructions_fr = ["Consigne traduite en français."]
+    squat.save()
+    workout = build_workout(user, squat)
+
+    content = logged_client.get(reverse("workouts:detail", args=[workout.pk])).content.decode()
+
+    assert "Consigne traduite en français." in content
+    assert "Placer la barre sur les trapèzes" not in content
+
+
+def test_le_reste_du_bloc_est_inchange(logged_client, user):
+    """Le repli du nom ne doit pas déplacer le matériel ni la charge."""
+    squat = Exercise.objects.get(slug="Barbell_Squat")
+    workout = build_workout(user, squat)
+
+    content = logged_client.get(reverse("workouts:detail", args=[workout.pk])).content.decode()
+
+    assert "Barre" in content
+    assert "10 · 10 · 10" in content

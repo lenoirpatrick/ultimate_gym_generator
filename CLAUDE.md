@@ -183,6 +183,13 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
   les étiquettes pour ne pas se perdre. Le contrôle de renommage est un panneau
   repliable (`.ugg-disclosure`, partagé avec les consignes d'exercice), révisable depuis
   l'écran de détail uniquement — la liste ne fait qu'afficher le nom choisi.
+- Le nom d'un exercice dans le déroulé est lui-même un panneau repliable
+  (`.ugg-disclosure.ugg-disclosure--plain`, issue #30) : le déplier donne le même rappel
+  que le catalogue — consignes traduites et galerie zoomable, via le partiel commun
+  `exercises/partials/description.html`. Le modificateur `--plain` rend au déclencheur sa
+  voix typographique normale (le nom de l'exercice, pas une étiquette d'action) — voir
+  « Cartes de catalogue ». Sans consigne ni image, la fiche reste un simple texte : rien à
+  déplier ne doit pas se présenter comme dépliable.
 
 ### Bascules d'état (favori)
 

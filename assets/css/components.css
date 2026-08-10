@@ -868,6 +868,17 @@
     color: var(--ugg-accent);
 }
 
+/* Repli dont le déclencheur est un contenu à part entière — le nom d'un
+   exercice en séance (issue #30) — pas une étiquette d'action : il garde sa
+   voix typographique normale plutôt que le traitement accentué ci-dessus. */
+.ugg-disclosure--plain > summary {
+    font-size: inherit;
+    font-weight: 600;
+    letter-spacing: normal;
+    text-transform: none;
+    color: var(--ugg-text);
+}
+
 /* =========================================================================
    SÉANCES (issue #22, complétées par l'issue #26)
    ========================================================================= */
