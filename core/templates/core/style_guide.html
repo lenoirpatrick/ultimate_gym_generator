@@ -114,9 +114,12 @@
         <p class="mt-2 text-muted">
             Jamais de <code class="font-mono">select multiple</code>, impraticable au pouce.
             Replié par défaut, déplié dès qu'une case est cochée, avec le nombre de
-            sélections visible sur l'onglet fermé.
+            sélections visible sur l'onglet fermé. Les valeurs sont des puces qui
+            s'enroulent : une case par ligne faisait défiler plusieurs écrans. La case
+            native est conservée, redessinée — une puce cochée se reconnaît à sa coche,
+            pas seulement à sa couleur.
         </p>
-        <div class="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div class="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {% for group in filter_demos %}
                 {% include "exercises/partials/filter_group.html" with group=group %}
             {% endfor %}

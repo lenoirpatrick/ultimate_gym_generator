@@ -78,6 +78,14 @@ def style_guide(request: HttpRequest) -> HttpResponse:
             "favorite_demos": favorite_demos,
             "filter_demos": [
                 FilterGroup(
+                    name="type",
+                    legend="Type d'exercice",
+                    options=[
+                        Option(value, label, value == "cardio")
+                        for value, label in Exercise.Category.choices
+                    ],
+                ),
+                FilterGroup(
                     name="niveau",
                     legend="Niveau",
                     options=[

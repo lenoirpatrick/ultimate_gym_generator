@@ -38,7 +38,11 @@ class FilterGroup:
 
 
 #: Critères à valeurs fermées : paramètre de requête, champ, libellé, énumération.
+#: Le type d'exercice vient en tête : c'est lui qui écarte le plus de catalogue
+#: d'un seul geste — on ne cherche pas un étirement et un cardio dans la même
+#: séance.
 CHOICE_FILTERS: tuple[tuple[str, str, str, type], ...] = (
+    ("type", "category", "Type d'exercice", Exercise.Category),
     ("niveau", "level", "Niveau", Exercise.Level),
     ("effort", "force", "Type d'effort", Exercise.Force),
     ("materiel", "equipment", "Matériel", Exercise.Equipment),

@@ -79,10 +79,16 @@ def test_les_consignes_sont_repliees_dans_la_carte(logged_client):
     assert "Placer la barre sur les trapèzes" in content
 
 
-def test_les_quatre_criteres_sont_proposes(logged_client):
+def test_les_cinq_criteres_sont_proposes(logged_client):
     content = logged_client.get(reverse("exercises:list")).content.decode()
 
-    for legende in ("Niveau", "Type d&#x27;effort", "Matériel", "Muscle travaillé"):
+    for legende in (
+        "Type d&#x27;exercice",
+        "Niveau",
+        "Type d&#x27;effort",
+        "Matériel",
+        "Muscle travaillé",
+    ):
         assert legende in content
 
 
@@ -130,6 +136,25 @@ def test_le_filtre_par_muscle_ne_duplique_pas_les_cartes(logged_client):
     response = logged_client.get(URL, {"muscle": ["quadriceps", "glutes", "hamstrings"]})
 
     assert noms(response) == ["Barbell Squat"]
+
+
+def test_le_filtre_par_type_d_exercice(logged_client):
+    """On ne cherche pas un étirement et un renforcement dans la même séance."""
+    response = logged_client.get(URL, {"type": "stretching"})
+
+    assert noms(response) == ["Calf Stretch"]
+
+
+def test_le_type_d_exercice_se_cumule_avec_un_autre_critere(logged_client):
+    response = logged_client.get(URL, {"type": "strength", "materiel": "dumbbell"})
+
+    assert noms(response) == ["Dumbbell Bench Press"]
+
+
+def test_deux_types_d_exercice_s_additionnent(logged_client):
+    response = logged_client.get(URL, {"type": ["strength", "stretching"]})
+
+    assert noms(response) == ["Barbell Squat", "Calf Stretch", "Dumbbell Bench Press"]
 
 
 def test_le_filtre_par_niveau_et_par_effort(logged_client):

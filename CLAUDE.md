@@ -150,6 +150,15 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
   qu'une sélection se partage et survive à un rechargement.
 - La zone de résultats porte `aria-live="polite"` : le nombre de résultats change sans
   rechargement et doit être annoncé.
+- Les valeurs d'un critère sont des **puces** (`.ugg-filter__option`), pas une colonne
+  de cases empilées : elles s'enroulent, si bien que plusieurs critères tiennent dans
+  la hauteur qu'un seul occupait auparavant. La case native reste en place — sémantique,
+  clavier et lecteurs d'écran inchangés — mais elle est masquée visuellement et
+  redessinée : son état se lit par une pastille pleine et une coche (`input:checked`),
+  jamais par la seule couleur du texte.
+- Le catalogue s'ouvre sur le **type d'exercice** (`Exercise.Category` : étirement,
+  cardio, renforcement…), premier des critères — c'est celui qui écarte le plus de
+  fiches d'un seul geste.
 
 ### Blocs de séance
 
