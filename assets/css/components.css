@@ -1310,12 +1310,24 @@
     color: var(--ugg-accent);
 }
 
-/* Le repos et la récupération entre tours se distinguent de l'effort sans
-   dépendre de la seule couleur : le libellé du texte porte déjà la
-   différence (« Effort » / « Repos » / « Récupération », issue #44 suite). */
-.ugg-timer[data-phase="rest"] .ugg-timer__phase,
+/* Chaque phase se distingue de l'effort sans dépendre de la seule couleur :
+   le libellé du texte porte déjà la différence (« Préparation » / « Effort »
+   / « Repos » / « Récupération »). La couleur ne fait que renforcer, un code
+   constant sur tout le minuteur (issue #35 suite) : préparation en danger
+   (on démarre, l'urgence du compte à rebours), repos en success (la pause la
+   plus fréquente, la plus « acquise »), récupération en info — seule couleur
+   froide du projet, réservée à cette pause entre tours/blocs pour ne pas se
+   confondre avec le repos entre exercices. L'effort garde l'accent de marque. */
+.ugg-timer[data-phase="prep"] .ugg-timer__phase {
+    color: var(--ugg-danger);
+}
+
+.ugg-timer[data-phase="rest"] .ugg-timer__phase {
+    color: var(--ugg-success);
+}
+
 .ugg-timer[data-phase="recovery"] .ugg-timer__phase {
-    color: var(--ugg-text-muted);
+    color: var(--ugg-info);
 }
 
 .ugg-timer__exercise {

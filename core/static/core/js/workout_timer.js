@@ -16,6 +16,10 @@
     // décompté dans l'avancement de la séance, voir overallPercent().
     const PREP_SECONDS = 5;
 
+    // Délai entre deux photos d'un même exercice, dans le panneau du tiers
+    // bas (issue #35 suite) — voir startPhotoRotation().
+    const PHOTO_INTERVAL_MS = 5000;
+
     // Repos entre exercices et récupération entre tours/blocs (issue #44
     // suite) se distinguent par le libellé — jamais la seule couleur — mais
     // partagent la même tonalité : les deux sont une pause, pas un effort.
@@ -54,6 +58,9 @@
     let intervalId = null;
     let audioCtx = null;
     let currentStepEl = null;
+    let photoRotationId = null;
+    let photoUrls = [];
+    let photoIndex = 0;
 
     function tone(frequency, start, duration, type, peakGain) {
         const osc = audioCtx.createOscillator();
@@ -107,10 +114,39 @@
         }
     }
 
+    function stopPhotoRotation() {
+        if (photoRotationId) {
+            window.clearInterval(photoRotationId);
+            photoRotationId = null;
+        }
+    }
+
+    function showCurrentPhoto() {
+        if (photoUrls.length) {
+            currentPhoto.src = photoUrls[photoIndex];
+            currentPhoto.alt = "";
+            currentPhoto.hidden = false;
+        } else {
+            currentPhoto.hidden = true;
+            currentPhoto.removeAttribute("src");
+        }
+    }
+
+    // Une photo de plus toutes les 5 s quand l'exercice en compte plusieurs
+    // (issue #35 suite) — la vignette de la timeline, elle, reste fixe.
+    function startPhotoRotation() {
+        stopPhotoRotation();
+        if (photoUrls.length > 1) {
+            photoRotationId = window.setInterval(() => {
+                photoIndex = (photoIndex + 1) % photoUrls.length;
+                showCurrentPhoto();
+            }, PHOTO_INTERVAL_MS);
+        }
+    }
+
     // Panneau du tiers bas de l'écran : relit la ligne de la timeline plutôt
-    // que de dupliquer photo/matériel/muscles dans le JSON du minuteur.
+    // que de dupliquer nom/matériel/muscles dans le JSON du minuteur.
     function updateCurrentExercisePanel(stepEl) {
-        const photo = stepEl.querySelector(".ugg-timer__step-photo");
         const name = stepEl.querySelector(".ugg-timer__step-name");
 
         currentPanel.hidden = false;
@@ -124,14 +160,10 @@
             currentMuscles.hidden = true;
         }
 
-        if (photo && photo.tagName === "IMG") {
-            currentPhoto.src = photo.src;
-            currentPhoto.alt = "";
-            currentPhoto.hidden = false;
-        } else {
-            currentPhoto.hidden = true;
-            currentPhoto.removeAttribute("src");
-        }
+        photoUrls = stepEl.dataset.photos ? stepEl.dataset.photos.split("|") : [];
+        photoIndex = 0;
+        showCurrentPhoto();
+        startPhotoRotation();
     }
 
     function exerciseName(itemId) {
@@ -226,6 +258,8 @@
 
     function finish() {
         stopInterval();
+        stopPhotoRotation();
+        photoUrls = [];
         dialog.dataset.phase = "";
         phaseEl.textContent = "Séance terminée";
         exerciseEl.textContent = "";
@@ -296,10 +330,12 @@
     pauseBtn.addEventListener("click", () => {
         if (intervalId) {
             stopInterval();
+            stopPhotoRotation();
             pauseBtn.textContent = "Reprendre";
             announceEl.textContent = "Séance en pause.";
         } else if (remaining > 0) {
             intervalId = window.setInterval(tick, 1000);
+            startPhotoRotation();
             pauseBtn.textContent = "Pause";
             announceEl.textContent = "Séance reprise.";
         }
@@ -311,6 +347,9 @@
     // Pas de fermeture au clic sur le fond : une séance en cours ne doit pas
     // s'interrompre d'un geste accidentel. Seul « Arrêter » — ou Échap, natif
     // au <dialog> — y met fin ; les deux passent par le même événement
-    // « close », qui arrête toujours le décompte.
-    dialog.addEventListener("close", stopInterval);
+    // « close », qui arrête toujours le décompte et le défilement des photos.
+    dialog.addEventListener("close", () => {
+        stopInterval();
+        stopPhotoRotation();
+    });
 })();

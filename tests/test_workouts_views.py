@@ -877,3 +877,26 @@ def test_la_timeline_porte_le_materiel_et_les_muscles_de_chaque_exercice(logged_
     assert f'data-item-id="{workout.items.first().pk}"' in content
     assert 'data-equipment="Barre"' in content
     assert "data-muscles=" in content
+
+
+def test_la_timeline_porte_toutes_les_photos_d_un_exercice(logged_client, user):
+    """Le panneau du tiers bas fait défiler les photos d'un exercice qui en
+    compte plusieurs (issue #35 suite) — la timeline transmet la liste
+    complète, séparée par « | », pas la seule première photo."""
+    squat = Exercise.objects.get(slug="Barbell_Squat")
+    assert len(squat.image_urls) == 2
+    workout = build_workout(user, squat)
+
+    content = logged_client.get(reverse("workouts:detail", args=[workout.pk])).content.decode()
+
+    expected = "|".join(squat.image_urls)
+    assert f'data-photos="{expected}"' in content
+
+
+def test_la_timeline_ne_porte_aucune_photo_sans_illustration(logged_client, user):
+    minimal = Exercise.objects.get(slug="Text_Only_Exercise")
+    workout = build_workout(user, minimal)
+
+    content = logged_client.get(reverse("workouts:detail", args=[workout.pk])).content.decode()
+
+    assert 'data-photos=""' in content

@@ -18,6 +18,7 @@ COLOR_SWATCHES = (
     ("Accent", "--ugg-accent"),
     ("Succès", "--ugg-success"),
     ("Danger", "--ugg-danger"),
+    ("Info", "--ugg-info"),
     ("Braise", "--ugg-ember-400"),
 )
 

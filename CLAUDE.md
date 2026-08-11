@@ -261,7 +261,12 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
   `workout_timer.js`) : il relit la ligne correspondante de la timeline plutôt que de
   dupliquer photo/matériel/muscles dans le JSON du minuteur — une seule source pour ces
   informations. Absent d'exercice sans photo : l'image se masque plutôt que d'afficher
-  un cadre vide.
+  un cadre vide. Un exercice qui en compte plusieurs les fait défiler toutes les 5 s
+  (`startPhotoRotation()`, issue #35 suite) tant que la séance n'est pas en pause — la
+  liste complète voyage dans `data-photos` sur la ligne de la timeline (`workouts/
+  partials/timer_timeline.html`), séparée par `|`, sur le même principe que
+  `data-equipment`/`data-muscles` ; la vignette de la timeline, elle, reste fixe sur la
+  première photo.
 - Cinq secondes de **préparation**, décomptées avant le premier pas, pour le temps de se
   mettre en place — pas encore comptées dans l'avancement de la séance.
 - La **barre de progression** chiffre l'avancement de la séance entière (pas de la seule
@@ -281,6 +286,13 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
   jamais par la seule couleur ; la récupération entre tours/blocs (issue #44 suite)
   reprend la tonalité du repos — les deux sont une pause, pas un effort — mais garde son
   propre libellé (« Récupération »).
+- Chaque phase du minuteur porte, en plus de son libellé, une couleur constante sur tout
+  l'écran (issue #35 suite) : **préparation** en `--ugg-danger` (on démarre, l'urgence du
+  compte à rebours), **effort** dans l'accent de marque (`--ugg-accent`, déjà la couleur
+  par défaut de `.ugg-timer__phase`), **repos** entre exercices en `--ugg-success`, et
+  **récupération** entre tours/blocs en `--ugg-info` — seul usage d'une couleur froide
+  dans tout le projet, réservé à cette pause pour ne jamais se confondre avec le repos
+  entre exercices. La couleur ne fait que renforcer le libellé, jamais le remplacer.
 
 ### Bascules d'état (favori)
 

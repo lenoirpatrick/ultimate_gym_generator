@@ -38,6 +38,10 @@
     --ugg-focus: var(--ugg-graphite-950);
     --ugg-success: #1f7a4d;
     --ugg-danger: #b4331a;
+    /* Phase de récupération du minuteur (issue #35 suite) — seule couleur
+       froide du projet, réservée à cet usage : préparation (danger),
+       repos (success) et effort (accent) couvraient déjà les autres phases. */
+    --ugg-info: #1d5fa8;
 
     /* --- Typographie ---------------------------------------------------- */
     /* Aucune police distante : pas de dépendance réseau, pas de FOIT.
@@ -103,6 +107,7 @@
         --ugg-focus: var(--ugg-lime-300);
         --ugg-success: #56d99a;
         --ugg-danger: #ff8a6b;
+        --ugg-info: #7fb8ff;
         --ugg-shadow-card: 0 1px 2px rgb(0 0 0 / 0.5), 0 8px 24px rgb(0 0 0 / 0.35);
     }
 }
@@ -121,6 +126,7 @@
     --ugg-focus: var(--ugg-lime-300);
     --ugg-success: #56d99a;
     --ugg-danger: #ff8a6b;
+    --ugg-info: #7fb8ff;
     --ugg-shadow-card: 0 1px 2px rgb(0 0 0 / 0.5), 0 8px 24px rgb(0 0 0 / 0.35);
 }
 
@@ -137,6 +143,7 @@
     --color-accent-ink: var(--ugg-accent-contrast);
     --color-success: var(--ugg-success);
     --color-danger: var(--ugg-danger);
+    --color-info: var(--ugg-info);
 
     --font-display: var(--ugg-font-display);
     --font-body: var(--ugg-font-body);
