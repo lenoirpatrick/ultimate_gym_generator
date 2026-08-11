@@ -1,7 +1,8 @@
 {% comment %}
 Type de travail : une carte par format, avec une bulle d'aide expliquant le
-principe et, repliés, les intervalles de ce format — temps d'effort/repos, et
-pour la pyramide, pic de répétitions (issue #34).
+principe et, repliés, les intervalles de ce format — temps d'effort/repos,
+récupération entre tours/blocs (issue #44 suite), et pour la pyramide, pic de
+répétitions (issue #34).
 
 Le panneau « Ajuster les réglages » de chaque carte se déplie indépendamment
 de son radio : masquer celui d'un format tant qu'il n'était pas coché rendait
@@ -40,6 +41,7 @@ Attend `options` (form.format_options).
                         {% include "core/components/field.html" with field=option.work_field %}
                     {% endif %}
                     {% include "core/components/field.html" with field=option.rest_field %}
+                    {% include "core/components/field.html" with field=option.recovery_field %}
                     {% if option.reps_field %}
                         {% include "core/components/field.html" with field=option.reps_field %}
                     {% endif %}

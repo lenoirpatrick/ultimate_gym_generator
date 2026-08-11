@@ -10,6 +10,7 @@ urlpatterns = [
     path("<int:pk>/", views.workout_detail, name="detail"),
     path("<int:pk>/conseils/", views.workout_coaching, name="coaching"),
     path("<int:pk>/renommer/", views.workout_rename, name="rename"),
+    path("<int:pk>/repos-entre-tours/", views.workout_recovery, name="recovery"),
     path(
         "<int:pk>/exercices/<int:item_pk>/rafraichir/",
         views.workout_exercise_refresh,

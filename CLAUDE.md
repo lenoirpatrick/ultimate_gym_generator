@@ -194,9 +194,21 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
   génération (`workouts.generator.refresh_exercise`), en évitant si possible les
   doublons du déroulé ; et un panneau **« Modifier le repos »** (`.ugg-disclosure`, pas
   `--plain` — le déclencheur porte une étiquette d'action, pas un nom repris) qui édite
-  `WorkoutExercise.rest_seconds` directement. Ce dernier est lu en direct par
-  `workouts.timer.build_timeline` à chaque rendu de l'écran : un repos modifié est pris
-  en compte par le minuteur sans aucun changement côté `timer.py` ni JS.
+  `WorkoutExercise.rest_seconds`, le repos **entre chaque exercice**. Ce dernier est lu
+  en direct par `workouts.timer.build_timeline` à chaque rendu de l'écran : un repos
+  modifié est pris en compte par le minuteur sans aucun changement côté `timer.py` ni JS.
+- Distinct du repos entre exercices ci-dessus : le repos **entre les tours** de
+  circuit/HIIT, ou entre les blocs de Tabata/Pyramide (`Workout.recovery_seconds`, issue
+  #44 suite) — un seul réglage pour toute la séance, résolu à la génération depuis
+  `generator.FORMAT_PERIODS[format].recovery` (ou le réglage du formulaire) et toujours
+  concret ensuite, jamais `None`, contrairement à `work_seconds`/`rest_seconds` qui
+  restent une simple trace de la demande. Panneau repliable
+  (`workouts/partials/recovery.html`, même patron que le renommage) sous le nom de la
+  séance. Le minuteur en tenait compte dans son minutage prévisionnel
+  (`generator.Periods.recovery`) sans jamais marquer la pause à l'exécution — désormais
+  un pas dédié (`phase: "recovery"`) s'intercale entre deux tours ou deux blocs, jamais
+  après le dernier ; distingué de l'effort par son libellé (« Récupération ») comme le
+  repos, sans dépendre de la seule couleur, et partage sa tonalité.
 - Le nom d'un exercice dans le déroulé est lui-même un panneau repliable
   (`.ugg-disclosure.ugg-disclosure--plain`, issue #30) : le déplier donne le même rappel
   que le catalogue — consignes traduites et galerie zoomable, via le partiel commun
@@ -254,7 +266,9 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
   licence, fonctionne hors connexion. Uniquement des ondes sinusoïdales ou triangulaires,
   jamais carrées — le buzzer numérique ne correspond à aucune identité sonore du projet.
   Le repos se distingue de l'effort par le libellé affiché autant que par la tonalité,
-  jamais par la seule couleur.
+  jamais par la seule couleur ; la récupération entre tours/blocs (issue #44 suite)
+  reprend la tonalité du repos — les deux sont une pause, pas un effort — mais garde son
+  propre libellé (« Récupération »).
 
 ### Bascules d'état (favori)
 
@@ -283,8 +297,10 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
   libellé du champ, « Durée (minutes) ».
 - Le **type de travail** est une carte par format (`.ugg-format`), avec une bulle d'aide
   (`.ugg-hint`) qui explique le principe — déclenchée au survol **et** au focus clavier,
-  jamais au survol seul. Les intervalles de chaque format sont réglables (effort/repos ;
-  pour la pyramide, le pic de répétitions à la place de l'effort, issue #34) : le panneau
+  jamais au survol seul. Les intervalles de chaque format sont réglables (effort/repos/
+  récupération entre tours — cette dernière toujours présente, y compris pour la
+  pyramide, issue #44 suite ; pour la pyramide, le pic de répétitions à la place de
+  l'effort, issue #34) : le panneau
   « Ajuster les réglages » de **chaque** carte se déplie indépendamment de son radio —
   masquer celui d'un format tant qu'il n'était pas coché avait rendu le réglage
   introuvable en pratique (issue #36 suite : rien ne montrait qu'il fallait d'abord

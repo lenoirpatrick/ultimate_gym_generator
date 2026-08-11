@@ -241,6 +241,51 @@ def test_sans_reglage_les_temps_par_defaut_du_format_restent_inchanges():
 
 
 # --------------------------------------------------------------------------- #
+# Récupération entre tours/blocs (issue #44 suite)
+# --------------------------------------------------------------------------- #
+#
+# Distincte du repos entre exercices (rest_seconds, ci-dessus) : elle sépare
+# deux tours de circuit/HIIT, ou deux blocs de Tabata/Pyramide — voir
+# workouts.timer.build_timeline pour son insertion dans le déroulé chronométré.
+
+
+def test_la_recuperation_par_defaut_suit_le_format():
+    blueprint = generator.build_blueprint(Workout.Format.CIRCUIT, 20)
+
+    assert blueprint.recovery_seconds == generator.FORMAT_PERIODS[Workout.Format.CIRCUIT].recovery
+
+
+def test_une_recuperation_personnalisee_remplace_celle_du_format():
+    blueprint = generator.build_blueprint(Workout.Format.TABATA, 20, recovery_seconds=45)
+
+    assert blueprint.recovery_seconds == 45
+
+
+def test_une_recuperation_hors_bornes_est_bornee():
+    trop_haute = generator.build_blueprint(Workout.Format.HIIT, 20, recovery_seconds=999)
+    trop_basse = generator.build_blueprint(Workout.Format.HIIT, 20, recovery_seconds=-5)
+
+    assert trop_haute.recovery_seconds == generator.MAX_RECOVERY_SECONDS
+    assert trop_basse.recovery_seconds == generator.MIN_RECOVERY_SECONDS
+
+
+def test_la_pyramide_resout_aussi_une_recuperation():
+    """Sans effet sur son propre minutage (aucun terme de récupération dans
+    `_pyramid`), mais résolue quand même : le minuteur en a besoin."""
+    blueprint = generator.build_blueprint(Workout.Format.PYRAMID, 20, recovery_seconds=20)
+
+    assert blueprint.recovery_seconds == 20
+
+
+def test_generate_enregistre_la_recuperation_resolue(user, rng):
+    par_defaut = composer(user, rng, workout_format=Workout.Format.CIRCUIT)
+    personnalisee = composer(user, rng, workout_format=Workout.Format.CIRCUIT, recovery_seconds=42)
+
+    assert par_defaut.recovery_seconds == generator.FORMAT_PERIODS[Workout.Format.CIRCUIT].recovery
+    assert personnalisee.recovery_seconds == 42
+
+
+# --------------------------------------------------------------------------- #
 # Sélection des exercices
 # --------------------------------------------------------------------------- #
 

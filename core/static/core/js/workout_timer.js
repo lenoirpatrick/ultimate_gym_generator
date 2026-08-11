@@ -16,6 +16,11 @@
     // décompté dans l'avancement de la séance, voir overallPercent().
     const PREP_SECONDS = 5;
 
+    // Repos entre exercices et récupération entre tours/blocs (issue #44
+    // suite) se distinguent par le libellé — jamais la seule couleur — mais
+    // partagent la même tonalité : les deux sont une pause, pas un effort.
+    const PHASE_LABELS = { work: "Effort", rest: "Repos", recovery: "Récupération" };
+
     const dialog = document.getElementById("minuteur-modal");
     const opener = document.getElementById("lancer-seance");
     if (!dialog || !opener) return;
@@ -77,7 +82,7 @@
             tone(523, now + 0.36, 0.28, "sine");
         } else if (name === "work") {
             tone(880, now, 0.18, "triangle");
-        } else if (name === "rest") {
+        } else if (name === "rest" || name === "recovery") {
             tone(440, now, 0.22, "sine");
         } else if (name === "tick") {
             // Un bip discret par seconde sur les quatre dernières secondes
@@ -192,7 +197,7 @@
         const step = steps[index];
         highlight(step.itemId);
         dialog.dataset.phase = step.phase;
-        phaseEl.textContent = step.phase === "work" ? "Effort" : "Repos";
+        phaseEl.textContent = PHASE_LABELS[step.phase] || "Repos";
         exerciseEl.textContent = exerciseName(step.itemId);
         lapEl.textContent = step.totalLaps > 1 ? `Tour ${step.lap} / ${step.totalLaps}` : "";
         progressWrap.hidden = false;

@@ -66,6 +66,15 @@ class Workout(models.Model):
         "pic de répétitions demandé", null=True, blank=True
     )
 
+    #: Repos entre deux tours de circuit/HIIT, ou deux blocs de Tabata/Pyramide
+    #: (issue #44) — distinct de `WorkoutExercise.rest_seconds`, le repos entre
+    #: chaque exercice. Contrairement aux autres réglages « demandés » ci-dessus,
+    #: toujours résolu (jamais `None` après génération) : `workouts.timer.build_timeline`
+    #: le lit directement pour savoir combien de temps marquer la pause.
+    recovery_seconds = models.PositiveSmallIntegerField(
+        "repos entre les tours (s)", null=True, blank=True
+    )
+
     #: Durée réellement occupée par le déroulé. Elle n'atteint pas toujours la
     #: durée demandée : un format se remplit par blocs entiers.
     planned_seconds = models.PositiveIntegerField("durée planifiée", default=0)

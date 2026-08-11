@@ -39,7 +39,13 @@ def test_une_seance_sans_exercice_ne_produit_aucun_pas(user):
 
 def test_le_tabata_epuise_un_exercice_avant_le_suivant(user, rng):
     """Huit rounds d'effort/repos pour le premier bloc, avant que le second n'apparaisse."""
-    workout = composer(user, rng, workout_format=Workout.Format.TABATA, duration_minutes=20)
+    workout = composer(
+        user,
+        rng,
+        workout_format=Workout.Format.TABATA,
+        duration_minutes=20,
+        recovery_seconds=0,
+    )
     items = list(workout.items.all())
     assert len(items) > 1, "il faut au moins deux blocs pour vérifier l'ordre"
 
@@ -65,7 +71,13 @@ def test_le_tabata_alterne_effort_et_repos(user, rng):
 
 def test_le_circuit_enchaine_un_tour_avant_de_le_repeter(user, rng):
     """Round-robin : le tour 1 passe par chaque exercice avant que le tour 2 ne commence."""
-    workout = composer(user, rng, workout_format=Workout.Format.CIRCUIT, duration_minutes=20)
+    workout = composer(
+        user,
+        rng,
+        workout_format=Workout.Format.CIRCUIT,
+        duration_minutes=20,
+        recovery_seconds=0,
+    )
     items = list(workout.items.all())
     assert len(items) > 1
 
@@ -80,7 +92,13 @@ def test_le_circuit_enchaine_un_tour_avant_de_le_repeter(user, rng):
 
 
 def test_le_circuit_numerote_les_tours(user, rng):
-    workout = composer(user, rng, workout_format=Workout.Format.CIRCUIT, duration_minutes=20)
+    workout = composer(
+        user,
+        rng,
+        workout_format=Workout.Format.CIRCUIT,
+        duration_minutes=20,
+        recovery_seconds=0,
+    )
     items = list(workout.items.all())
     steps = timer.build_timeline(workout)
     steps_per_lap = len(items) * 2
@@ -126,6 +144,7 @@ def test_un_pas_de_repos_absent_si_le_repos_est_nul(user, rng):
         workout_format=Workout.Format.CIRCUIT,
         duration_minutes=20,
         rest_seconds=0,
+        recovery_seconds=0,
     )
     steps = timer.build_timeline(workout)
 
@@ -146,3 +165,81 @@ def test_le_repos_edite_est_pris_en_compte_par_le_minuteur(user, rng):
     rest_steps = [step for step in steps if step["itemId"] == item.pk and step["phase"] == "rest"]
     assert rest_steps
     assert all(step["seconds"] == 42 for step in rest_steps)
+
+
+# --------------------------------------------------------------------------- #
+# Récupération entre tours/blocs (issue #44 suite)
+# --------------------------------------------------------------------------- #
+
+
+def test_le_circuit_marque_une_recuperation_entre_les_tours(user, rng):
+    workout = composer(
+        user,
+        rng,
+        workout_format=Workout.Format.CIRCUIT,
+        duration_minutes=20,
+        recovery_seconds=30,
+    )
+    items = list(workout.items.all())
+    assert len(items) > 1
+
+    steps = timer.build_timeline(workout)
+    steps_per_lap = len(items) * 2  # effort + repos par exercice
+
+    # La récupération s'intercale juste après le dernier exercice du tour 1,
+    # avant le premier pas du tour 2.
+    recovery_step = steps[steps_per_lap]
+    assert recovery_step["phase"] == "recovery"
+    assert recovery_step["seconds"] == 30
+    assert recovery_step["itemId"] == items[-1].pk
+    assert recovery_step["lap"] == 1
+    assert steps[steps_per_lap + 1]["itemId"] == items[0].pk
+    assert steps[steps_per_lap + 1]["phase"] == "work"
+
+
+def test_aucune_recuperation_apres_le_dernier_tour(user, rng):
+    workout = composer(
+        user,
+        rng,
+        workout_format=Workout.Format.CIRCUIT,
+        duration_minutes=20,
+        recovery_seconds=30,
+    )
+    steps = timer.build_timeline(workout)
+
+    assert steps[-1]["phase"] != "recovery"
+
+
+def test_le_tabata_marque_une_recuperation_entre_les_blocs(user, rng):
+    workout = composer(
+        user,
+        rng,
+        workout_format=Workout.Format.TABATA,
+        duration_minutes=20,
+        recovery_seconds=45,
+    )
+    items = list(workout.items.all())
+    assert len(items) > 1
+
+    steps = timer.build_timeline(workout)
+    # 8 rounds x (effort + repos) pour le premier bloc.
+    recovery_step = steps[16]
+
+    assert recovery_step["phase"] == "recovery"
+    assert recovery_step["seconds"] == 45
+    assert recovery_step["itemId"] == items[0].pk
+    assert steps[17]["itemId"] == items[1].pk
+    assert steps[17]["phase"] == "work"
+
+
+def test_sans_recuperation_aucun_pas_de_recuperation(user, rng):
+    workout = composer(
+        user,
+        rng,
+        workout_format=Workout.Format.CIRCUIT,
+        duration_minutes=20,
+        recovery_seconds=0,
+    )
+    steps = timer.build_timeline(workout)
+
+    assert all(step["phase"] != "recovery" for step in steps)

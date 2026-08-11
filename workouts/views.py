@@ -49,6 +49,7 @@ def workout_create(request: HttpRequest) -> HttpResponse:
                     work_seconds=form.cleaned_data["work_seconds"],
                     rest_seconds=form.cleaned_data["rest_seconds"],
                     peak_reps=form.cleaned_data["peak_reps"],
+                    recovery_seconds=form.cleaned_data["recovery_seconds"],
                     equipment=form.cleaned_data.get("equipment"),
                     name=form.cleaned_data.get("name", ""),
                 )
@@ -117,6 +118,30 @@ def workout_rename(request: HttpRequest, pk: int) -> HttpResponse:
 
     if request.headers.get("HX-Request"):
         return render(request, "workouts/partials/name.html", {"workout": workout})
+    return redirect("workouts:detail", pk=workout.pk)
+
+
+@login_required
+@require_POST
+def workout_recovery(request: HttpRequest, pk: int) -> HttpResponse:
+    """Modifie le repos entre les tours/blocs de la séance (issue #44 suite).
+
+    Distinct de `workout_exercise_rest`, qui modifie le repos entre chaque
+    exercice. Sans `Form` : un seul champ, borné défensivement comme
+    `workout_rename`.
+    """
+    workout = get_object_or_404(Workout, pk=pk, user=request.user)
+    try:
+        seconds = int(request.POST.get("recovery_seconds", ""))
+    except ValueError:
+        seconds = workout.recovery_seconds or 0
+    seconds = max(generator.MIN_RECOVERY_SECONDS, min(generator.MAX_RECOVERY_SECONDS, seconds))
+
+    workout.recovery_seconds = seconds
+    workout.save(update_fields=["recovery_seconds"])
+
+    if request.headers.get("HX-Request"):
+        return render(request, "workouts/partials/recovery.html", {"workout": workout})
     return redirect("workouts:detail", pk=workout.pk)
 
 

@@ -70,6 +70,11 @@ MAX_WORK_SECONDS = 180
 MIN_REST_SECONDS = 0
 MAX_REST_SECONDS = 180
 
+#: Le repos entre deux tours/blocs (issue #44) sépare une reprise, pas un
+#: exercice : la borne haute est plus généreuse qu'un simple repos.
+MIN_RECOVERY_SECONDS = 0
+MAX_RECOVERY_SECONDS = 300
+
 
 def _clamp(value: int, low: int, high: int) -> int:
     return max(low, min(high, value))
@@ -114,6 +119,9 @@ class Blueprint:
 
     slots: list[Slot]
     total_seconds: int
+    #: Résolu par `build_blueprint` après coup (issue #44) — le repos entre
+    #: tours/blocs, distinct du repos entre exercices porté par chaque `Slot`.
+    recovery_seconds: int = 0
 
     @property
     def needed(self) -> int:
@@ -257,13 +265,17 @@ def build_blueprint(
     work_seconds: int | None = None,
     rest_seconds: int | None = None,
     peak_reps: int | None = None,
+    recovery_seconds: int | None = None,
 ) -> Blueprint:
     """Déroulé et minutage du format demandé, sans exercice encore attribué.
 
-    `work_seconds` / `rest_seconds` / `peak_reps` remplacent, quand fournis, les
-    valeurs par défaut du format — bornés dans tous les cas : un formulaire mal
-    rempli ne doit pas produire une séance absurde plutôt qu'un message
-    d'erreur. `peak_reps` ne s'applique qu'à la pyramide (issue #34).
+    `work_seconds` / `rest_seconds` / `peak_reps` / `recovery_seconds`
+    remplacent, quand fournis, les valeurs par défaut du format — bornés dans
+    tous les cas : un formulaire mal rempli ne doit pas produire une séance
+    absurde plutôt qu'un message d'erreur. `peak_reps` ne s'applique qu'à la
+    pyramide (issue #34). `recovery_seconds` sépare deux tours ou deux blocs,
+    pas deux exercices (issue #44) — toujours résolu sur le blueprint renvoyé,
+    même pour la pyramide qui ne s'en sert pas pour son propre minutage.
     """
     periods = FORMAT_PERIODS.get(workout_format)
     if periods is None:
@@ -272,6 +284,9 @@ def build_blueprint(
     seconds = duration_minutes * 60
     rest = rest_seconds if rest_seconds is not None else periods.rest
     rest = _clamp(rest, MIN_REST_SECONDS, MAX_REST_SECONDS)
+
+    recovery = recovery_seconds if recovery_seconds is not None else periods.recovery
+    recovery = _clamp(recovery, MIN_RECOVERY_SECONDS, MAX_RECOVERY_SECONDS)
 
     work = periods.work
     if work is not None:
@@ -284,12 +299,16 @@ def build_blueprint(
         peak = _clamp(peak, MIN_PYRAMID_PEAK, MAX_PYRAMID_PEAK)
 
     if workout_format == Workout.Format.TABATA:
-        return _tabata(seconds, work, rest, periods.recovery)
-    if workout_format == Workout.Format.HIIT:
-        return _circuit(seconds, work, rest, periods.recovery, label="HIIT")
-    if workout_format == Workout.Format.CIRCUIT:
-        return _circuit(seconds, work, rest, periods.recovery, label="Circuit")
-    return _pyramid(seconds, rest, peak)
+        blueprint = _tabata(seconds, work, rest, recovery)
+    elif workout_format == Workout.Format.HIIT:
+        blueprint = _circuit(seconds, work, rest, recovery, label="HIIT")
+    elif workout_format == Workout.Format.CIRCUIT:
+        blueprint = _circuit(seconds, work, rest, recovery, label="Circuit")
+    else:
+        blueprint = _pyramid(seconds, rest, peak)
+
+    blueprint.recovery_seconds = recovery
+    return blueprint
 
 
 # --------------------------------------------------------------------------- #
@@ -432,6 +451,7 @@ def generate(
     work_seconds: int | None = None,
     rest_seconds: int | None = None,
     peak_reps: int | None = None,
+    recovery_seconds: int | None = None,
     equipment: list[str] | None = None,
     name: str = "",
     rng: random.Random | None = None,
@@ -442,14 +462,16 @@ def generate(
     (issue #32) — `None` le prend en entier, comme avant cette option.
     `peak_reps` ne s'applique qu'à la pyramide (issue #34). `name` se règle
     dès la composition (issue #44), en plus du renommage depuis l'écran de
-    détail.
+    détail. `recovery_seconds` sépare deux tours ou deux blocs, pas deux
+    exercices (issue #44 suite) — la valeur résolue est celle enregistrée,
+    jamais `None`, contrairement à `work_seconds`/`rest_seconds`/`peak_reps`.
     """
     # Tirage de variété, pas de secret : le générateur standard convient, et un
     # `Random` injectable rend la composition reproductible en test.
     rng = rng or random.Random()  # noqa: S311
 
     blueprint = build_blueprint(
-        workout_format, duration_minutes, work_seconds, rest_seconds, peak_reps
+        workout_format, duration_minutes, work_seconds, rest_seconds, peak_reps, recovery_seconds
     )
     exercises = select_exercises(user, muscles, blueprint.needed, favorites_ratio, rng, equipment)
     options = load_options(user, equipment)
@@ -463,6 +485,7 @@ def generate(
         work_seconds=work_seconds,
         rest_seconds=rest_seconds,
         peak_reps=peak_reps,
+        recovery_seconds=blueprint.recovery_seconds,
         planned_seconds=blueprint.total_seconds,
     )
     if muscles:

@@ -1,0 +1,36 @@
+{% comment %}
+Repos entre les tours de circuit/HIIT, ou entre les blocs de Tabata/Pyramide —
+voir workouts.views.workout_recovery (issue #44 suite). Distinct du repos
+entre chaque exercice (WorkoutExercise.rest_seconds, voir
+partials/exercise_item.html) : celui-ci sépare deux reprises complètes du
+déroulé, pas deux exercices qui s'enchaînent. Lu en direct par
+workouts.timer.build_timeline à chaque rendu — un changement ici est pris en
+compte par le minuteur sans rien d'autre à faire.
+
+Attend `workout`.
+{% endcomment %}
+<div id="workout-recovery">
+    <details class="ugg-disclosure mt-3">
+        <summary>Modifier le repos entre les tours</summary>
+        <form method="post"
+              action="{% url 'workouts:recovery' workout.pk %}"
+              hx-post="{% url 'workouts:recovery' workout.pk %}"
+              hx-target="#workout-recovery"
+              hx-swap="outerHTML"
+              class="mt-3 flex flex-wrap items-end gap-3">
+            {% csrf_token %}
+            <div class="ugg-field w-32">
+                <label class="ugg-field__label" for="id_workout_recovery_{{ workout.pk }}">Repos (s)</label>
+                <div class="ugg-field__control">
+                    <input type="number"
+                           name="recovery_seconds"
+                           id="id_workout_recovery_{{ workout.pk }}"
+                           min="0"
+                           max="300"
+                           value="{{ workout.recovery_seconds|default:0 }}">
+                </div>
+            </div>
+            <button type="submit" class="ugg-btn ugg-btn--ghost">Enregistrer</button>
+        </form>
+    </details>
+</div>

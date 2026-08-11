@@ -1310,9 +1310,11 @@
     color: var(--ugg-accent);
 }
 
-/* Le repos se distingue de l'effort sans dépendre de la seule couleur : le
-   libellé du texte porte déjà la différence (« Effort » / « Repos »). */
-.ugg-timer[data-phase="rest"] .ugg-timer__phase {
+/* Le repos et la récupération entre tours se distinguent de l'effort sans
+   dépendre de la seule couleur : le libellé du texte porte déjà la
+   différence (« Effort » / « Repos » / « Récupération », issue #44 suite). */
+.ugg-timer[data-phase="rest"] .ugg-timer__phase,
+.ugg-timer[data-phase="recovery"] .ugg-timer__phase {
     color: var(--ugg-text-muted);
 }
 

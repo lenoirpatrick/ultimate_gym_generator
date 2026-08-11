@@ -48,6 +48,9 @@ class FormatOption:
     hint: str
     work_field: forms.BoundField | None
     rest_field: forms.BoundField
+    #: Récupération entre tours/blocs, distincte du repos entre exercices
+    #: ci-dessus (issue #44 suite) — toujours présente, même pour la pyramide.
+    recovery_field: forms.BoundField
     #: Pic de répétitions — seule la pyramide en a un (issue #34).
     reps_field: forms.BoundField | None
 
@@ -150,6 +153,14 @@ class WorkoutForm(forms.Form):
                 min_value=generator.MIN_REST_SECONDS,
                 max_value=generator.MAX_REST_SECONDS,
             )
+            self.fields[_tuning_field_name(value, "recovery")] = forms.IntegerField(
+                label="Récupération entre tours (s)",
+                required=False,
+                initial=periods.recovery,
+                min_value=generator.MIN_RECOVERY_SECONDS,
+                max_value=generator.MAX_RECOVERY_SECONDS,
+                help_text="Pause entre deux tours de circuit, ou entre deux blocs.",
+            )
 
     def format_options(self) -> list[FormatOption]:
         """Un `FormatOption` par format, dans l'ordre d'affichage du formulaire."""
@@ -166,6 +177,7 @@ class WorkoutForm(forms.Form):
                     hint=FORMAT_HINTS.get(value, ""),
                     work_field=self[work_key] if work_key in self.fields else None,
                     rest_field=self[_tuning_field_name(value, "rest")],
+                    recovery_field=self[_tuning_field_name(value, "recovery")],
                     reps_field=self[reps_key] if reps_key in self.fields else None,
                 )
             )
@@ -203,9 +215,10 @@ class WorkoutForm(forms.Form):
             if reps_key in self.fields:
                 active.add(reps_key)
             active.add(_tuning_field_name(chosen, "rest"))
+            active.add(_tuning_field_name(chosen, "recovery"))
 
         for name in list(self.fields):
-            if name.startswith(("work_", "rest_", "reps_")) and name not in active:
+            if name.startswith(("work_", "rest_", "reps_", "recovery_")) and name not in active:
                 self._errors.pop(name, None)
                 cleaned.pop(name, None)
 
@@ -214,6 +227,9 @@ class WorkoutForm(forms.Form):
         )
         cleaned["rest_seconds"] = (
             cleaned.get(_tuning_field_name(chosen, "rest")) if chosen else None
+        )
+        cleaned["recovery_seconds"] = (
+            cleaned.get(_tuning_field_name(chosen, "recovery")) if chosen else None
         )
         cleaned["peak_reps"] = cleaned.get(_tuning_field_name(chosen, "reps")) if chosen else None
         return cleaned

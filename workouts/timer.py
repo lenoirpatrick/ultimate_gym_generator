@@ -53,21 +53,34 @@ def _item_steps(item: WorkoutExercise, lap: int, total_laps: int) -> list[TimerS
 
 
 def build_timeline(workout: Workout) -> list[dict]:
-    """Déroulé chronométré complet, en pas successifs prêts pour le minuteur."""
+    """Déroulé chronométré complet, en pas successifs prêts pour le minuteur.
+
+    Un pas de récupération (issue #44) sépare deux tours de circuit/HIIT, ou
+    deux blocs de Tabata/Pyramide — jamais après le dernier, la séance
+    s'arrête plutôt que de marquer une pause qui ne sert plus à rien. Distinct
+    du repos entre exercices porté par chaque `WorkoutExercise` : lu ici
+    directement sur `workout.recovery_seconds`, pas caché, comme lui, à chaque
+    rendu de l'écran de détail.
+    """
     items = list(workout.items.all())
     if not items:
         return []
 
+    recovery = workout.recovery_seconds or 0
     steps: list[TimerStep] = []
     if workout.format in INTERLEAVED_FORMATS:
         total_laps = items[0].rounds or 1
         for lap in range(1, total_laps + 1):
             for item in items:
                 steps += _item_steps(item, lap, total_laps)
+            if recovery and lap < total_laps:
+                steps.append(TimerStep(items[-1].pk, "recovery", recovery, None, lap, total_laps))
     else:
-        for item in items:
+        for index, item in enumerate(items):
             total_laps = item.rounds or 1
             for lap in range(1, total_laps + 1):
                 steps += _item_steps(item, lap, total_laps)
+            if recovery and index < len(items) - 1:
+                steps.append(TimerStep(item.pk, "recovery", recovery, None, total_laps, total_laps))
 
     return [step.as_dict() for step in steps]

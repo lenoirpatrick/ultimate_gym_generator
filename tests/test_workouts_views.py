@@ -496,6 +496,79 @@ def test_le_nom_saisi_a_la_creation_est_enregistre(logged_client, user):
 
 
 # --------------------------------------------------------------------------- #
+# Récupération entre tours/blocs (issue #44 suite)
+# --------------------------------------------------------------------------- #
+
+
+def test_le_formulaire_propose_la_recuperation_par_format(logged_client):
+    content = logged_client.get(reverse("workouts:create")).content.decode()
+
+    assert 'name="recovery_circuit"' in content
+    assert 'name="recovery_tabata"' in content
+    assert 'name="recovery_pyramid"' in content
+
+
+def test_la_recuperation_saisie_est_enregistree(logged_client, user):
+    composer(logged_client, **{"recovery_circuit": "42"})
+    workout = Workout.objects.get(user=user)
+
+    assert workout.recovery_seconds == 42
+
+
+def test_le_repos_entre_les_tours_se_modifie(logged_client, user):
+    composer(logged_client)
+    workout = Workout.objects.get(user=user)
+
+    response = logged_client.post(
+        reverse("workouts:recovery", args=[workout.pk]),
+        {"recovery_seconds": "50"},
+        follow=True,
+    )
+
+    workout.refresh_from_db()
+    assert response.status_code == 200
+    assert workout.recovery_seconds == 50
+    assert "50" in response.content.decode()
+
+
+def test_le_repos_entre_les_tours_est_borne(logged_client, user):
+    composer(logged_client)
+    workout = Workout.objects.get(user=user)
+
+    logged_client.post(reverse("workouts:recovery", args=[workout.pk]), {"recovery_seconds": "999"})
+    workout.refresh_from_db()
+    assert workout.recovery_seconds == 300
+
+    logged_client.post(reverse("workouts:recovery", args=[workout.pk]), {"recovery_seconds": "-5"})
+    workout.refresh_from_db()
+    assert workout.recovery_seconds == 0
+
+
+def test_le_repos_entre_les_tours_refuse_la_methode_get(logged_client, user):
+    composer(logged_client)
+    workout = Workout.objects.get(user=user)
+
+    response = logged_client.get(reverse("workouts:recovery", args=[workout.pk]))
+
+    assert response.status_code == 405
+
+
+def test_on_ne_modifie_pas_le_repos_entre_les_tours_d_une_seance_d_un_autre(
+    logged_client, staff_client, user
+):
+    composer(logged_client)
+    workout = Workout.objects.get(user=user)
+
+    response = staff_client.post(
+        reverse("workouts:recovery", args=[workout.pk]), {"recovery_seconds": "50"}
+    )
+
+    workout.refresh_from_db()
+    assert response.status_code == 404
+    assert workout.recovery_seconds != 50
+
+
+# --------------------------------------------------------------------------- #
 # Rafraîchissement et repos d'un exercice (issue #44)
 # --------------------------------------------------------------------------- #
 
