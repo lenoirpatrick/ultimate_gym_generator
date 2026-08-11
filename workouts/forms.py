@@ -96,7 +96,7 @@ class WorkoutForm(forms.Form):
     workout_format = forms.ChoiceField(
         label="Type de travail",
         choices=Workout.Format.choices,
-        initial=Workout.Format.CIRCUIT,
+        initial=Workout.Format.HIIT,
         widget=forms.RadioSelect,
     )
     muscles = forms.ModelMultipleChoiceField(

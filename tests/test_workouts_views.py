@@ -222,6 +222,12 @@ def test_la_duree_propose_onze_paliers_de_cinq_en_cinq(logged_client):
         assert f'value="{minutes}"' in content
 
 
+def test_le_hiit_est_le_type_de_travail_par_defaut(logged_client):
+    content = logged_client.get(reverse("workouts:create")).content.decode()
+
+    assert 'name="workout_format" value="hiit" id="id_workout_format_0" required checked' in content
+
+
 def test_la_duree_par_defaut_est_trente_minutes(logged_client):
     content = logged_client.get(reverse("workouts:create")).content.decode()
 
