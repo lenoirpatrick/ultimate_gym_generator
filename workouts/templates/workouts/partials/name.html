@@ -1,20 +1,21 @@
 {% comment %}
 Titre d'une séance et contrôle de renommage — voir workouts.views.workout_rename.
 
+Le titre est lui-même le déclencheur du panneau de renommage
+(`.ugg-disclosure.ugg-disclosure--plain`, même patron que le nom d'exercice
+dans le déroulé, issue #30) : un clic dessus l'ouvre, pas de bouton
+« Renommer » séparé à chercher. `--plain` rend au titre sa voix typographique
+normale (`.ugg-title`, pas une étiquette d'action).
+
 Un nom personnalisé remplace l'intitulé du format en tête ; le format rejoint
 alors les étiquettes de la séance (workout_detail.html) pour ne pas se perdre.
 Pas de Form pour un seul champ facultatif : la vue tronque défensivement.
 
 Attend `workout`.
 {% endcomment %}
-<div id="workout-name">
-    <div class="flex flex-wrap items-start justify-between gap-3">
-        <h1 class="ugg-title text-3xl">{{ workout.display_name }}</h1>
-        {% include "workouts/partials/favorite_button.html" with workout=workout %}
-    </div>
-
-    <details class="ugg-disclosure mt-3">
-        <summary>Renommer la séance</summary>
+<div id="workout-name" class="flex flex-wrap items-start justify-between gap-3">
+    <details class="ugg-disclosure ugg-disclosure--plain min-w-0 flex-1">
+        <summary><h1 class="ugg-title text-3xl">{{ workout.display_name }}</h1></summary>
         <form method="post"
               action="{% url 'workouts:rename' workout.pk %}"
               hx-post="{% url 'workouts:rename' workout.pk %}"
@@ -36,4 +37,5 @@ Attend `workout`.
             <button type="submit" class="ugg-btn ugg-btn--ghost">Enregistrer</button>
         </form>
     </details>
+    {% include "workouts/partials/favorite_button.html" with workout=workout %}
 </div>

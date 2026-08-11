@@ -184,9 +184,13 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
 - Une séance peut être **nommée** (`Workout.name`, facultatif), soit dès la composition
   (`WorkoutForm.name`, issue #44), soit ensuite depuis l'écran de détail. Le nom remplace
   alors l'intitulé du format en tête d'écran (`Workout.display_name`), et le format
-  rejoint les étiquettes pour ne pas se perdre. Le contrôle de renommage sur l'écran de
-  détail est un panneau repliable (`.ugg-disclosure`, partagé avec les consignes
-  d'exercice) — la liste ne fait qu'afficher le nom choisi.
+  rejoint les étiquettes pour ne pas se perdre. Sur l'écran de détail, le **titre
+  lui-même** est le déclencheur du panneau de renommage
+  (`.ugg-disclosure.ugg-disclosure--plain`, même patron que le nom d'exercice dans le
+  déroulé, issue #44 suite) : un clic dessus l'ouvre, pas de bouton « Renommer » séparé
+  à chercher. Un double-clic exigerait un vrai script (aucune détection en CSS pur) —
+  écarté au profit de ce déclencheur en un clic, cohérent avec le reste du projet. La
+  liste, elle, ne fait qu'afficher le nom choisi.
 - Chaque exercice du déroulé porte un bouton **« Changer l'exercice »**
   (`.ugg-btn--ghost`, toujours labellisé, sans confirmation — action réversible d'un
   clic, issue #44) qui le remplace par un autre compatible avec les muscles de la

@@ -404,6 +404,20 @@ def test_une_seance_sans_nom_affiche_le_format(logged_client, user):
     assert workout.get_format_display() in content
 
 
+def test_le_titre_est_le_declencheur_du_renommage(logged_client, user):
+    """Un clic sur le titre ouvre le panneau — pas de bouton « Renommer »
+    séparé à chercher (issue #44 suite)."""
+    composer(logged_client)
+    workout = Workout.objects.get(user=user)
+
+    content = logged_client.get(reverse("workouts:detail", args=[workout.pk])).content.decode()
+
+    assert '<details class="ugg-disclosure ugg-disclosure--plain min-w-0 flex-1">' in content
+    assert (
+        f'<summary><h1 class="ugg-title text-3xl">{workout.display_name}</h1></summary>' in content
+    )
+
+
 def test_une_seance_se_renomme(logged_client, user):
     composer(logged_client)
     workout = Workout.objects.get(user=user)
@@ -739,7 +753,9 @@ def test_un_exercice_sans_documentation_reste_un_simple_texte(logged_client, use
     content = logged_client.get(reverse("workouts:detail", args=[workout.pk])).content.decode()
 
     assert '<p class="font-semibold">Text Only Exercise</p>' in content
-    assert "ugg-disclosure--plain" not in content
+    # Le titre de la séance porte lui aussi un disclosure --plain (issue #44
+    # suite) : on vérifie l'absence de celui, spécifique, de l'exercice.
+    assert '<details class="ugg-disclosure ugg-disclosure--plain">' not in content
 
 
 def test_le_rappel_privilegie_la_traduction(logged_client, user):
