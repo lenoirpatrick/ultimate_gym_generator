@@ -82,3 +82,11 @@ def test_une_panne_du_fournisseur_ne_remonte_pas(monkeypatch):
     stub_client(monkeypatch, tomber)
 
     assert translation.translate_instructions(INSTRUCTIONS) is None
+
+
+def test_le_budget_de_jetons_reste_genereux():
+    """Les modèles à raisonnement étendu (Gemini 2.5+/3.x, entre autres)
+    consomment une partie du budget en jetons de réflexion invisibles avant
+    la réponse visible — une limite trop basse tronque le JSON en plein
+    milieu (issue #29 suite). Garde-fou contre une régression silencieuse."""
+    assert translation.MAX_TOKENS >= 4000

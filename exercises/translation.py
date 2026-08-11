@@ -12,8 +12,13 @@ from aiproviders.clients import ProviderError, get_active_client
 
 logger = logging.getLogger(__name__)
 
-#: Une fiche compte au plus une dizaine de consignes courtes.
-MAX_TOKENS = 1500
+#: Une fiche compte au plus une dizaine de consignes courtes — mais les modèles
+#: à raisonnement étendu (Gemini 2.5+/3.x, entre autres) consomment une partie
+#: de ce budget en jetons de réflexion invisibles avant la réponse visible,
+#: parfois plus de 1000 jetons à eux seuls. Une limite trop basse tronque alors
+#: la réponse en plein milieu du JSON, un échec silencieux difficile à
+#: diagnostiquer (issue #29 suite) : la marge est volontairement large.
+MAX_TOKENS = 8000
 
 SYSTEM_PROMPT = (
     "Tu traduis des consignes d'exercices de musculation de l'anglais vers le "
