@@ -722,20 +722,23 @@
     background: var(--ugg-surface-raised);
 }
 
-/* Bascule « favori ». L'étoile ne part jamais seule : son libellé dit l'action,
-   faute de quoi on ne sait pas si l'icône montre l'état ou ce qui va arriver. */
+/* Bascule « favori ». L'étoile ne part jamais seule : son libellé, constant
+   (« Favoris »), dit ce qu'est le bouton — l'état, lui, se lit au remplissage
+   de l'étoile et à aria-pressed. Compacte (issue #35 suite) : cible tactile
+   toujours à 44 px de haut (accessibilité, non négociable), mais resserrée en
+   largeur — un libellé court le permet là où « Retirer des favoris » non. */
 .ugg-favorite {
     display: inline-flex;
     align-items: center;
-    gap: var(--ugg-space-2);
+    gap: var(--ugg-space-1);
     min-height: var(--ugg-touch-target);
-    padding: 0 var(--ugg-space-3);
+    padding: 0 var(--ugg-space-2);
     border: 1px solid var(--ugg-border);
     border-radius: var(--ugg-radius-md);
     background: transparent;
     color: var(--ugg-text-muted);
     cursor: pointer;
-    font-size: 0.75rem;
+    font-size: 0.6875rem;
     font-weight: 700;
     letter-spacing: var(--ugg-tracking-label);
     text-transform: uppercase;
@@ -755,8 +758,8 @@
 
 .ugg-favorite__icon {
     flex: none;
-    width: 1.125rem;
-    height: 1.125rem;
+    width: 1rem;
+    height: 1rem;
 }
 
 /* Étiquette de caractéristique sur une carte de catalogue. */

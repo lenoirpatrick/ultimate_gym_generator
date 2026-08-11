@@ -1,11 +1,16 @@
 {% comment %}
 Grille des séances. Bloc remplacé à chaque changement du filtre « favoris » —
 voir workouts.views.workout_list.
+
+Empilée sous 40rem (issue #35 suite) : titre/date, indicateurs et bouton
+favori occupent chacun leur propre ligne pleine largeur, plutôt que de se
+partager une seule ligne où le titre finissait écrasé. À partir de `sm:`, la
+largeur disponible permet de revenir à une ligne unique qui s'enroule.
 {% endcomment %}
 <div class="grid gap-3">
     {% for workout in workouts %}
-        <article class="ugg-card flex flex-wrap items-center gap-4 p-4">
-            <a href="{% url 'workouts:detail' workout.pk %}" class="min-w-0 flex-1 no-underline">
+        <article class="ugg-card flex flex-col gap-3 p-4 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4">
+            <a href="{% url 'workouts:detail' workout.pk %}" class="min-w-0 no-underline sm:flex-1">
                 <p class="font-semibold">{{ workout.display_name }}</p>
                 <p class="mt-1 text-sm text-muted">
                     {{ workout.created_at|date:"j F Y, H:i" }}
@@ -24,7 +29,9 @@ voir workouts.views.workout_list.
                 {% endfor %}
             </p>
 
-            {% include "workouts/partials/favorite_button.html" with workout=workout %}
+            <div class="self-start sm:self-auto">
+                {% include "workouts/partials/favorite_button.html" with workout=workout %}
+            </div>
         </article>
     {% empty %}
         {% if favorites_only %}

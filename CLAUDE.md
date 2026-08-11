@@ -186,6 +186,12 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
 - Une séance se marque en **favori** au même titre qu'un exercice (voir « Bascules
   d'état » ci-dessous) ; l'historique propose alors le même critère « Mes favoris
   uniquement » que le catalogue.
+- La **carte d'une séance dans l'historique** (`workouts/partials/workout_results.html`,
+  issue #35 suite) s'empile sous `40rem` : titre/date, indicateurs et bouton favori
+  occupent chacun leur propre ligne pleine largeur — les partager sur une seule ligne
+  écrasait le titre. À partir de `sm:`, ils reviennent sur une seule ligne qui s'enroule
+  (`flex-wrap`), le bouton favori ne s'étirant jamais en pleine largeur (`self-start` /
+  `sm:self-auto`).
 - Une séance peut être **nommée** (`Workout.name`, facultatif), soit dès la composition
   (`WorkoutForm.name`, issue #44), soit ensuite depuis l'écran de détail. Le nom remplace
   alors l'intitulé du format en tête d'écran (`Workout.display_name`), et le format
@@ -297,14 +303,18 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
 ### Bascules d'état (favori)
 
 - Une bascule affiche **toujours son libellé** à côté de l'icône : une étoile seule ne dit
-  pas si elle montre l'état actuel ou l'action à venir. Le libellé nomme l'action
-  (« Ajouter aux favoris » / « Retirer des favoris »).
-- L'état est porté par `aria-pressed`, jamais par la seule couleur.
+  pas ce qu'est le bouton. Le libellé est constant, « Favoris » (issue #35 suite) — pas
+  une description de l'action (« Ajouter aux favoris » / « Retirer des favoris », trop
+  long pour rester compact partout, y compris sur la carte d'historique d'une séance) ;
+  l'état, lui, se lit au remplissage de l'étoile (pleine si favori, contour sinon) et à
+  `aria-pressed`, jamais au texte ni à la seule couleur.
 - Composant partagé : `core/templates/core/components/favorite_toggle.html`, paramétré
-  `url` / `pressed` / `label_on` / `label_off`. Chaque domaine (exercice, séance) fournit
-  son propre partiel fin qui l'enveloppe avec sa route — le composant lui-même ne connaît
-  ni exercice ni séance. Le bouton se remplace lui-même (`hx-swap="outerHTML"`) — pas de
-  rechargement pour un simple marquage.
+  `url` / `pressed` uniquement — le libellé est fixe dans le composant, pas transmis par
+  l'appelant. Chaque domaine (exercice, séance) fournit son propre partiel fin qui
+  l'enveloppe avec sa route — le composant lui-même ne connaît ni exercice ni séance. Le
+  bouton se remplace lui-même (`hx-swap="outerHTML"`) — pas de rechargement pour un
+  simple marquage. Compact (cible tactile 44 px de haut conservée, mais resserré en
+  largeur) pour tenir à côté d'un titre sans le pousser hors de sa ligne.
 
 ### Formulaire de composition d'une séance
 

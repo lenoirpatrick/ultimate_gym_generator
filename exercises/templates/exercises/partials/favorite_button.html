@@ -1,9 +1,9 @@
 {% comment %}
 Bascule « favori » d'un exercice. Composant partagé promu en
 core/components/favorite_toggle.html (issue #26) : ce gabarit ne fait plus que
-fournir l'URL et le libellé propres à un exercice.
+fournir l'URL propre à un exercice.
 
 Attend `exercise`, annoté de `is_favorite`.
 {% endcomment %}
 {% url 'exercises:toggle_favorite' exercise.pk as url %}
-{% include "core/components/favorite_toggle.html" with url=url pressed=exercise.is_favorite label_on="Retirer des favoris" label_off="Ajouter aux favoris" %}
+{% include "core/components/favorite_toggle.html" with url=url pressed=exercise.is_favorite %}

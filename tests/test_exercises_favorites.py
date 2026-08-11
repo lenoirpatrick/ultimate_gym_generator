@@ -52,13 +52,17 @@ def test_un_exercice_se_marque_puis_se_retire(logged_client, squat, user):
 
 
 def test_la_bascule_rend_le_bouton_dans_son_nouvel_etat(logged_client, squat):
+    """Le libellé reste constant (« Favoris ») ; c'est le remplissage de
+    l'étoile et aria-pressed qui portent l'état, jamais le texte."""
     ajout = basculer(logged_client, squat).content.decode()
     assert 'aria-pressed="true"' in ajout
-    assert "Retirer des favoris" in ajout
+    assert 'fill="currentColor"' in ajout
+    assert "Favoris" in ajout
 
     retrait = basculer(logged_client, squat).content.decode()
     assert 'aria-pressed="false"' in retrait
-    assert "Ajouter aux favoris" in retrait
+    assert 'fill="none"' in retrait
+    assert "Favoris" in retrait
 
 
 def test_deux_marquages_ne_creent_pas_deux_lignes(logged_client, squat, user):
@@ -93,7 +97,7 @@ def test_les_favoris_sont_cloisonnes_par_utilisateur(logged_client, staff_client
 def test_chaque_carte_porte_la_bascule(logged_client):
     content = logged_client.get(reverse("exercises:list")).content.decode()
 
-    assert content.count("Ajouter aux favoris") == Exercise.objects.count()
+    assert content.count("aria-pressed=") == Exercise.objects.count()
 
 
 def test_l_etat_favori_apparait_dans_le_catalogue(logged_client, squat):
@@ -101,15 +105,15 @@ def test_l_etat_favori_apparait_dans_le_catalogue(logged_client, squat):
 
     content = logged_client.get(reverse("exercises:list")).content.decode()
 
-    assert "Retirer des favoris" in content
+    assert 'aria-pressed="true"' in content
 
 
 def test_le_libelle_accompagne_toujours_l_etoile(logged_client):
-    """Une icône seule ne dit pas si elle montre l'état ou l'action (CLAUDE.md)."""
+    """Une icône seule ne dit pas ce qu'est le bouton (CLAUDE.md)."""
     content = logged_client.get(reverse("exercises:list")).content.decode()
 
     assert "aria-pressed" in content
-    assert "Ajouter aux favoris" in content
+    assert "Favoris" in content
 
 
 # --------------------------------------------------------------------------- #

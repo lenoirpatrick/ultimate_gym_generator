@@ -306,6 +306,17 @@ def test_l_historique_liste_les_seances(logged_client, user):
     assert reverse("workouts:detail", args=[workout.pk]) in content
 
 
+def test_la_carte_de_seance_s_empile_sous_40rem(logged_client, user):
+    """Titre/date, indicateurs et bouton favori tiennent chacun leur propre
+    ligne pleine largeur en dessous de 40rem — une seule ligne au-delà
+    (issue #35 suite)."""
+    composer(logged_client)
+
+    content = logged_client.get(reverse("workouts:list")).content.decode()
+
+    assert "flex flex-col gap-3 p-4 sm:flex-row" in content
+
+
 def test_la_seance_d_un_autre_utilisateur_est_introuvable(logged_client, staff_client, user):
     """Une séance ne se partage pas : elle n'est même pas visible."""
     composer(logged_client)
