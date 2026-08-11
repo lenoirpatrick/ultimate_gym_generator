@@ -27,3 +27,10 @@ def test_le_port_par_defaut_est_5907():
     from django.conf import settings
 
     assert settings.APP_PORT == 5907
+
+
+def test_le_cookie_de_session_dure_30_jours():
+    """La valeur par défaut de Django (deux semaines) déconnectait trop tôt (#42)."""
+    from django.conf import settings
+
+    assert settings.SESSION_COOKIE_AGE == 60 * 60 * 24 * 30

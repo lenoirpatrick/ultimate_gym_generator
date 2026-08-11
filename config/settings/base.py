@@ -142,6 +142,11 @@ LOGIN_URL = "accounts:login"
 LOGIN_REDIRECT_URL = "core:home"
 LOGOUT_REDIRECT_URL = "core:home"
 
+# Un générateur de séances se consulte à la salle, souvent plusieurs jours
+# d'affilée sans repasser par l'écran de connexion : la valeur par défaut de
+# Django (deux semaines) déconnectait trop tôt (#42).
+SESSION_COOKIE_AGE = 60 * 60 * 24 * 30
+
 # L'application est mono-utilisateur par défaut : seul le personnel crée des
 # comptes. Passer à True pour ouvrir l'inscription libre.
 ALLOW_SELF_REGISTRATION = env.bool("DJANGO_ALLOW_SELF_REGISTRATION", default=False)
