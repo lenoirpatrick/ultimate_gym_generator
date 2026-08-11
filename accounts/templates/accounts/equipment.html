@@ -18,74 +18,7 @@
 
         <form method="post" class="mt-8">
             {% csrf_token %}
-            {{ formset.management_form }}
-
-            <div class="grid gap-4">
-                {% for form in formset %}
-                    {% comment %}
-                    `.ugg-equipment-row` scope les bascules CSS pures de cette ligne :
-                    seuls les champs du mode coché se révèlent
-                    (`.ugg-equipment__weights` / `__range`), et l'icône suit le matériel
-                    choisi (`.ugg-equipment__icon`) — voir components.css (issue #37).
-                    {% endcomment %}
-                    <fieldset class="ugg-card ugg-equipment-row p-4">
-                        <legend class="sr-only">Matériel {{ forloop.counter }}</legend>
-                        {{ form.id }}
-
-                        {% for error in form.non_field_errors %}
-                            <p class="ugg-field__error">{{ error }}</p>
-                        {% endfor %}
-
-                        <div class="grid gap-4 sm:grid-cols-2">
-                            <div class="ugg-equipment__select">
-                                {% include "core/components/field.html" with field=form.equipment %}
-                                <div class="ugg-equipment__icons" aria-hidden="true">
-                                    {% for value, label in equipment_choices %}
-                                        <span class="ugg-equipment__icon ugg-equipment__icon--{{ value|slugify }}">
-                                            {% include "core/components/equipment_icon.html" with equipment=value %}
-                                        </span>
-                                    {% endfor %}
-                                </div>
-                            </div>
-
-                            <fieldset class="ugg-field">
-                                <legend class="ugg-field__label">{{ form.mode.label }}</legend>
-                                <div class="ugg-segmented mt-2">
-                                    {% for radio in form.mode %}
-                                        <label>
-                                            {{ radio.tag }}
-                                            <span>{{ radio.choice_label }}</span>
-                                        </label>
-                                    {% endfor %}
-                                </div>
-                            </fieldset>
-                        </div>
-
-                        {% comment %}
-                        Seul le groupe du mode coché se révèle (issue #37) : les deux
-                        façons de décrire les charges n'ont de sens que l'une à la fois,
-                        et les montrer toutes deux avait fini par rendre invisible celle
-                        qu'on cherchait.
-                        {% endcomment %}
-                        <div class="ugg-equipment__weights mt-4 grid gap-4 sm:grid-cols-2">
-                            {% include "core/components/field.html" with field=form.weights %}
-                        </div>
-
-                        <div class="ugg-equipment__range mt-4 grid gap-4 sm:grid-cols-3">
-                            {% include "core/components/field.html" with field=form.min_kg %}
-                            {% include "core/components/field.html" with field=form.max_kg %}
-                            {% include "core/components/field.html" with field=form.step_kg %}
-                        </div>
-
-                        {% if form.instance.pk %}
-                            <label class="ugg-filter__option ugg-filter__option--standalone mt-4">
-                                {{ form.DELETE }}
-                                <span>Retirer ce matériel</span>
-                            </label>
-                        {% endif %}
-                    </fieldset>
-                {% endfor %}
-            </div>
+            {% include "accounts/partials/equipment_rows.html" %}
 
             <div class="mt-6 flex flex-wrap gap-3">
                 <button type="submit" class="ugg-btn ugg-btn--primary">Enregistrer</button>

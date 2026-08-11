@@ -23,6 +23,7 @@ urlpatterns = [
     # Profil de l'utilisateur connecté
     path("profil/", views.profile, name="profile"),
     path("profil/materiel/", views.equipment, name="equipment"),
+    path("profil/materiel/<int:pk>/supprimer/", views.equipment_delete, name="equipment_delete"),
     path(
         "profil/mot-de-passe/",
         auth_views.PasswordChangeView.as_view(

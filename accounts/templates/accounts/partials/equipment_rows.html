@@ -1,0 +1,87 @@
+{% comment %}
+Lignes de matériel et formulaire de gestion du formset (issue #41). Bloc
+autonome : une suppression dynamique le reswape en entier, avec un
+`TOTAL_FORMS` recalculé et des lignes renumérotées comme au chargement de la
+page — pas de trou d'index à gérer une fois une ligne du milieu retirée.
+
+Usage : {% include "accounts/partials/equipment_rows.html" %}
+{% endcomment %}
+<div id="materiel-lignes">
+    {{ formset.management_form }}
+
+    <div class="grid gap-4">
+        {% for form in formset %}
+            {% comment %}
+            `.ugg-equipment-row` scope les bascules CSS pures de cette ligne :
+            seuls les champs du mode coché se révèlent
+            (`.ugg-equipment__weights` / `__range`), et l'icône suit le matériel
+            choisi (`.ugg-equipment__icon`) — voir components.css (issue #37).
+            {% endcomment %}
+            <fieldset class="ugg-card ugg-equipment-row p-4">
+                <legend class="sr-only">Matériel {{ forloop.counter }}</legend>
+                {{ form.id }}
+
+                {% for error in form.non_field_errors %}
+                    <p class="ugg-field__error">{{ error }}</p>
+                {% endfor %}
+
+                <div class="grid gap-4 sm:grid-cols-2">
+                    <div class="ugg-equipment__select">
+                        {% include "core/components/field.html" with field=form.equipment %}
+                        <div class="ugg-equipment__icons" aria-hidden="true">
+                            {% for value, label in equipment_choices %}
+                                <span class="ugg-equipment__icon ugg-equipment__icon--{{ value|slugify }}">
+                                    {% include "core/components/equipment_icon.html" with equipment=value %}
+                                </span>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <fieldset class="ugg-field">
+                        <legend class="ugg-field__label">{{ form.mode.label }}</legend>
+                        <div class="ugg-segmented mt-2">
+                            {% for radio in form.mode %}
+                                <label>
+                                    {{ radio.tag }}
+                                    <span>{{ radio.choice_label }}</span>
+                                </label>
+                            {% endfor %}
+                        </div>
+                    </fieldset>
+                </div>
+
+                {% comment %}
+                Seul le groupe du mode coché se révèle (issue #37) : les deux
+                façons de décrire les charges n'ont de sens que l'une à la fois,
+                et les montrer toutes deux avait fini par rendre invisible celle
+                qu'on cherchait.
+                {% endcomment %}
+                <div class="ugg-equipment__weights mt-4 grid gap-4 sm:grid-cols-2">
+                    {% include "core/components/field.html" with field=form.weights %}
+                </div>
+
+                <div class="ugg-equipment__range mt-4 grid gap-4 sm:grid-cols-3">
+                    {% include "core/components/field.html" with field=form.min_kg %}
+                    {% include "core/components/field.html" with field=form.max_kg %}
+                    {% include "core/components/field.html" with field=form.step_kg %}
+                </div>
+
+                {% if form.instance.pk %}
+                    {% comment %}
+                    Suppression dynamique (issue #41) : la ligne part aussitôt,
+                    sans repasser par une case à cocher qui n'agissait qu'au
+                    réenregistrement de tout le formulaire. La réponse reswape
+                    ce bloc en entier pour garder `TOTAL_FORMS` cohérent.
+                    {% endcomment %}
+                    <button type="button" class="ugg-btn ugg-btn--danger mt-4"
+                            hx-post="{% url 'accounts:equipment_delete' form.instance.pk %}"
+                            hx-target="#materiel-lignes"
+                            hx-swap="outerHTML"
+                            hx-confirm="Retirer ce matériel ?">
+                        Retirer ce matériel
+                    </button>
+                {% endif %}
+            </fieldset>
+        {% endfor %}
+    </div>
+</div>

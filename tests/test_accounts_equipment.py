@@ -204,28 +204,60 @@ def test_le_materiel_d_un_autre_utilisateur_reste_invisible(logged_client, staff
     assert 'value="cable" selected' not in content
 
 
-def test_un_materiel_se_retire(logged_client, user):
+def test_un_materiel_se_retire_dynamiquement(logged_client, user):
+    """Un clic sur le bouton suffit — pas de case à cocher ni de réenregistrement
+    de tout le formulaire (issue #41)."""
     item = creer(user, equipment="bands", mode="bodyweight")
 
-    logged_client.post(
-        reverse("accounts:equipment"),
-        payload(
-            **{
-                "form-TOTAL_FORMS": "1",
-                "form-INITIAL_FORMS": "1",
-                "form-0-id": str(item.pk),
-                "form-0-equipment": "bands",
-                "form-0-mode": "bodyweight",
-                "form-0-weights": "",
-                "form-0-min_kg": "",
-                "form-0-max_kg": "",
-                "form-0-step_kg": "",
-                "form-0-DELETE": "on",
-            }
-        ),
-    )
+    response = logged_client.post(reverse("accounts:equipment_delete", args=[item.pk]))
 
+    assert response.status_code == 200
     assert not UserEquipment.objects.filter(user=user).exists()
+
+
+def test_la_suppression_dynamique_exige_une_authentification(client, user):
+    item = creer(user, equipment="bands", mode="bodyweight")
+
+    response = client.post(reverse("accounts:equipment_delete", args=[item.pk]))
+
+    assert response.status_code == 302
+    assert reverse("accounts:login") in response.url
+    assert UserEquipment.objects.filter(pk=item.pk).exists()
+
+
+def test_la_suppression_dynamique_exige_un_post(logged_client, user):
+    item = creer(user, equipment="bands", mode="bodyweight")
+
+    response = logged_client.get(reverse("accounts:equipment_delete", args=[item.pk]))
+
+    assert response.status_code == 405
+    assert UserEquipment.objects.filter(pk=item.pk).exists()
+
+
+def test_la_suppression_dynamique_ignore_le_materiel_d_un_autre_utilisateur(logged_client, staff):
+    item = creer(staff, equipment="cable", mode="bodyweight")
+
+    response = logged_client.post(reverse("accounts:equipment_delete", args=[item.pk]))
+
+    assert response.status_code == 404
+    assert UserEquipment.objects.filter(pk=item.pk).exists()
+
+
+def test_la_suppression_d_une_ligne_du_milieu_renumerote_les_suivantes(logged_client, user):
+    """Les lignes restantes doivent rester des indices contigus (`form-0`, `form-1`,
+    …) : un trou laissé par la ligne retirée casserait le réenregistrement complet
+    qui suit, `TOTAL_FORMS` ne correspondant plus aux lignes réellement présentes."""
+    first = creer(user, equipment="bands", mode="bodyweight")
+    second = creer(user, equipment="cable", mode="bodyweight")
+
+    response = logged_client.post(reverse("accounts:equipment_delete", args=[first.pk]))
+    content = response.content.decode()
+
+    assert 'name="form-TOTAL_FORMS" value="2"' in content  # ligne restante + ligne vide
+    assert f'value="{second.pk}"' in content
+    assert 'name="form-0-equipment"' in content
+    assert 'name="form-1-equipment"' in content
+    assert 'name="form-2-equipment"' not in content
 
 
 def test_le_profil_mene_au_materiel(logged_client):
@@ -293,9 +325,7 @@ def test_les_deux_groupes_de_charge_restent_postables(logged_client, user):
 # retraduise en texte — une liste vide laissait passer telle quelle, affichée
 # comme le texte littéral « [] ». Reposter cette valeur sans y toucher
 # échouait alors la validation (« "[]" n'est pas un poids »), empêchant tout
-# réenregistrement d'une ligne existante — le symptôme signalé. La
-# suppression, elle, n'était pas concernée : Django ignore les erreurs de
-# validation d'une ligne de formset marquée DELETE.
+# réenregistrement d'une ligne existante — le symptôme signalé.
 
 
 def test_une_liste_de_charges_vide_ne_s_affiche_pas_comme_des_crochets(user):
@@ -335,33 +365,3 @@ def test_reenregistrer_une_ligne_reglable_sans_y_toucher_reussit(logged_client, 
     assert response.status_code == 302
     item.refresh_from_db()
     assert item.min_kg == Decimal("2")
-
-
-def test_une_ligne_reglable_se_retire_sans_y_avoir_touche(logged_client, user):
-    """La suppression n'était pas bloquée par le bug ci-dessus (Django ignore la
-    validation d'une ligne DELETE), mais autant fixer aussi ce comportement."""
-    from accounts.forms import EquipmentForm
-
-    item = creer(user, equipment="dumbbell", mode="adjustable", min_kg=2, max_kg=24, step_kg=2)
-    weights_as_rendered = str(EquipmentForm(instance=item).initial["weights"])
-
-    response = logged_client.post(
-        reverse("accounts:equipment"),
-        payload(
-            **{
-                "form-TOTAL_FORMS": "1",
-                "form-INITIAL_FORMS": "1",
-                "form-0-id": str(item.pk),
-                "form-0-equipment": "dumbbell",
-                "form-0-mode": "adjustable",
-                "form-0-weights": weights_as_rendered,
-                "form-0-min_kg": "2",
-                "form-0-max_kg": "24",
-                "form-0-step_kg": "2",
-                "form-0-DELETE": "on",
-            }
-        ),
-    )
-
-    assert response.status_code == 302
-    assert not UserEquipment.objects.filter(pk=item.pk).exists()

@@ -6,6 +6,7 @@ from django.contrib.auth import get_user_model, login
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.http import Http404, HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.views.decorators.http import require_POST
 
 from exercises.models import Exercise
 
@@ -98,8 +99,6 @@ def equipment(request: HttpRequest) -> HttpResponse:
             for item in items:
                 item.user = request.user
                 item.save()
-            for item in formset.deleted_objects:
-                item.delete()
 
             messages.success(request, "Matériel enregistré.")
             return redirect("accounts:equipment")
@@ -113,6 +112,27 @@ def equipment(request: HttpRequest) -> HttpResponse:
         "equipment_choices": Exercise.Equipment.choices,
     }
     return render(request, "accounts/equipment.html", context)
+
+
+@login_required
+@require_POST
+def equipment_delete(request: HttpRequest, pk: int) -> HttpResponse:
+    """Retire une ligne de matériel aussitôt, sans repasser par tout le formulaire (issue #41).
+
+    Renvoie les lignes reconstruites depuis la base à jour plutôt qu'une
+    réponse vide : `TOTAL_FORMS` et la numérotation des lignes restantes
+    doivent rester cohérents, y compris quand la ligne retirée n'était pas
+    la dernière.
+    """
+    item = get_object_or_404(UserEquipment, pk=pk, user=request.user)
+    item.delete()
+
+    queryset = UserEquipment.objects.filter(user=request.user)
+    context = {
+        "formset": EquipmentFormSet(queryset=queryset),
+        "equipment_choices": Exercise.Equipment.choices,
+    }
+    return render(request, "accounts/partials/equipment_rows.html", context)
 
 
 @login_required

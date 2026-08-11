@@ -182,9 +182,7 @@ class EquipmentForm(forms.ModelForm):
         return cleaned
 
 
-EquipmentFormSet = forms.modelformset_factory(
-    UserEquipment, form=EquipmentForm, extra=1, can_delete=True
-)
+EquipmentFormSet = forms.modelformset_factory(UserEquipment, form=EquipmentForm, extra=1)
 
 
 class StaffUserCreationForm(UserCreationForm):

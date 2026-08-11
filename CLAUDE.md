@@ -323,6 +323,13 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
   (`aria-hidden`) — le nom du matériel reste toujours affiché en texte à côté ; si
   `:has()` sur un `<option>:checked` n'est pas pris en charge par un navigateur,
   l'icône reste simplement invisible, sans rien retirer au formulaire.
+- Une ligne déjà enregistrée se **retire dynamiquement** (issue #41) : un bouton
+  `.ugg-btn--danger` (`hx-post` vers `accounts:equipment_delete`, confirmation via
+  `hx-confirm`) supprime la ligne aussitôt, sans case à cocher ni réenregistrement de
+  tout le formulaire. La réponse reswape le bloc entier des lignes
+  (`accounts/partials/equipment_rows.html`, `#materiel-lignes`) plutôt que la seule
+  ligne visée : `TOTAL_FORMS` et la numérotation des lignes restantes doivent rester
+  cohérents, y compris quand la ligne retirée n'était pas la dernière.
 
 ### Cartes de catalogue
 
