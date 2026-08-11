@@ -125,7 +125,7 @@ python manage.py migrate
 python manage.py createsuperuser
 python manage.py load_exercises     # catalogue d'exercices ; sinon chargé à la première ouverture
 make css                            # ou : tailwindcss -i assets/css/input.css -o core/static/core/css/app.css
-python manage.py runserver 5907
+python manage.py runserver   # port 5907 par défaut, DJANGO_PORT sinon
 ```
 
 > Sur Windows, `mysqlclient` s'installe depuis une roue précompilée. En cas

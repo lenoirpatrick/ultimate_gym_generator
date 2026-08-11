@@ -16,8 +16,8 @@ css: ## Compile la feuille de style
 css-watch: ## Recompile la feuille de style à chaque modification
 	tailwindcss -i $(CSS_IN) -o $(CSS_OUT) --watch
 
-run: ## Lance le serveur de développement sur le port 5907
-	$(PYTHON) manage.py runserver 5907
+run: ## Lance le serveur de développement (port 5907 par défaut, DJANGO_PORT sinon)
+	$(PYTHON) manage.py runserver
 
 migrate: ## Applique les migrations
 	$(PYTHON) manage.py migrate

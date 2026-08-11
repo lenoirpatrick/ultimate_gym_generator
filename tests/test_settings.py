@@ -29,6 +29,16 @@ def test_le_port_par_defaut_est_5907():
     assert settings.APP_PORT == 5907
 
 
+def test_runserver_sans_argument_ecoute_sur_le_port_de_l_application():
+    """`manage.py runserver` seul démarrait sur le 8000 de Django plutôt que
+    sur APP_PORT — la commande est surchargée pour les faire correspondre."""
+    from django.conf import settings
+
+    from core.management.commands.runserver import Command
+
+    assert Command.default_port == str(settings.APP_PORT)
+
+
 def test_le_cookie_de_session_dure_30_jours():
     """La valeur par défaut de Django (deux semaines) déconnectait trop tôt (#42)."""
     from django.conf import settings
