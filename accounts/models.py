@@ -186,7 +186,9 @@ class UserEquipment(models.Model):
     class Meta:
         verbose_name = "matériel"
         verbose_name_plural = "matériel"
-        ordering = ("equipment",)
+        # Dans l'ordre où le matériel a été déclaré, pas alphabétique : c'est
+        # dans cet ordre que la ligne existe pour l'utilisateur qui l'a saisie.
+        ordering = ("id",)
         constraints = [
             models.UniqueConstraint(fields=["user", "equipment"], name="unique_equipment_per_user")
         ]

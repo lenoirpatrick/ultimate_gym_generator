@@ -317,12 +317,20 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
 - Une **icône** (`core/components/equipment_icon.html`) suit le matériel choisi,
   superposée à l'intérieur du `<select>` de chaque ligne — pas affichée en dessous
   (issue #43) : `.ugg-equipment__select` porte le positionnement relatif, le `<select>`
-  reçoit la marge qui lui laisse la place à gauche. Les douze pictogrammes du
-  référentiel `Exercise.Equipment` sont tous rendus, un seul visible via
-  `.ugg-equipment-row:has(select[…] option[value="…"]:checked)`. Purement décoratif
+  reçoit la marge qui lui laisse la place à gauche. Un pictogramme par valeur
+  déclarable (`accounts.forms.DECLARABLE_EQUIPMENT_CHOICES`) est rendu, un seul visible
+  via `.ugg-equipment-row:has(select[…] option[value="…"]:checked)`. Purement décoratif
   (`aria-hidden`) — le nom du matériel reste toujours affiché en texte à côté ; si
   `:has()` sur un `<option>:checked` n'est pas pris en charge par un navigateur,
   l'icône reste simplement invisible, sans rien retirer au formulaire.
+- Le **poids du corps** (`Exercise.Equipment.BODY_ONLY`) ne fait pas partie du matériel
+  déclarable : `workouts.generator.eligible_exercises` le rend systématiquement
+  disponible, quelle que soit la configuration de l'utilisateur — le proposer ici
+  laisserait croire qu'il faut le cocher comme le reste. Exclu à la fois du `<select>`
+  (`EquipmentForm.__init__`) et des icônes (même constante partagée).
+- Les lignes s'affichent **dans l'ordre où elles ont été déclarées**, pas alphabétique
+  (`UserEquipment.Meta.ordering = ("id",)`) : c'est dans cet ordre qu'elles existent
+  pour l'utilisateur qui les a saisies.
 - Une ligne déjà enregistrée se **retire dynamiquement** (issue #41) : un bouton
   `.ugg-btn--danger` (`hx-post` vers `accounts:equipment_delete`, confirmation via
   `hx-confirm`) supprime la ligne aussitôt, sans case à cocher ni réenregistrement de

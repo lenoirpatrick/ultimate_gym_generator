@@ -204,6 +204,17 @@ def test_le_materiel_d_un_autre_utilisateur_reste_invisible(logged_client, staff
     assert 'value="cable" selected' not in content
 
 
+def test_le_materiel_s_affiche_dans_l_ordre_d_ajout(logged_client, user):
+    """Pas alphabétique : l'ordre dans lequel l'utilisateur a déclaré son matériel."""
+    troisieme = creer(user, equipment="kettlebells", mode="bodyweight")
+    premier = creer(user, equipment="barbell", mode="bodyweight")
+    deuxieme = creer(user, equipment="dumbbell", mode="bodyweight")
+
+    ids = list(UserEquipment.objects.filter(user=user).values_list("id", flat=True))
+
+    assert ids == [troisieme.pk, premier.pk, deuxieme.pk]
+
+
 def test_un_materiel_se_retire_dynamiquement(logged_client, user):
     """Un clic sur le bouton suffit — pas de case à cocher ni de réenregistrement
     de tout le formulaire (issue #41)."""
@@ -293,15 +304,34 @@ def test_chaque_ligne_scope_ses_bascules_css(logged_client, user):
     assert "ugg-equipment__range" in content
 
 
-def test_une_icone_existe_pour_chaque_materiel_du_referentiel(logged_client):
+def test_une_icone_existe_pour_chaque_materiel_declarable(logged_client):
     from django.template.defaultfilters import slugify
 
-    from exercises.models import Exercise
+    from accounts.forms import DECLARABLE_EQUIPMENT_CHOICES
 
     content = logged_client.get(reverse("accounts:equipment")).content.decode()
 
-    for value, _label in Exercise.Equipment.choices:
+    for value, _label in DECLARABLE_EQUIPMENT_CHOICES:
         assert f"ugg-equipment__icon--{slugify(value)}" in content
+
+
+def test_le_poids_du_corps_ne_se_propose_pas_comme_materiel(logged_client):
+    """Toujours disponible (`workouts.generator.eligible_exercises`), il n'a pas sa
+    place parmi le matériel à déclarer."""
+    content = logged_client.get(reverse("accounts:equipment")).content.decode()
+
+    assert 'value="body only"' not in content
+    assert "ugg-equipment__icon--body-only" not in content
+
+
+def test_declarer_le_poids_du_corps_est_refuse(logged_client, user):
+    response = logged_client.post(
+        reverse("accounts:equipment"),
+        payload(**{"form-0-equipment": "body only", "form-0-mode": "bodyweight"}),
+    )
+
+    assert response.status_code == 200
+    assert not UserEquipment.objects.filter(user=user).exists()
 
 
 def test_les_deux_groupes_de_charge_restent_postables(logged_client, user):

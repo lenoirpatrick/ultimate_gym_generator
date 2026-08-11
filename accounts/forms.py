@@ -4,9 +4,19 @@ from django import forms
 from django.conf import settings
 from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
 
+from exercises.models import Exercise
+
 from .models import User, UserEquipment
 
 BODY_FIELDS = ("gender", "height_cm", "weight_kg")
+
+# Le poids du corps est toujours disponible, indépendamment de ce que
+# l'utilisateur déclare (`workouts.generator.eligible_exercises` l'ajoute
+# systématiquement) : le proposer ici laisserait croire qu'il faut le
+# déclarer comme le reste du matériel.
+DECLARABLE_EQUIPMENT_CHOICES = tuple(
+    choice for choice in Exercise.Equipment.choices if choice[0] != Exercise.Equipment.BODY_ONLY
+)
 
 
 def _format(weight) -> str:
@@ -124,6 +134,7 @@ class EquipmentForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
+        self.fields["equipment"].choices = DECLARABLE_EQUIPMENT_CHOICES
         self.fields["step_kg"].help_text = "Écart entre deux crans, en kilogrammes."
 
         # `weights` est à la fois un champ du modèle (une liste JSON) et un champ de

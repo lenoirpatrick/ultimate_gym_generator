@@ -8,9 +8,8 @@ from django.http import Http404, HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
-from exercises.models import Exercise
-
 from .forms import (
+    DECLARABLE_EQUIPMENT_CHOICES,
     EquipmentFormSet,
     FirstRunForm,
     ProfileForm,
@@ -107,9 +106,10 @@ def equipment(request: HttpRequest) -> HttpResponse:
 
     context = {
         "formset": formset,
-        # Icône par matériel (issue #37) : une par valeur du référentiel, affichée ou
-        # non selon la sélection en cours — voir `.ugg-equipment__icon` (CSS pur).
-        "equipment_choices": Exercise.Equipment.choices,
+        # Icône par matériel déclarable (issue #37) : une par valeur, affichée ou non
+        # selon la sélection en cours — voir `.ugg-equipment__icon` (CSS pur). Le poids
+        # du corps n'en fait pas partie (voir `DECLARABLE_EQUIPMENT_CHOICES`).
+        "equipment_choices": DECLARABLE_EQUIPMENT_CHOICES,
     }
     return render(request, "accounts/equipment.html", context)
 
@@ -130,7 +130,7 @@ def equipment_delete(request: HttpRequest, pk: int) -> HttpResponse:
     queryset = UserEquipment.objects.filter(user=request.user)
     context = {
         "formset": EquipmentFormSet(queryset=queryset),
-        "equipment_choices": Exercise.Equipment.choices,
+        "equipment_choices": DECLARABLE_EQUIPMENT_CHOICES,
     }
     return render(request, "accounts/partials/equipment_rows.html", context)
 
