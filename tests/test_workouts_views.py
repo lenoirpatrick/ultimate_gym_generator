@@ -1,10 +1,13 @@
 """Écrans de séance : composition, historique, cloisonnement."""
 
+import re
+
 import pytest
 from django.urls import reverse
 
 from accounts.models import UserEquipment
 from exercises.models import Exercise
+from workouts import generator
 from workouts.models import Workout, WorkoutExercise
 
 pytestmark = pytest.mark.django_db
@@ -515,20 +518,32 @@ def test_la_recuperation_saisie_est_enregistree(logged_client, user):
     assert workout.recovery_seconds == 42
 
 
+def test_le_repos_entre_les_tours_est_une_regle_graduee(logged_client, user):
+    """Six crans de 30 s à 3 min, dans l'encart des exercices — pas un champ
+    libre ni un panneau repliable (issue #44 suite)."""
+    workout = build_workout(user, Exercise.objects.get(slug="Barbell_Squat"))
+
+    content = logged_client.get(reverse("workouts:detail", args=[workout.pk])).content.decode()
+
+    assert content.count('name="recovery_seconds"') == len(generator.RECOVERY_RULER_SECONDS)
+    for value in generator.RECOVERY_RULER_SECONDS:
+        assert f'value="{value}"' in content
+
+
 def test_le_repos_entre_les_tours_se_modifie(logged_client, user):
     composer(logged_client)
     workout = Workout.objects.get(user=user)
 
     response = logged_client.post(
         reverse("workouts:recovery", args=[workout.pk]),
-        {"recovery_seconds": "50"},
+        {"recovery_seconds": "90"},
         follow=True,
     )
 
     workout.refresh_from_db()
     assert response.status_code == 200
-    assert workout.recovery_seconds == 50
-    assert "50" in response.content.decode()
+    assert workout.recovery_seconds == 90
+    assert re.search(r'value="90"\s*checked', response.content.decode())
 
 
 def test_le_repos_entre_les_tours_est_borne(logged_client, user):
@@ -537,9 +552,25 @@ def test_le_repos_entre_les_tours_est_borne(logged_client, user):
 
     logged_client.post(reverse("workouts:recovery", args=[workout.pk]), {"recovery_seconds": "999"})
     workout.refresh_from_db()
-    assert workout.recovery_seconds == 300
+    assert workout.recovery_seconds == 180
 
-    logged_client.post(reverse("workouts:recovery", args=[workout.pk]), {"recovery_seconds": "-5"})
+    logged_client.post(reverse("workouts:recovery", args=[workout.pk]), {"recovery_seconds": "5"})
+    workout.refresh_from_db()
+    assert workout.recovery_seconds == 30
+
+
+def test_le_repos_hors_des_crans_retombe_sur_la_valeur_par_defaut_a_l_affichage(
+    logged_client, user
+):
+    """La Pyramide n'a aucune récupération par défaut (0, hors plage) : la
+    règle ne doit rien casser, elle affiche un repli sans rien enregistrer."""
+    composer(logged_client, workout_format=Workout.Format.PYRAMID)
+    workout = Workout.objects.get(user=user)
+    assert workout.recovery_seconds == 0
+
+    content = logged_client.get(reverse("workouts:detail", args=[workout.pk])).content.decode()
+
+    assert re.search(rf'value="{generator.RECOVERY_RULER_DEFAULT}"\s*checked', content)
     workout.refresh_from_db()
     assert workout.recovery_seconds == 0
 
@@ -628,63 +659,6 @@ def test_on_ne_rafraichit_pas_l_exercice_d_une_seance_d_un_autre(logged_client, 
     item.refresh_from_db()
     assert response.status_code == 404
     assert item.exercise_id == squat.pk
-
-
-def test_le_repos_d_un_exercice_se_modifie(logged_client, user):
-    squat = Exercise.objects.get(slug="Barbell_Squat")
-    workout = build_workout(user, squat)
-    item = workout.items.first()
-
-    response = logged_client.post(
-        reverse("workouts:exercise_rest", args=[workout.pk, item.pk]), {"rest_seconds": "45"}
-    )
-
-    item.refresh_from_db()
-    assert response.status_code == 200
-    assert item.rest_seconds == 45
-    assert "45s repos" in response.content.decode()
-
-
-def test_le_repos_est_borne(logged_client, user):
-    squat = Exercise.objects.get(slug="Barbell_Squat")
-    workout = build_workout(user, squat)
-    item = workout.items.first()
-
-    logged_client.post(
-        reverse("workouts:exercise_rest", args=[workout.pk, item.pk]), {"rest_seconds": "999"}
-    )
-    item.refresh_from_db()
-    assert item.rest_seconds == 180
-
-    logged_client.post(
-        reverse("workouts:exercise_rest", args=[workout.pk, item.pk]), {"rest_seconds": "-5"}
-    )
-    item.refresh_from_db()
-    assert item.rest_seconds == 0
-
-
-def test_le_repos_refuse_la_methode_get(logged_client, user):
-    squat = Exercise.objects.get(slug="Barbell_Squat")
-    workout = build_workout(user, squat)
-    item = workout.items.first()
-
-    response = logged_client.get(reverse("workouts:exercise_rest", args=[workout.pk, item.pk]))
-
-    assert response.status_code == 405
-
-
-def test_on_ne_modifie_pas_le_repos_d_une_seance_d_un_autre(logged_client, staff_client, user):
-    squat = Exercise.objects.get(slug="Barbell_Squat")
-    workout = build_workout(user, squat)
-    item = workout.items.first()
-
-    response = staff_client.post(
-        reverse("workouts:exercise_rest", args=[workout.pk, item.pk]), {"rest_seconds": "45"}
-    )
-
-    item.refresh_from_db()
-    assert response.status_code == 404
-    assert item.rest_seconds == 60
 
 
 # --------------------------------------------------------------------------- #

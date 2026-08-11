@@ -152,9 +152,10 @@ def test_un_pas_de_repos_absent_si_le_repos_est_nul(user, rng):
 
 
 def test_le_repos_edite_est_pris_en_compte_par_le_minuteur(user, rng):
-    """Un repos modifié depuis l'écran de détail (issue #44) — ici simulé par
-    une écriture directe, comme le ferait workout_exercise_rest — doit se
-    retrouver dans le minuteur sans aucun changement côté timer.py."""
+    """`WorkoutExercise.rest_seconds` n'est plus modifiable depuis l'écran de
+    détail (issue #44 suite), mais reste un champ ordinaire — une écriture
+    directe, ici, doit se retrouver dans le minuteur sans aucun changement
+    côté timer.py, qui le lit toujours en direct."""
     workout = composer(user, rng, workout_format=Workout.Format.TABATA, duration_minutes=20)
     item = workout.items.first()
     item.rest_seconds = 42

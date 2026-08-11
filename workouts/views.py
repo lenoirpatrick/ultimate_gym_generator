@@ -82,6 +82,7 @@ def workout_detail(request: HttpRequest, pk: int) -> HttpResponse:
         "can_translate": get_active_client() is not None,
         # Déroulé chronométré du minuteur de suivi (issue #35).
         "timeline": timer.build_timeline(workout),
+        **_recovery_ruler_context(workout),
     }
     return render(request, "workouts/workout_detail.html", context)
 
@@ -121,27 +122,46 @@ def workout_rename(request: HttpRequest, pk: int) -> HttpResponse:
     return redirect("workouts:detail", pk=workout.pk)
 
 
+def _recovery_ruler_context(workout: Workout) -> dict:
+    """Cases de la règle d'édition du repos entre les tours (issue #44 suite).
+
+    `workout.recovery_seconds` ne correspond pas toujours à un cran de la
+    règle (la Pyramide n'a aucune récupération par défaut, hors plage) :
+    `RECOVERY_RULER_DEFAULT` sert alors de repli à l'affichage plutôt que de
+    ne rien cocher.
+    """
+    selected = workout.recovery_seconds
+    if selected not in generator.RECOVERY_RULER_SECONDS:
+        selected = generator.RECOVERY_RULER_DEFAULT
+    return {
+        "recovery_choices": generator.RECOVERY_RULER_SECONDS,
+        "recovery_selected": selected,
+    }
+
+
 @login_required
 @require_POST
 def workout_recovery(request: HttpRequest, pk: int) -> HttpResponse:
     """Modifie le repos entre les tours/blocs de la séance (issue #44 suite).
 
-    Distinct de `workout_exercise_rest`, qui modifie le repos entre chaque
-    exercice. Sans `Form` : un seul champ, borné défensivement comme
-    `workout_rename`.
+    Distinct du repos entre chaque exercice (`WorkoutExercise.rest_seconds`),
+    qui ne se règle plus que par la génération. Sans `Form` : la règle graduée
+    ne soumet normalement qu'une valeur valide, bornée ici par sécurité.
     """
     workout = get_object_or_404(Workout, pk=pk, user=request.user)
     try:
         seconds = int(request.POST.get("recovery_seconds", ""))
     except ValueError:
-        seconds = workout.recovery_seconds or 0
-    seconds = max(generator.MIN_RECOVERY_SECONDS, min(generator.MAX_RECOVERY_SECONDS, seconds))
+        seconds = workout.recovery_seconds or generator.RECOVERY_RULER_DEFAULT
+    lowest, highest = min(generator.RECOVERY_RULER_SECONDS), max(generator.RECOVERY_RULER_SECONDS)
+    seconds = max(lowest, min(highest, seconds))
 
     workout.recovery_seconds = seconds
     workout.save(update_fields=["recovery_seconds"])
 
+    context = {"workout": workout, **_recovery_ruler_context(workout)}
     if request.headers.get("HX-Request"):
-        return render(request, "workouts/partials/recovery.html", {"workout": workout})
+        return render(request, "workouts/partials/recovery.html", context)
     return redirect("workouts:detail", pk=workout.pk)
 
 
@@ -173,37 +193,6 @@ def workout_exercise_refresh(request: HttpRequest, pk: int, item_pk: int) -> Htt
             "can_translate": get_active_client() is not None,
             "refresh_failed": failed,
         },
-    )
-
-
-@login_required
-@require_POST
-def workout_exercise_rest(request: HttpRequest, pk: int, item_pk: int) -> HttpResponse:
-    """Modifie le repos entre les tours d'un exercice (issue #44).
-
-    Borné comme à la génération (`generator.MIN/MAX_REST_SECONDS`) plutôt que
-    de faire échouer l'envoi pour un enjeu si faible — même choix que
-    `workout_rename`.
-    """
-    item = get_object_or_404(
-        WorkoutExercise.objects.select_related("workout", "exercise"),
-        pk=item_pk,
-        workout_id=pk,
-        workout__user=request.user,
-    )
-    try:
-        seconds = int(request.POST.get("rest_seconds", ""))
-    except ValueError:
-        seconds = item.rest_seconds or 0
-    seconds = max(generator.MIN_REST_SECONDS, min(generator.MAX_REST_SECONDS, seconds))
-
-    item.rest_seconds = seconds
-    item.save(update_fields=["rest_seconds"])
-
-    return render(
-        request,
-        "workouts/partials/exercise_item.html",
-        {"item": item, "can_translate": get_active_client() is not None},
     )
 
 

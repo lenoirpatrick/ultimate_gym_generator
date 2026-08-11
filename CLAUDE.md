@@ -187,28 +187,31 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
   rejoint les étiquettes pour ne pas se perdre. Le contrôle de renommage sur l'écran de
   détail est un panneau repliable (`.ugg-disclosure`, partagé avec les consignes
   d'exercice) — la liste ne fait qu'afficher le nom choisi.
-- Chaque exercice du déroulé porte deux contrôles repliés (issue #44) : un bouton
-  **« Changer l'exercice »** (`.ugg-btn--ghost`, toujours labellisé, sans confirmation —
-  action réversible d'un clic) qui le remplace par un autre compatible avec les muscles
-  de la séance et le matériel *actuellement* configuré, pas le sous-ensemble figé à la
+- Chaque exercice du déroulé porte un bouton **« Changer l'exercice »**
+  (`.ugg-btn--ghost`, toujours labellisé, sans confirmation — action réversible d'un
+  clic, issue #44) qui le remplace par un autre compatible avec les muscles de la
+  séance et le matériel *actuellement* configuré, pas le sous-ensemble figé à la
   génération (`workouts.generator.refresh_exercise`), en évitant si possible les
-  doublons du déroulé ; et un panneau **« Modifier le repos »** (`.ugg-disclosure`, pas
-  `--plain` — le déclencheur porte une étiquette d'action, pas un nom repris) qui édite
-  `WorkoutExercise.rest_seconds`, le repos **entre chaque exercice**. Ce dernier est lu
-  en direct par `workouts.timer.build_timeline` à chaque rendu de l'écran : un repos
-  modifié est pris en compte par le minuteur sans aucun changement côté `timer.py` ni JS.
-- Distinct du repos entre exercices ci-dessus : le repos **entre les tours** de
-  circuit/HIIT, ou entre les blocs de Tabata/Pyramide (`Workout.recovery_seconds`, issue
-  #44 suite) — un seul réglage pour toute la séance, résolu à la génération depuis
+  doublons du déroulé. Le repos entre chaque exercice (`WorkoutExercise.rest_seconds`)
+  reste affiché dans la colonne de temps mais ne se modifie plus depuis cet écran — seul
+  le réglage ci-dessous, unique pour toute la séance, est modifiable (issue #44 suite).
+- Le repos **entre les tours** de circuit/HIIT, ou entre les blocs de Tabata/Pyramide
+  (`Workout.recovery_seconds`, distinct du repos entre exercices ci-dessus) est réglable
+  via une **règle graduée** (`.ugg-ruler`, même composant que la durée de la séance à la
+  composition) — six crans de 30 s à 3 min, par pas de 30 s
+  (`generator.RECOVERY_RULER_SECONDS`) — plutôt qu'un champ libre, dans l'encart des
+  exercices (`workouts/partials/recovery.html`), pas caché derrière un panneau repliable :
+  un choix soumet aussitôt (`hx-trigger="change"`). Résolu à la génération depuis
   `generator.FORMAT_PERIODS[format].recovery` (ou le réglage du formulaire) et toujours
   concret ensuite, jamais `None`, contrairement à `work_seconds`/`rest_seconds` qui
-  restent une simple trace de la demande. Panneau repliable
-  (`workouts/partials/recovery.html`, même patron que le renommage) sous le nom de la
-  séance. Le minuteur en tenait compte dans son minutage prévisionnel
-  (`generator.Periods.recovery`) sans jamais marquer la pause à l'exécution — désormais
-  un pas dédié (`phase: "recovery"`) s'intercale entre deux tours ou deux blocs, jamais
-  après le dernier ; distingué de l'effort par son libellé (« Récupération ») comme le
-  repos, sans dépendre de la seule couleur, et partage sa tonalité.
+  restent une simple trace de la demande — la Pyramide (0 par défaut) tombe hors des
+  crans de la règle, qui retombe alors sur `RECOVERY_RULER_DEFAULT` (60 s) à l'affichage
+  sans changer la valeur enregistrée tant qu'on n'a pas choisi un cran. Le minuteur en
+  tenait compte dans son minutage prévisionnel (`generator.Periods.recovery`) sans jamais
+  marquer la pause à l'exécution — désormais un pas dédié (`phase: "recovery"`)
+  s'intercale entre deux tours ou deux blocs, jamais après le dernier ; distingué de
+  l'effort par son libellé (« Récupération ») comme le repos, sans dépendre de la seule
+  couleur, et partage sa tonalité.
 - Le nom d'un exercice dans le déroulé est lui-même un panneau repliable
   (`.ugg-disclosure.ugg-disclosure--plain`, issue #30) : le déplier donne le même rappel
   que le catalogue — consignes traduites et galerie zoomable, via le partiel commun

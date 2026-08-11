@@ -75,6 +75,14 @@ MAX_REST_SECONDS = 180
 MIN_RECOVERY_SECONDS = 0
 MAX_RECOVERY_SECONDS = 300
 
+#: Crans proposés pour éditer le repos entre les tours depuis l'écran de
+#: détail (issue #44 suite) : une règle graduée (`.ugg-ruler`), pas un champ
+#: libre — peu de valeurs utiles, comme la durée de la séance. Couvre déjà les
+#: défauts de Tabata/HIIT (60) et Circuit (90) ; celui de la Pyramide (0) est
+#: hors plage, RECOVERY_RULER_DEFAULT sert alors de repli à l'affichage.
+RECOVERY_RULER_SECONDS = (30, 60, 90, 120, 150, 180)
+RECOVERY_RULER_DEFAULT = 60
+
 
 def _clamp(value: int, low: int, high: int) -> int:
     return max(low, min(high, value))
