@@ -62,6 +62,16 @@ FORMAT_PERIODS: dict[str, Periods] = {
     Workout.Format.PYRAMID: Periods(work=None, rest=75, recovery=0, peak_reps=12),
 }
 
+#: Largeur (nombre d'exercices distincts par tour) explorée par `_circuit`,
+#: selon le format. Avec les mêmes temps de travail/repos, HIIT et Circuit
+#: convergeaient sur la même forme — `_circuit` ne cherchait que le
+#: remplissage le plus complet, indifférent au format qui l'appelle. Un HIIT
+#: vise la variété (beaucoup d'exercices, peu de tours) ; un circuit vise la
+#: répétition (peu d'exercices, plusieurs tours) — deux plages disjointes le
+#: garantissent, quelle que soit la durée demandée.
+HIIT_WIDTHS = range(8, 15)
+CIRCUIT_WIDTHS = range(3, 7)
+
 #: Bornes appliquées aux temps personnalisés, côté formulaire comme côté
 #: générateur : un effort de moins de 5 s ou un repos de plus de 3 min ne
 #: correspond à aucun entraînement réel.
@@ -161,14 +171,16 @@ def _tabata(seconds: int, work: int, rest: int, recovery: int) -> Blueprint:
     return Blueprint(slots, count * block + (count - 1) * recovery)
 
 
-def _circuit(seconds: int, work: int, rest: int, recovery: int, label: str) -> Blueprint:
-    """Un tour de plusieurs exercices, répété. La largeur du tour suit la durée."""
+def _circuit(
+    seconds: int, work: int, rest: int, recovery: int, label: str, widths: range
+) -> Blueprint:
+    """Un tour de plusieurs exercices, répété. La largeur du tour suit la durée,
+    dans la plage proposée par l'appelant (`HIIT_WIDTHS` / `CIRCUIT_WIDTHS`)."""
     best = None
 
-    # On essaie chaque largeur de circuit et on garde celle qui remplit le mieux
-    # la durée demandée : à durée égale, un tour large répété peu de fois n'a pas
-    # le même intérêt qu'un tour court répété souvent.
-    for width in range(3, 11):
+    # On essaie chaque largeur possible et on garde celle qui remplit le mieux
+    # la durée demandée.
+    for width in widths:
         lap = width * (work + rest)
         rounds = (seconds + recovery) // (lap + recovery)
         if rounds < 1:
@@ -309,9 +321,9 @@ def build_blueprint(
     if workout_format == Workout.Format.TABATA:
         blueprint = _tabata(seconds, work, rest, recovery)
     elif workout_format == Workout.Format.HIIT:
-        blueprint = _circuit(seconds, work, rest, recovery, label="HIIT")
+        blueprint = _circuit(seconds, work, rest, recovery, label="HIIT", widths=HIIT_WIDTHS)
     elif workout_format == Workout.Format.CIRCUIT:
-        blueprint = _circuit(seconds, work, rest, recovery, label="Circuit")
+        blueprint = _circuit(seconds, work, rest, recovery, label="Circuit", widths=CIRCUIT_WIDTHS)
     else:
         blueprint = _pyramid(seconds, rest, peak)
 

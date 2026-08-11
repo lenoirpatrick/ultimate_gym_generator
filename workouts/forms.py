@@ -23,13 +23,15 @@ FAVORITES_CHOICES = (
 #: comme au clavier (voir le partiel `partials/format_options.html`).
 FORMAT_HINTS: dict[str, str] = {
     Workout.Format.HIIT: (
-        "Alternance courte et intense entre plusieurs exercices, un tour après l'autre."
+        "Beaucoup d'exercices différents enchaînés, peu de tours : la variété prime "
+        "sur la répétition."
     ),
     Workout.Format.TABATA: (
         "Huit séries d'un seul exercice : un effort bref, un repos plus court."
     ),
     Workout.Format.CIRCUIT: (
-        "Plusieurs exercices enchaînés en un tour, répété tant que la durée le permet."
+        "Peu d'exercices répétés en plusieurs tours, tant que la durée le permet : "
+        "l'endurance prime sur la variété."
     ),
     Workout.Format.PYRAMID: ("Répétitions décroissantes puis croissantes, un exercice à la fois."),
 }

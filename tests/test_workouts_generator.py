@@ -106,6 +106,20 @@ def test_un_circuit_repete_les_memes_exercices_a_chaque_tour():
 
 
 @pytest.mark.parametrize("duration", DURATIONS)
+def test_le_hiit_vise_plus_d_exercices_que_le_circuit(duration):
+    """Avec les mêmes temps de travail/repos, les deux convergeaient sur la
+    même forme — un HIIT doit rester plus large et moins répété qu'un
+    circuit, quelle que soit la durée."""
+    hiit = generator.build_blueprint(Workout.Format.HIIT, duration)
+    circuit = generator.build_blueprint(Workout.Format.CIRCUIT, duration)
+
+    assert hiit.needed in generator.HIIT_WIDTHS
+    assert circuit.needed in generator.CIRCUIT_WIDTHS
+    assert hiit.needed > circuit.needed
+    assert hiit.slots[0].rounds <= circuit.slots[0].rounds
+
+
+@pytest.mark.parametrize("duration", DURATIONS)
 def test_une_pyramide_est_toujours_symetrique(duration):
     blueprint = generator.build_blueprint(Workout.Format.PYRAMID, duration)
     reps = blueprint.slots[0].reps
