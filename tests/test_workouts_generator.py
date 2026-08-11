@@ -10,9 +10,9 @@ from decimal import Decimal
 import pytest
 
 from accounts.models import UserEquipment
-from exercises.models import Exercise, Favorite
+from exercises.models import Exercise, Favorite, Muscle
 from workouts import generator
-from workouts.models import Workout
+from workouts.models import Workout, WorkoutExercise
 
 pytestmark = pytest.mark.django_db
 
@@ -459,3 +459,136 @@ def test_la_duree_planifiee_est_conservee(user, rng):
 
     assert workout.planned_seconds == 4 * 240 + 3 * 60
     assert workout.planned_minutes == 19
+
+
+def test_generate_enregistre_le_nom_fourni(user, rng):
+    workout = composer(user, rng, name="Jambes du lundi")
+
+    assert workout.name == "Jambes du lundi"
+
+
+def test_generate_sans_nom_laisse_le_champ_vide(user, rng):
+    workout = composer(user, rng)
+
+    assert workout.name == ""
+
+
+# --------------------------------------------------------------------------- #
+# Rafraîchissement d'un exercice (issue #44)
+# --------------------------------------------------------------------------- #
+#
+# Le catalogue de test (tests/fixtures/exercises.json) ne compte que quatre
+# fiches : Barbell Squat (barbell, quadriceps), Calf Stretch (étirement, donc
+# toujours écarté), Dumbbell Bench Press (dumbbell, chest) et Text Only
+# Exercise (sans matériel ni muscle, donc toujours éligible). Cibler le muscle
+# « chest » isole ainsi Dumbbell Bench Press comme seul candidat possible —
+# de quoi construire des scénarios déterministes sans mock.
+
+
+def _item(workout, exercise, **overrides):
+    fields = {
+        "position": workout.items.count() + 1,
+        "block_index": 0,
+        "block_label": "Bloc 1",
+        "rounds": 3,
+        "rest_seconds": 60,
+    }
+    return WorkoutExercise.objects.create(
+        workout=workout, exercise=exercise, **(fields | overrides)
+    )
+
+
+def _workout(user, muscles: list[str] = ()) -> Workout:
+    workout = Workout.objects.create(
+        user=user,
+        duration_minutes=Workout.Duration.THIRTY,
+        format=Workout.Format.CIRCUIT,
+        planned_seconds=600,
+    )
+    if muscles:
+        workout.muscles.set(Muscle.objects.filter(slug__in=muscles))
+    return workout
+
+
+def test_refresh_exercise_remplace_l_exercice(user, halteres, rng):
+    squat = Exercise.objects.get(name="Barbell Squat")
+    workout = _workout(user)
+    item = _item(workout, squat)
+
+    exercise = generator.refresh_exercise(item, rng)
+
+    assert item.exercise_id == exercise.pk
+    assert item.exercise_id != squat.pk
+
+
+def test_refresh_exercise_conserve_le_creneau(user, halteres, rng):
+    squat = Exercise.objects.get(name="Barbell Squat")
+    workout = _workout(user)
+    item = _item(
+        workout, squat, position=1, block_index=2, block_label="Bloc 3", rounds=5, rest_seconds=45
+    )
+    creneau = (item.position, item.block_index, item.block_label, item.rounds, item.rest_seconds)
+
+    generator.refresh_exercise(item, rng)
+
+    assert (
+        item.position,
+        item.block_index,
+        item.block_label,
+        item.rounds,
+        item.rest_seconds,
+    ) == creneau
+
+
+def test_refresh_exercise_recalcule_la_charge(user, halteres, rng):
+    squat = Exercise.objects.get(name="Barbell Squat")
+    bench = Exercise.objects.get(name="Dumbbell Bench Press")
+    workout = _workout(user, muscles=["chest"])
+    item = _item(workout, squat)
+
+    generator.refresh_exercise(item, rng)
+
+    assert item.exercise_id == bench.pk
+    assert item.loads
+    assert Decimal(str(item.loads[0])) in halteres.available_loads()
+
+
+def test_refresh_exercise_evite_les_doublons_du_deroule(user, halteres, rng):
+    squat = Exercise.objects.get(name="Barbell Squat")
+    bench = Exercise.objects.get(name="Dumbbell Bench Press")
+    text_only = Exercise.objects.get(name="Text Only Exercise")
+    workout = _workout(user)
+    item = _item(workout, squat)
+    _item(workout, bench)  # déjà utilisé ailleurs dans le déroulé
+
+    generator.refresh_exercise(item, rng)
+
+    assert item.exercise_id == text_only.pk
+
+
+def test_refresh_exercise_autorise_un_doublon_si_necessaire(user, rng):
+    """Sans matériel déclaré, seul Text Only Exercise est éligible : le
+    rafraîchissement doit réussir même si l'unique candidat est déjà utilisé."""
+    squat = Exercise.objects.get(name="Barbell Squat")
+    text_only = Exercise.objects.get(name="Text Only Exercise")
+    workout = _workout(user)
+    item = _item(workout, squat)
+    _item(workout, text_only)  # seul exercice éligible, déjà pris
+
+    exercise = generator.refresh_exercise(item, rng)
+
+    assert exercise.pk == text_only.pk
+    assert item.exercise_id == text_only.pk
+
+
+def test_refresh_exercise_echoue_sans_alternative(user, halteres, rng):
+    """Le muscle ciblé n'a qu'un seul exercice éligible : l'exclure (c'est
+    justement celui qu'on rafraîchit) ne laisse plus rien pour le remplacer."""
+    bench = Exercise.objects.get(name="Dumbbell Bench Press")
+    workout = _workout(user, muscles=["chest"])
+    item = _item(workout, bench)
+
+    with pytest.raises(generator.GenerationError):
+        generator.refresh_exercise(item, rng)
+
+    assert item.exercise_id == bench.pk

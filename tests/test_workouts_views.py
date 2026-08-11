@@ -487,6 +487,133 @@ def test_on_ne_renomme_pas_la_seance_d_un_autre(logged_client, staff_client, use
     assert Workout.objects.get(pk=workout.pk).name == ""
 
 
+def test_le_nom_saisi_a_la_creation_est_enregistre(logged_client, user):
+    composer(logged_client, name="Jambes du lundi")
+    workout = Workout.objects.get(user=user)
+
+    assert workout.name == "Jambes du lundi"
+    assert workout.display_name == "Jambes du lundi"
+
+
+# --------------------------------------------------------------------------- #
+# Rafraîchissement et repos d'un exercice (issue #44)
+# --------------------------------------------------------------------------- #
+
+
+def test_un_exercice_de_seance_se_rafraichit(logged_client, user):
+    from exercises.models import Muscle
+
+    squat = Exercise.objects.get(slug="Barbell_Squat")
+    bench = Exercise.objects.get(slug="Dumbbell_Bench_Press")
+    UserEquipment.objects.create(user=user, equipment="dumbbell", mode="fixed", weights=[10])
+    workout = build_workout(user, squat)
+    workout.muscles.set(Muscle.objects.filter(slug="chest"))
+    item = workout.items.first()
+
+    response = logged_client.post(reverse("workouts:exercise_refresh", args=[workout.pk, item.pk]))
+
+    item.refresh_from_db()
+    assert response.status_code == 200
+    assert item.exercise_id == bench.pk
+    assert f'id="seance-exercice-{item.pk}"' in response.content.decode()
+
+
+def test_le_rafraichissement_signale_l_absence_d_alternative(logged_client, user):
+    from exercises.models import Muscle
+
+    bench = Exercise.objects.get(slug="Dumbbell_Bench_Press")
+    UserEquipment.objects.create(user=user, equipment="dumbbell", mode="fixed", weights=[10])
+    workout = build_workout(user, bench)
+    workout.muscles.set(Muscle.objects.filter(slug="chest"))
+    item = workout.items.first()
+
+    response = logged_client.post(reverse("workouts:exercise_refresh", args=[workout.pk, item.pk]))
+
+    item.refresh_from_db()
+    assert response.status_code == 200
+    assert item.exercise_id == bench.pk
+    assert "Aucun autre exercice disponible" in response.content.decode()
+
+
+def test_le_rafraichissement_refuse_la_methode_get(logged_client, user):
+    squat = Exercise.objects.get(slug="Barbell_Squat")
+    workout = build_workout(user, squat)
+    item = workout.items.first()
+
+    response = logged_client.get(reverse("workouts:exercise_refresh", args=[workout.pk, item.pk]))
+
+    assert response.status_code == 405
+
+
+def test_on_ne_rafraichit_pas_l_exercice_d_une_seance_d_un_autre(logged_client, staff_client, user):
+    squat = Exercise.objects.get(slug="Barbell_Squat")
+    workout = build_workout(user, squat)
+    item = workout.items.first()
+
+    response = staff_client.post(reverse("workouts:exercise_refresh", args=[workout.pk, item.pk]))
+
+    item.refresh_from_db()
+    assert response.status_code == 404
+    assert item.exercise_id == squat.pk
+
+
+def test_le_repos_d_un_exercice_se_modifie(logged_client, user):
+    squat = Exercise.objects.get(slug="Barbell_Squat")
+    workout = build_workout(user, squat)
+    item = workout.items.first()
+
+    response = logged_client.post(
+        reverse("workouts:exercise_rest", args=[workout.pk, item.pk]), {"rest_seconds": "45"}
+    )
+
+    item.refresh_from_db()
+    assert response.status_code == 200
+    assert item.rest_seconds == 45
+    assert "45s repos" in response.content.decode()
+
+
+def test_le_repos_est_borne(logged_client, user):
+    squat = Exercise.objects.get(slug="Barbell_Squat")
+    workout = build_workout(user, squat)
+    item = workout.items.first()
+
+    logged_client.post(
+        reverse("workouts:exercise_rest", args=[workout.pk, item.pk]), {"rest_seconds": "999"}
+    )
+    item.refresh_from_db()
+    assert item.rest_seconds == 180
+
+    logged_client.post(
+        reverse("workouts:exercise_rest", args=[workout.pk, item.pk]), {"rest_seconds": "-5"}
+    )
+    item.refresh_from_db()
+    assert item.rest_seconds == 0
+
+
+def test_le_repos_refuse_la_methode_get(logged_client, user):
+    squat = Exercise.objects.get(slug="Barbell_Squat")
+    workout = build_workout(user, squat)
+    item = workout.items.first()
+
+    response = logged_client.get(reverse("workouts:exercise_rest", args=[workout.pk, item.pk]))
+
+    assert response.status_code == 405
+
+
+def test_on_ne_modifie_pas_le_repos_d_une_seance_d_un_autre(logged_client, staff_client, user):
+    squat = Exercise.objects.get(slug="Barbell_Squat")
+    workout = build_workout(user, squat)
+    item = workout.items.first()
+
+    response = staff_client.post(
+        reverse("workouts:exercise_rest", args=[workout.pk, item.pk]), {"rest_seconds": "45"}
+    )
+
+    item.refresh_from_db()
+    assert response.status_code == 404
+    assert item.rest_seconds == 60
+
+
 # --------------------------------------------------------------------------- #
 # Suppression
 # --------------------------------------------------------------------------- #

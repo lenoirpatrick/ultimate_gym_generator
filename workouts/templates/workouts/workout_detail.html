@@ -62,37 +62,7 @@
 
                     <ol class="mt-4 grid gap-4">
                         {% for item in block.items %}
-                            <li class="ugg-set">
-                                <div class="ugg-set__timing">
-                                    {% if item.is_timed %}
-                                        <span class="ugg-set__work">{{ item.work_seconds }}s</span>
-                                        <span class="ugg-set__rest">{{ item.rest_seconds }}s repos</span>
-                                        <span class="ugg-set__rounds">× {{ item.rounds }}</span>
-                                    {% else %}
-                                        <span class="ugg-set__work ugg-set__work--reps">{{ item.reps|join:" · " }}</span>
-                                        <span class="ugg-set__rest">{{ item.rest_seconds }}s repos</span>
-                                        <span class="ugg-set__rounds">{{ item.rounds }} séries</span>
-                                    {% endif %}
-                                </div>
-
-                                <div class="min-w-0 flex-1">
-                                    {% if item.exercise.instructions or item.exercise.image_urls %}
-                                        {# Rappel replié : de quoi se souvenir d'un exercice sans quitter la séance (issue #30). #}
-                                        <details class="ugg-disclosure ugg-disclosure--plain">
-                                            <summary>{{ item.exercise.name }}</summary>
-                                            {% include "exercises/partials/description.html" with exercise=item.exercise %}
-                                        </details>
-                                    {% else %}
-                                        <p class="font-semibold">{{ item.exercise.name }}</p>
-                                    {% endif %}
-                                    <p class="mt-1 text-sm text-muted">
-                                        {{ item.exercise.get_equipment_display|default:"Poids du corps" }}
-                                        {% if item.load_summary %}
-                                            · <strong class="text-accent">{{ item.load_summary }}</strong>
-                                        {% endif %}
-                                    </p>
-                                </div>
-                            </li>
+                            {% include "workouts/partials/exercise_item.html" with item=item can_translate=can_translate %}
                         {% endfor %}
                     </ol>
                 </section>

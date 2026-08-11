@@ -433,13 +433,16 @@ def generate(
     rest_seconds: int | None = None,
     peak_reps: int | None = None,
     equipment: list[str] | None = None,
+    name: str = "",
     rng: random.Random | None = None,
 ) -> Workout:
     """Compose et enregistre une séance.
 
     `equipment` restreint le matériel configuré retenu pour cette séance
     (issue #32) — `None` le prend en entier, comme avant cette option.
-    `peak_reps` ne s'applique qu'à la pyramide (issue #34).
+    `peak_reps` ne s'applique qu'à la pyramide (issue #34). `name` se règle
+    dès la composition (issue #44), en plus du renommage depuis l'écran de
+    détail.
     """
     # Tirage de variété, pas de secret : le générateur standard convient, et un
     # `Random` injectable rend la composition reproductible en test.
@@ -453,6 +456,7 @@ def generate(
 
     workout = Workout.objects.create(
         user=user,
+        name=name,
         duration_minutes=duration_minutes,
         format=workout_format,
         favorites_ratio=favorites_ratio,
@@ -492,3 +496,50 @@ def generate(
 
     WorkoutExercise.objects.bulk_create(items)
     return workout
+
+
+# --------------------------------------------------------------------------- #
+# Rafraîchissement d'un exercice (issue #44)
+# --------------------------------------------------------------------------- #
+
+
+def refresh_exercise(item: WorkoutExercise, rng: random.Random | None = None) -> Exercise:
+    """Remplace l'exercice d'une ligne de séance par un autre compatible.
+
+    Le créneau (rounds, temps, répétitions, bloc) ne change pas — seul
+    l'exercice et sa charge. Le matériel retenu est celui *actuellement*
+    configuré, pas le sous-ensemble figé à la génération (non conservé) : le
+    but est de refléter la réalité du moment, pas les réglages d'alors. Le
+    déroulé peut déjà contenir des doublons entre lignes (repli de
+    `select_exercises` sur un catalogue trop pauvre) ; cette fonction les
+    traite comme n'importe quel autre exercice déjà utilisé.
+    """
+    rng = rng or random.Random()  # noqa: S311
+    workout = item.workout
+    muscles = list(workout.muscles.values_list("slug", flat=True))
+
+    pool = list(eligible_exercises(workout.user, muscles).exclude(pk=item.exercise_id))
+    if not pool:
+        raise GenerationError(
+            "Aucun autre exercice ne correspond à ton matériel et à ces parties du "
+            "corps pour l'instant."
+        )
+
+    used = set(workout.items.exclude(pk=item.pk).values_list("exercise_id", flat=True))
+    # Repli : autoriser un doublon plutôt qu'échouer si rien d'autre n'est disponible.
+    candidates = [exercise for exercise in pool if exercise.pk not in used] or pool
+    exercise = rng.choice(candidates)
+
+    options = load_options(workout.user)
+    base = _pick_load(exercise, options)
+    available = options.get(exercise.equipment) or []
+    loads = (
+        _pyramid_loads(base, item.reps, available)
+        if item.reps
+        else ([float(base)] if base is not None else [])
+    )
+
+    item.exercise = exercise
+    item.loads = loads
+    item.save(update_fields=["exercise", "loads"])
+    return exercise

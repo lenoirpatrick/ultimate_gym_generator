@@ -10,7 +10,7 @@ from aiproviders.clients import get_active_client
 
 from . import coaching, generator, timer
 from .forms import WorkoutForm
-from .models import Workout
+from .models import Workout, WorkoutExercise
 
 
 @login_required
@@ -50,6 +50,7 @@ def workout_create(request: HttpRequest) -> HttpResponse:
                     rest_seconds=form.cleaned_data["rest_seconds"],
                     peak_reps=form.cleaned_data["peak_reps"],
                     equipment=form.cleaned_data.get("equipment"),
+                    name=form.cleaned_data.get("name", ""),
                 )
             except generator.GenerationError as exc:
                 # Le catalogue ne peut rien produire pour ces critères : c'est la
@@ -117,6 +118,68 @@ def workout_rename(request: HttpRequest, pk: int) -> HttpResponse:
     if request.headers.get("HX-Request"):
         return render(request, "workouts/partials/name.html", {"workout": workout})
     return redirect("workouts:detail", pk=workout.pk)
+
+
+@login_required
+@require_POST
+def workout_exercise_refresh(request: HttpRequest, pk: int, item_pk: int) -> HttpResponse:
+    """Remplace un exercice de la séance par un autre compatible (issue #44).
+
+    Sans `Form` : une seule action, rien à valider — même principe d'échec
+    silencieux que `exercises.views.translate_exercise`.
+    """
+    item = get_object_or_404(
+        WorkoutExercise.objects.select_related("workout", "exercise"),
+        pk=item_pk,
+        workout_id=pk,
+        workout__user=request.user,
+    )
+    failed = False
+    try:
+        generator.refresh_exercise(item)
+    except generator.GenerationError:
+        failed = True
+
+    return render(
+        request,
+        "workouts/partials/exercise_item.html",
+        {
+            "item": item,
+            "can_translate": get_active_client() is not None,
+            "refresh_failed": failed,
+        },
+    )
+
+
+@login_required
+@require_POST
+def workout_exercise_rest(request: HttpRequest, pk: int, item_pk: int) -> HttpResponse:
+    """Modifie le repos entre les tours d'un exercice (issue #44).
+
+    Borné comme à la génération (`generator.MIN/MAX_REST_SECONDS`) plutôt que
+    de faire échouer l'envoi pour un enjeu si faible — même choix que
+    `workout_rename`.
+    """
+    item = get_object_or_404(
+        WorkoutExercise.objects.select_related("workout", "exercise"),
+        pk=item_pk,
+        workout_id=pk,
+        workout__user=request.user,
+    )
+    try:
+        seconds = int(request.POST.get("rest_seconds", ""))
+    except ValueError:
+        seconds = item.rest_seconds or 0
+    seconds = max(generator.MIN_REST_SECONDS, min(generator.MAX_REST_SECONDS, seconds))
+
+    item.rest_seconds = seconds
+    item.save(update_fields=["rest_seconds"])
+
+    return render(
+        request,
+        "workouts/partials/exercise_item.html",
+        {"item": item, "can_translate": get_active_client() is not None},
+    )
 
 
 @login_required

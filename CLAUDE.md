@@ -181,11 +181,22 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
 - Une séance se marque en **favori** au même titre qu'un exercice (voir « Bascules
   d'état » ci-dessous) ; l'historique propose alors le même critère « Mes favoris
   uniquement » que le catalogue.
-- Une séance peut être **nommée** (`Workout.name`, facultatif). Le nom remplace alors
-  l'intitulé du format en tête d'écran (`Workout.display_name`), et le format rejoint
-  les étiquettes pour ne pas se perdre. Le contrôle de renommage est un panneau
-  repliable (`.ugg-disclosure`, partagé avec les consignes d'exercice), révisable depuis
-  l'écran de détail uniquement — la liste ne fait qu'afficher le nom choisi.
+- Une séance peut être **nommée** (`Workout.name`, facultatif), soit dès la composition
+  (`WorkoutForm.name`, issue #44), soit ensuite depuis l'écran de détail. Le nom remplace
+  alors l'intitulé du format en tête d'écran (`Workout.display_name`), et le format
+  rejoint les étiquettes pour ne pas se perdre. Le contrôle de renommage sur l'écran de
+  détail est un panneau repliable (`.ugg-disclosure`, partagé avec les consignes
+  d'exercice) — la liste ne fait qu'afficher le nom choisi.
+- Chaque exercice du déroulé porte deux contrôles repliés (issue #44) : un bouton
+  **« Changer l'exercice »** (`.ugg-btn--ghost`, toujours labellisé, sans confirmation —
+  action réversible d'un clic) qui le remplace par un autre compatible avec les muscles
+  de la séance et le matériel *actuellement* configuré, pas le sous-ensemble figé à la
+  génération (`workouts.generator.refresh_exercise`), en évitant si possible les
+  doublons du déroulé ; et un panneau **« Modifier le repos »** (`.ugg-disclosure`, pas
+  `--plain` — le déclencheur porte une étiquette d'action, pas un nom repris) qui édite
+  `WorkoutExercise.rest_seconds` directement. Ce dernier est lu en direct par
+  `workouts.timer.build_timeline` à chaque rendu de l'écran : un repos modifié est pris
+  en compte par le minuteur sans aucun changement côté `timer.py` ni JS.
 - Le nom d'un exercice dans le déroulé est lui-même un panneau repliable
   (`.ugg-disclosure.ugg-disclosure--plain`, issue #30) : le déplier donne le même rappel
   que le catalogue — consignes traduites et galerie zoomable, via le partiel commun
@@ -259,6 +270,10 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
 
 ### Formulaire de composition d'une séance
 
+- Le **nom** (`WorkoutForm.name`, facultatif, issue #44) est le premier champ du
+  formulaire — se nommer avant de composer plutôt qu'après. Repris tel quel par
+  `Workout.name` à la génération ; reste modifiable ensuite depuis l'écran de détail
+  (voir « Blocs de séance »).
 - La **durée** est une règle graduée (`.ugg-ruler`), pas une colonne de radios : chaque
   valeur possible devient un cran, la valeur active est accentuée. Composant :
   `workouts/templates/workouts/partials/duration_ruler.html`. Utilisable pour tout champ à

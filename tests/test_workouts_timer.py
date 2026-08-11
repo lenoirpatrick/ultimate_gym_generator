@@ -130,3 +130,19 @@ def test_un_pas_de_repos_absent_si_le_repos_est_nul(user, rng):
     steps = timer.build_timeline(workout)
 
     assert all(step["phase"] == "work" for step in steps)
+
+
+def test_le_repos_edite_est_pris_en_compte_par_le_minuteur(user, rng):
+    """Un repos modifié depuis l'écran de détail (issue #44) — ici simulé par
+    une écriture directe, comme le ferait workout_exercise_rest — doit se
+    retrouver dans le minuteur sans aucun changement côté timer.py."""
+    workout = composer(user, rng, workout_format=Workout.Format.TABATA, duration_minutes=20)
+    item = workout.items.first()
+    item.rest_seconds = 42
+    item.save(update_fields=["rest_seconds"])
+
+    steps = timer.build_timeline(workout)
+
+    rest_steps = [step for step in steps if step["itemId"] == item.pk and step["phase"] == "rest"]
+    assert rest_steps
+    assert all(step["seconds"] == 42 for step in rest_steps)

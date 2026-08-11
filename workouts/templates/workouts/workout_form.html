@@ -18,6 +18,8 @@
         <form method="post" class="mt-8 grid gap-8">
             {% csrf_token %}
 
+            {% include "core/components/field.html" with field=form.name %}
+
             {% comment %}
             Le matériel pris en compte se coche ici, indépendamment de sa
             configuration (issue #32) : décocher une case n'écarte ce matériel

@@ -75,6 +75,12 @@ class WorkoutForm(forms.Form):
     donc pas bloquer l'envoi.
     """
 
+    name = forms.CharField(
+        label="Nom",
+        required=False,
+        max_length=80,
+        help_text="Facultatif : distingue cette séance dans l'historique.",
+    )
     duration_minutes = forms.TypedChoiceField(
         label="Durée (minutes)",
         choices=Workout.Duration.choices,
