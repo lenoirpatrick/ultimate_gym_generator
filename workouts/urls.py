@@ -9,6 +9,7 @@ urlpatterns = [
     path("nouvelle/", views.workout_create, name="create"),
     path("<int:pk>/", views.workout_detail, name="detail"),
     path("<int:pk>/conseils/", views.workout_coaching, name="coaching"),
+    path("<int:pk>/conseils/rafraichir/", views.workout_coaching_refresh, name="coaching_refresh"),
     path("<int:pk>/renommer/", views.workout_rename, name="rename"),
     path("<int:pk>/repos-entre-tours/", views.workout_recovery, name="recovery"),
     path(

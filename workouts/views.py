@@ -97,7 +97,27 @@ def workout_coaching(request: HttpRequest, pk: int) -> HttpResponse:
     workout = get_object_or_404(Workout, pk=pk, user=request.user)
     notes = coaching.write_notes(workout)
 
-    return render(request, "workouts/partials/coaching.html", {"notes": notes})
+    return render(request, "workouts/partials/coaching.html", {"workout": workout, "notes": notes})
+
+
+@login_required
+@require_POST
+def workout_coaching_refresh(request: HttpRequest, pk: int) -> HttpResponse:
+    """Régénère les conseils du coach à la demande (issue #29 suite).
+
+    Contrairement au chargement automatique, un échec ici reste visible :
+    l'action est volontaire, pas une récupération en arrière-plan — même
+    principe que exercises.views.translate_exercise. Les conseils déjà
+    enregistrés restent affichés si le rafraîchissement échoue.
+    """
+    workout = get_object_or_404(Workout, pk=pk, user=request.user)
+    failed = coaching.refresh_notes(workout) is None
+
+    return render(
+        request,
+        "workouts/partials/coaching.html",
+        {"workout": workout, "notes": workout.coaching_notes, "coaching_failed": failed},
+    )
 
 
 #: Doit rester égal à `max_length` du champ `Workout.name` — voir la troncature

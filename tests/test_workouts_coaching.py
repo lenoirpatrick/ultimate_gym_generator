@@ -135,6 +135,51 @@ def test_une_reponse_vide_n_est_pas_enregistree(workout, monkeypatch):
 
 
 # --------------------------------------------------------------------------- #
+# Rafraîchissement (issue #29 suite)
+# --------------------------------------------------------------------------- #
+
+
+def test_refresh_notes_remplace_des_conseils_existants(workout, monkeypatch):
+    """Contrairement à write_notes, refresh_notes redemande même si des
+    conseils existent déjà — c'est tout l'intérêt du bouton."""
+    workout.coaching_notes = "Anciens conseils."
+    workout.save()
+    stub_provider(monkeypatch, lambda self, prompt, **kwargs: NOTES)
+
+    assert coaching.refresh_notes(workout) == NOTES
+
+    workout.refresh_from_db()
+    assert workout.coaching_notes == NOTES
+
+
+def test_refresh_notes_echoue_sans_effacer_les_conseils_existants(workout, monkeypatch):
+    workout.coaching_notes = "Anciens conseils."
+    workout.save()
+
+    def tomber(self, prompt, **kwargs):
+        raise ProviderError("Quota dépassé.")
+
+    stub_provider(monkeypatch, tomber)
+
+    assert coaching.refresh_notes(workout) is None
+
+    workout.refresh_from_db()
+    assert workout.coaching_notes == "Anciens conseils."
+
+
+def test_refresh_notes_sans_fournisseur_renvoie_none(workout, monkeypatch):
+    monkeypatch.setattr("workouts.coaching.get_active_client", lambda: None)
+
+    assert coaching.refresh_notes(workout) is None
+
+
+def test_refresh_notes_reponse_vide_renvoie_none(workout, monkeypatch):
+    stub_provider(monkeypatch, lambda self, prompt, **kwargs: "   ")
+
+    assert coaching.refresh_notes(workout) is None
+
+
+# --------------------------------------------------------------------------- #
 # Affichage
 # --------------------------------------------------------------------------- #
 
@@ -165,6 +210,75 @@ def test_le_fragment_reste_muet_sans_conseil(logged_client, workout, monkeypatch
 
     assert "Conseils du coach" not in content
     assert content.strip() == ""
+
+
+def test_le_bouton_de_rafraichissement_accompagne_les_conseils(logged_client, workout, monkeypatch):
+    stub_provider(monkeypatch, lambda self, prompt, **kwargs: NOTES)
+
+    content = logged_client.get(reverse("workouts:coaching", args=[workout.pk])).content.decode()
+
+    assert "Rafraîchir les conseils" in content
+    assert reverse("workouts:coaching_refresh", args=[workout.pk]) in content
+
+
+# --------------------------------------------------------------------------- #
+# Rafraîchissement depuis l'écran (issue #29 suite)
+# --------------------------------------------------------------------------- #
+
+
+def test_le_rafraichissement_remplace_les_conseils_affiches(logged_client, workout, monkeypatch):
+    workout.coaching_notes = "Anciens conseils."
+    workout.save()
+    stub_provider(monkeypatch, lambda self, prompt, **kwargs: NOTES)
+
+    response = logged_client.post(reverse("workouts:coaching_refresh", args=[workout.pk]))
+
+    assert response.status_code == 200
+    assert "Garde le dos gainé." in response.content.decode()
+    assert "Anciens conseils." not in response.content.decode()
+    workout.refresh_from_db()
+    assert workout.coaching_notes == NOTES
+
+
+def test_le_rafraichissement_en_echec_garde_les_anciens_conseils_visibles(
+    logged_client, workout, monkeypatch
+):
+    workout.coaching_notes = "Anciens conseils."
+    workout.save()
+
+    def tomber(self, prompt, **kwargs):
+        raise ProviderError("Quota dépassé.")
+
+    stub_provider(monkeypatch, tomber)
+
+    response = logged_client.post(reverse("workouts:coaching_refresh", args=[workout.pk]))
+    content = response.content.decode()
+
+    assert response.status_code == 200
+    assert "Anciens conseils." in content
+    assert "Conseils indisponibles pour le moment" in content
+    workout.refresh_from_db()
+    assert workout.coaching_notes == "Anciens conseils."
+
+
+def test_le_rafraichissement_refuse_la_methode_get(logged_client, workout):
+    response = logged_client.get(reverse("workouts:coaching_refresh", args=[workout.pk]))
+
+    assert response.status_code == 405
+
+
+def test_on_ne_rafraichit_pas_les_conseils_d_une_seance_d_un_autre(
+    staff_client, workout, monkeypatch
+):
+    workout.coaching_notes = "Anciens conseils."
+    workout.save()
+    stub_provider(monkeypatch, lambda self, prompt, **kwargs: NOTES)
+
+    response = staff_client.post(reverse("workouts:coaching_refresh", args=[workout.pk]))
+
+    assert response.status_code == 404
+    workout.refresh_from_db()
+    assert workout.coaching_notes == "Anciens conseils."
 
 
 def test_les_conseils_d_un_autre_utilisateur_sont_introuvables(staff_client, workout):

@@ -50,18 +50,12 @@ def describe(workout: Workout) -> str:
     return "\n".join(lines)
 
 
-def write_notes(workout: Workout) -> str:
-    """Rédige et enregistre les conseils. Retourne une chaîne vide en cas d'échec.
-
-    Les erreurs sont journalisées, pas remontées : l'utilisateur n'a rien à faire
-    d'un message d'erreur de fournisseur devant une séance qui, elle, est prête.
-    """
-    if workout.coaching_notes:
-        return workout.coaching_notes
-
+def _generate(workout: Workout) -> str | None:
+    """Appelle le fournisseur actif pour de nouveaux conseils, ou `None` s'il n'y
+    en a pas d'utilisable — absent, en échec, ou réponse vide."""
     client = get_active_client()
     if client is None:
-        return ""
+        return None
 
     prompt = (
         "Voici la séance que je vais faire. Donne-moi tes conseils d'exécution.\n\n"
@@ -72,10 +66,42 @@ def write_notes(workout: Workout) -> str:
         notes = client.generate(prompt, system=SYSTEM_PROMPT, max_tokens=MAX_TOKENS).strip()
     except ProviderError:
         logger.warning("Conseils de séance indisponibles", exc_info=True)
+        return None
+
+    return notes or None
+
+
+def write_notes(workout: Workout) -> str:
+    """Rédige et enregistre les conseils une première fois. Retourne une chaîne
+    vide en cas d'échec ou si aucun fournisseur n'est configuré.
+
+    Les erreurs sont journalisées, pas remontées : l'utilisateur n'a rien à faire
+    d'un message d'erreur de fournisseur devant une séance qui, elle, est prête.
+    """
+    if workout.coaching_notes:
+        return workout.coaching_notes
+
+    notes = _generate(workout)
+    if notes is None:
         return ""
 
-    if not notes:
-        return ""
+    workout.coaching_notes = notes
+    workout.save(update_fields=["coaching_notes"])
+    return notes
+
+
+def refresh_notes(workout: Workout) -> str | None:
+    """Régénère les conseils à la demande, quels que soient ceux déjà enregistrés.
+
+    Contrairement à `write_notes`, un rafraîchissement est une action
+    volontaire : son échec (`None`) doit rester visible plutôt que de
+    disparaître en silence — même principe que
+    `exercises.views.translate_exercise`. Les conseils déjà enregistrés ne
+    sont jamais effacés par un échec, seul un succès les remplace.
+    """
+    notes = _generate(workout)
+    if notes is None:
+        return None
 
     workout.coaching_notes = notes
     workout.save(update_fields=["coaching_notes"])

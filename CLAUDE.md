@@ -176,8 +176,13 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
   charge est accentuée, jamais le matériel.
 - Un bloc tient d'un seul tenant dans une carte ; on ne coupe pas un bloc entre deux écrans.
 - Les conseils rédigés par l'IA sont un **habillage** : ils arrivent après la séance, et
-  leur absence ne produit aucun message. Une erreur de fournisseur devant un entraînement
-  prêt n'apprend rien à personne.
+  leur absence ne produit aucun message au premier chargement automatique. Une fois des
+  conseils affichés, un bouton **« Rafraîchir les conseils »** (`.ugg-btn--ghost`,
+  `workouts.views.workout_coaching_refresh`, issue #29 suite) permet d'en redemander
+  d'autres — action volontaire, dont l'échec reste cette fois visible (même principe que
+  le bouton de traduction d'un exercice) plutôt que silencieux : un message informe que
+  les conseils sont indisponibles, et les précédents restent affichés, jamais effacés par
+  un rafraîchissement raté.
 - Une séance se marque en **favori** au même titre qu'un exercice (voir « Bascules
   d'état » ci-dessous) ; l'historique propose alors le même critère « Mes favoris
   uniquement » que le catalogue.

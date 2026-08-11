@@ -1,14 +1,40 @@
 {% comment %}
-Conseils du coach, chargés en différé — voir workouts.views.workout_coaching.
+Conseils du coach — chargés en différé au premier affichage
+(workouts.views.workout_coaching), rafraîchissables ensuite à la demande
+(workouts.views.workout_coaching_refresh, issue #29 suite).
 
-Aucun message quand il n'y en a pas : la séance se suffit à elle-même, et une
-alerte d'erreur devant un entraînement prêt n'apporterait rien à personne.
+Aucun message par défaut quand il n'y en a pas : la séance se suffit à
+elle-même, une alerte d'erreur devant un entraînement prêt n'apporterait rien
+à personne. Un rafraîchissement volontaire, lui, reste visible en cas
+d'échec — même principe que le bouton de traduction d'un exercice
+(exercises/partials/description.html) — sans jamais effacer les conseils
+précédents : `workout_coaching_refresh` transmet toujours les derniers
+enregistrés, qu'ils viennent d'être renouvelés ou non.
+
+Attend `workout`, `notes` et `coaching_failed` (facultatif, mis par
+workout_coaching_refresh).
 {% endcomment %}
 {% if notes %}
-    <div class="ugg-card ugg-coaching mt-6 p-5">
-        <p class="ugg-eyebrow">Conseils du coach</p>
+    <div id="conseils-du-coach" class="ugg-card ugg-coaching mt-6 p-5">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+            <p class="ugg-eyebrow">Conseils du coach</p>
+            <button type="button"
+                    class="ugg-btn ugg-btn--ghost"
+                    hx-post="{% url 'workouts:coaching_refresh' workout.pk %}"
+                    hx-target="#conseils-du-coach"
+                    hx-swap="outerHTML"
+                    hx-indicator="#conseils-du-coach-rafraichissement">
+                Rafraîchir les conseils
+            </button>
+        </div>
         {% for paragraph in notes.splitlines %}
             {% if paragraph.strip %}<p class="mt-3">{{ paragraph }}</p>{% endif %}
         {% endfor %}
+        <span id="conseils-du-coach-rafraichissement" class="ugg-indicator mt-3">
+            {% include "core/components/spinner.html" with variant="dumbbell" size="sm" label="Rédaction des conseils" %}
+        </span>
+        {% if coaching_failed %}
+            {% include "core/components/alert.html" with level="info" text="Conseils indisponibles pour le moment. Les précédents restent affichés." %}
+        {% endif %}
     </div>
 {% endif %}
