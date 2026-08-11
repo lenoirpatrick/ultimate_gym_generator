@@ -314,8 +314,10 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
   `input[name$="-mode"][value="…"]`, qui fonctionne quel que soit l'index du formset
   Django, sans jamais retomber dans le piège d'un sélecteur trop large qui masquerait
   aussi d'autres champs (voir issue #36 suite, `.ugg-format input`).
-- Une **icône** (`core/components/equipment_icon.html`) suit le matériel choisi dans le
-  `<select>` de chaque ligne, sur le même principe : les douze pictogrammes du
+- Une **icône** (`core/components/equipment_icon.html`) suit le matériel choisi,
+  superposée à l'intérieur du `<select>` de chaque ligne — pas affichée en dessous
+  (issue #43) : `.ugg-equipment__select` porte le positionnement relatif, le `<select>`
+  reçoit la marge qui lui laisse la place à gauche. Les douze pictogrammes du
   référentiel `Exercise.Equipment` sont tous rendus, un seul visible via
   `.ugg-equipment-row:has(select[…] option[value="…"]:checked)`. Purement décoratif
   (`aria-hidden`) — le nom du matériel reste toujours affiché en texte à côté ; si

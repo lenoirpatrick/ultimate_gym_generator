@@ -37,9 +37,9 @@
                         {% endfor %}
 
                         <div class="grid gap-4 sm:grid-cols-2">
-                            <div>
+                            <div class="ugg-equipment__select">
                                 {% include "core/components/field.html" with field=form.equipment %}
-                                <div class="ugg-equipment__icons mt-2" aria-hidden="true">
+                                <div class="ugg-equipment__icons" aria-hidden="true">
                                     {% for value, label in equipment_choices %}
                                         <span class="ugg-equipment__icon ugg-equipment__icon--{{ value|slugify }}">
                                             {% include "core/components/equipment_icon.html" with equipment=value %}

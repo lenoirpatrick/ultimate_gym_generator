@@ -1477,19 +1477,33 @@
 
 /* Icône du matériel choisi : les douze tracés sont tous rendus
    (`core/components/equipment_icon.html`), un seul visible à la fois.
-   Purement décoratif (`aria-hidden`) — si `:has()` sur un <option>:checked
-   n'est pas pris en charge, l'icône reste simplement invisible et le
-   formulaire garde tout son sens sans elle. */
+   Superposée dans le <select> lui-même (issue #43), pas affichée en dessous :
+   `.ugg-equipment__select` porte le positionnement relatif, le <select> reçoit
+   la marge qui lui laisse la place. Purement décoratif (`aria-hidden`) — si
+   `:has()` sur un <option>:checked n'est pas pris en charge, l'icône reste
+   simplement invisible et le formulaire garde tout son sens sans elle. */
+.ugg-equipment__select {
+    position: relative;
+}
+
+.ugg-equipment__select .ugg-field__control select {
+    padding-left: 2.75rem;
+}
+
 .ugg-equipment__icons {
+    position: absolute;
+    left: var(--ugg-space-3);
+    bottom: 0;
+    height: var(--ugg-touch-target);
     display: flex;
     align-items: center;
-    min-height: 1.75rem;
+    pointer-events: none;
 }
 
 .ugg-equipment__icon {
     display: none;
-    width: 1.75rem;
-    height: 1.75rem;
+    width: 1.5rem;
+    height: 1.5rem;
     color: var(--ugg-text-muted);
 }
 
