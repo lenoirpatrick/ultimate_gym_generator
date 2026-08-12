@@ -34,63 +34,22 @@ qui documente chaque variable.
 | `DJANGO_CSRF_TRUSTED_ORIGINS` | vide | Requis derrière un reverse proxy HTTPS |
 | `DJANGO_TIME_ZONE` | `Europe/Paris` | |
 | `GUNICORN_WORKERS` | `3` | Processus applicatifs (conteneur) |
-| `DB_WAIT_SECONDS` | `60` | Attente maximale de la base au démarrage (conteneur) |
+| `DJANGO_DB_PATH` | fichier du projet | Chemin de la base SQLite ; obligatoire en production (voir § 2) |
 
 ---
 
 ## 2. Base de données
 
-L'application résout sa base dans cet ordre, sans changement de code :
+SQLite, uniquement — aucun serveur à installer ni à administrer.
 
-1. **`DATABASE_URL`** si renseignée — a priorité sur tout le reste.
-2. **`DB_HOST` + `DB_*`** sinon — le cas du `docker-compose` fourni.
-3. **SQLite** si ni l'une ni l'autre — repli de développement local.
-   `config.settings.prod` refuse ce cas et arrête le démarrage.
-
-### MariaDB fournie par docker-compose
-
-Rien à faire : le service `db` du `docker-compose.yml` est créé avec les
-valeurs `DB_*` du `.env`. Laisser `DATABASE_URL` vide.
-
-### MariaDB externe
-
-Renseigner `DATABASE_URL` :
-
-```
-DATABASE_URL=mysql://utilisateur:motdepasse@bdd.exemple.fr:3306/gym
-```
-
-puis commenter le service `db` et le bloc `depends_on` dans
-`docker-compose.yml`.
-
-**Points de configuration à vérifier côté serveur MariaDB :**
-
-| Point | Valeur attendue |
-|---|---|
-| Version | MariaDB 10.6 ou supérieure (11.4 LTS recommandée) |
-| Jeu de caractères | `utf8mb4` / `utf8mb4_unicode_ci` — indispensable pour les accents et les emojis |
-| Base | Créée au préalable ; l'application ne crée pas sa base |
-| Droits | `SELECT, INSERT, UPDATE, DELETE, CREATE, ALTER, INDEX, DROP, REFERENCES` sur cette base |
-| Réseau | Le serveur doit accepter les connexions depuis l'hôte applicatif |
-| Fuseau horaire | Tables de fuseaux chargées, ou serveur en UTC |
-
-Préparation type :
-
-```sql
-CREATE DATABASE gym CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-CREATE USER 'gym'@'%' IDENTIFIED BY 'un-mot-de-passe-solide';
-GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, ALTER, INDEX, DROP, REFERENCES
-    ON gym.* TO 'gym'@'%';
-FLUSH PRIVILEGES;
-```
-
-**Connexion chiffrée (TLS).** Ajouter les paramètres à l'URL, par exemple
-`?ssl-ca=/chemin/ca.pem`. Le fichier doit être accessible depuis le conteneur
-(le monter en volume).
-
-**Base gérée (RDS, Scaleway, OVH…)** : renseigner `DATABASE_URL` avec le point
-de terminaison fourni. Vérifier que le groupe de sécurité autorise l'hôte
-applicatif et que le jeu de caractères par défaut est bien `utf8mb4`.
+- En local, le fichier `db.sqlite3` est créé à la racine du projet.
+- En conteneur, `DJANGO_DB_PATH` pointe vers `/app/data/db.sqlite3`, monté sur
+  le volume persistant `db_data` par le `docker-compose.yml` fourni : la base
+  survit à toute reconstruction de l'image. `config.settings.prod` refuse de
+  démarrer si `DJANGO_DB_PATH` n'est pas renseigné, pour ne jamais perdre de
+  données silencieusement.
+- En installation locale (hors conteneur), laisser `DJANGO_DB_PATH` vide dans
+  `.env` : le repli dans le projet convient au développement.
 
 ---
 
@@ -118,8 +77,7 @@ source .venv/bin/activate          # Windows : .venv\Scripts\activate
 pip install -r requirements/dev.txt
 
 cp .env.example .env
-# Générer DJANGO_SECRET_KEY et CREDENTIALS_ENCRYPTION_KEY,
-# puis vider DB_HOST pour utiliser SQLite.
+# Générer DJANGO_SECRET_KEY et CREDENTIALS_ENCRYPTION_KEY.
 
 python manage.py migrate
 python manage.py createsuperuser
@@ -127,11 +85,6 @@ python manage.py load_exercises     # catalogue d'exercices ; sinon chargé à l
 make css                            # ou : tailwindcss -i assets/css/input.css -o core/static/core/css/app.css
 python manage.py runserver   # port 5907 par défaut, DJANGO_PORT sinon
 ```
-
-> Sur Windows, `mysqlclient` s'installe depuis une roue précompilée. En cas
-> d'échec de compilation, installer les outils de build Visual C++ — ou rester
-> sur SQLite en développement, la dépendance n'étant nécessaire que pour
-> MariaDB.
 
 Pendant le développement du CSS, `make css-watch` recompile à chaque
 modification de gabarit.

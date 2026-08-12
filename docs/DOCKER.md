@@ -11,7 +11,7 @@ déjà collectés ; elle ne contient **aucun secret**.
 ```bash
 cp .env.example .env
 # Renseigner au minimum : DJANGO_SECRET_KEY, CREDENTIALS_ENCRYPTION_KEY,
-# DB_PASSWORD, MARIADB_ROOT_PASSWORD, DJANGO_ALLOWED_HOSTS.
+# DJANGO_ALLOWED_HOSTS.
 
 docker compose up -d --build
 docker compose run --rm web python manage.py createsuperuser
@@ -28,15 +28,10 @@ docker compose down               # arrêter (les volumes sont conservés)
 docker compose down -v            # arrêter ET supprimer les données ⚠️
 ```
 
-### Utiliser une MariaDB externe
-
-1. Commenter l'intégralité du service `db` dans `docker-compose.yml`.
-2. Commenter le bloc `depends_on` du service `web`.
-3. Renseigner `DATABASE_URL` dans `.env` :
-   `mysql://utilisateur:motdepasse@hote:3306/nom_de_base`
-
-Aucune modification de code n'est nécessaire. Les points de configuration
-détaillés (jeu de caractères, droits, TLS) sont dans [INSTALL.md](INSTALL.md).
+La base SQLite (`db_data`) et les avatars (`media_data`) vivent chacun sur
+leur propre volume nommé, en dehors de l'image : `docker compose down -v`
+les supprime, tout le reste les conserve d'un redéploiement à l'autre. Voir
+[INSTALL.md](INSTALL.md) pour le détail de `DJANGO_DB_PATH`.
 
 ---
 
@@ -46,8 +41,8 @@ Le `Dockerfile` est en deux étapes :
 
 | Étape | Contenu |
 |---|---|
-| `builder` | `build-essential`, en-têtes MariaDB, compilation de `mysqlclient`, build Tailwind, `collectstatic` |
-| `runtime`  | Python, `libmariadb3`, l'environnement virtuel et le code — utilisateur non-root `gym` (UID 10001) |
+| `builder` | Dépendances Python, build Tailwind, `collectstatic` |
+| `runtime`  | Python, l'environnement virtuel et le code — utilisateur non-root `gym` (UID 10001) |
 
 Les outils de compilation restent dans l'étape `builder` : l'image finale ne
 les contient pas.
@@ -127,7 +122,6 @@ compose pull` ne doit jamais changer de version applicative par surprise.
 - **Aucun secret en argument de build.** Un `ARG` reste lisible dans les
   couches de l'image via `docker history`.
 - Le conteneur tourne en **non-root** (`gym`, UID 10001).
-- Le port de la base n'est pas publié par défaut.
 - Le `HEALTHCHECK` interroge `/healthz`, qui vérifie aussi l'accès à la base :
   un conteneur qui répond sans base est signalé `unhealthy`.
 
@@ -138,7 +132,7 @@ compose pull` ne doit jamais changer de version applicative par surprise.
 | Symptôme | Piste |
 |---|---|
 | `exec /app/docker/entrypoint.sh: no such file` | Fins de ligne CRLF. `.gitattributes` force LF ; vérifier avec `file docker/entrypoint.sh`. |
-| Le conteneur s'arrête sur `Base injoignable` | La base n'a pas démarré dans le délai imparti. Augmenter `DB_WAIT_SECONDS`, ou vérifier `DB_HOST` / `DATABASE_URL`. |
+| `ImproperlyConfigured: DJANGO_DB_PATH` | Variable absente ou vide en production. `docker-compose.yml` la renseigne déjà ; vérifier qu'elle n'a pas été retirée du service `web`. |
 | `ImproperlyConfigured: CREDENTIALS_ENCRYPTION_KEY` | Variable absente du `.env`. La générer (voir `.env.example`). |
 | `DisallowedHost` | Ajouter le nom d'hôte à `DJANGO_ALLOWED_HOSTS`. |
 | CSRF refusé derrière un proxy | Renseigner `DJANGO_CSRF_TRUSTED_ORIGINS` avec le schéma (`https://…`). |

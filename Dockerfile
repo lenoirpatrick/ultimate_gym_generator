@@ -1,20 +1,13 @@
 # syntax=docker/dockerfile:1
 
 # =============================================================================
-# Étape 1 — construction : dépendances compilées + feuille de style + statiques.
-# Les outils de compilation restent ici et n'atteignent jamais l'image finale.
+# Étape 1 — construction : dépendances + feuille de style + statiques.
 # =============================================================================
 FROM python:3.14-slim AS builder
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1
-
-RUN apt-get update && apt-get install --no-install-recommends -y \
-        build-essential \
-        default-libmysqlclient-dev \
-        pkg-config \
-    && rm -rf /var/lib/apt/lists/*
 
 RUN python -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
@@ -39,7 +32,7 @@ RUN DJANGO_SETTINGS_MODULE=config.settings.dev \
     python manage.py collectstatic --noinput --clear
 
 # =============================================================================
-# Étape 2 — exécution : Python, la bibliothèque cliente MariaDB, rien de plus.
+# Étape 2 — exécution : Python et le code, rien de plus.
 # =============================================================================
 FROM python:3.14-slim AS runtime
 
@@ -49,10 +42,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     DJANGO_PORT=5907 \
     PATH="/opt/venv/bin:$PATH"
 
-RUN apt-get update && apt-get install --no-install-recommends -y \
-        libmariadb3 \
-    && rm -rf /var/lib/apt/lists/* \
-    && useradd --create-home --uid 10001 gym
+RUN useradd --create-home --uid 10001 gym
 
 COPY --from=builder /opt/venv /opt/venv
 
@@ -60,13 +50,14 @@ WORKDIR /app
 COPY --from=builder --chown=gym:gym /app /app
 
 RUN chmod +x /app/docker/entrypoint.sh \
-    # Point de montage des avatars : créé et attribué avant de perdre les droits
-    # root, sinon un volume monté ici serait inaccessible en écriture.
-    && mkdir -p /app/media && chown gym:gym /app/media
+    # Points de montage des avatars et de la base SQLite : créés et attribués
+    # avant de perdre les droits root, sinon un volume monté ici serait
+    # inaccessible en écriture.
+    && mkdir -p /app/media /app/data && chown gym:gym /app/media /app/data
 
 USER gym
 
-VOLUME ["/app/media"]
+VOLUME ["/app/media", "/app/data"]
 
 # 5907 = « sport » en leet.
 EXPOSE 5907

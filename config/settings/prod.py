@@ -7,7 +7,7 @@ tourner dans une configuration non sûre.
 from django.core.exceptions import ImproperlyConfigured
 
 from .base import *
-from .base import ALLOWED_HOSTS, CREDENTIALS_ENCRYPTION_KEY, DATABASES, DEBUG, env
+from .base import ALLOWED_HOSTS, CREDENTIALS_ENCRYPTION_KEY, DB_PATH, DEBUG, env
 
 if not CREDENTIALS_ENCRYPTION_KEY:
     raise ImproperlyConfigured(
@@ -21,10 +21,10 @@ if DEBUG:
 if not ALLOWED_HOSTS:
     raise ImproperlyConfigured("DJANGO_ALLOWED_HOSTS doit être renseigné en production.")
 
-if DATABASES["default"]["ENGINE"] == "django.db.backends.sqlite3":
+if not DB_PATH:
     raise ImproperlyConfigured(
-        "Aucune base configurée : renseigner DATABASE_URL, ou DB_HOST et les variables DB_*. "
-        "Le repli SQLite n'est destiné qu'au développement local."
+        "DJANGO_DB_PATH est obligatoire en production : il doit pointer vers un volume "
+        "persistant, sinon la base est perdue à chaque reconstruction de l'image."
     )
 
 # Le terminaison TLS est généralement assurée par un reverse proxy en amont.

@@ -12,7 +12,7 @@ génération de programmes n'est pas encore implémentée.
 | Rôle | Choix |
 |---|---|
 | Runtime | Python 3.13+ · Django 6.1 |
-| Base | MariaDB 11 (`mysqlclient`), interne ou externe via `DATABASE_URL` ; SQLite en repli local |
+| Base | SQLite, fichier persisté sur volume en conteneur (`DJANGO_DB_PATH`) |
 | Configuration | `django-environ`, tout par variables d'environnement |
 | Interface | Gabarits Django + HTMX 2 (vendoré) + Tailwind CSS 4 (CLI autonome, zéro Node) |
 | Chiffrement | Fernet (`cryptography`) pour les clés d'API en base |
@@ -521,7 +521,7 @@ make test         # pytest + couverture (coverage.xml)
 make lint         # ruff check + ruff format --check
 make format       # reformate et corrige ce qui peut l'être
 make check        # python manage.py check --deploy
-make docker-up    # pile complète (application + MariaDB)
+make docker-up    # pile complète (application, base SQLite persistée)
 make docker-down  # arrêt, volumes conservés
 ```
 

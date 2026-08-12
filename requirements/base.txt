@@ -1,6 +1,5 @@
 Django>=6.1,<6.2
 django-environ>=0.12,<1.0
-mysqlclient>=2.2,<3.0
 cryptography>=44.0
 Pillow>=11.0
 

@@ -59,24 +59,7 @@ jobs:
     name: Tests et couverture
     runs-on: ubuntu-latest
 
-    services:
-      mariadb:
-        image: mariadb:11.4
-        env:
-          MARIADB_DATABASE: gym_test
-          MARIADB_ROOT_PASSWORD: root
-        ports:
-          - 3306:3306
-        options: >-
-          --health-cmd="healthcheck.sh --connect --innodb_initialized"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=10
-
     env:
-      # Django crée sa propre base `test_gym_test` : le compte doit pouvoir
-      # créer et supprimer des bases, d'où l'usage de root sur ce service jetable.
-      DATABASE_URL: mysql://root:root@127.0.0.1:3306/gym_test
       DJANGO_SETTINGS_MODULE: config.settings.test
 
     steps:
@@ -87,11 +70,6 @@ jobs:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: pip
           cache-dependency-path: requirements/*.txt
-
-      - name: Installer les en-têtes du client MariaDB
-        run: |
-          sudo apt-get update
-          sudo apt-get install --no-install-recommends -y default-libmysqlclient-dev pkg-config
 
       - name: Installer les dépendances
         run: pip install -r requirements/dev.txt

@@ -1,60 +1,31 @@
 # =============================================================================
-# Pile complète : application + MariaDB.
+# Pile complète : application, base SQLite persistée sur volume.
 #
 #   cp .env.example .env      puis renseigner les valeurs obligatoires
 #   docker compose up -d --build
 #   docker compose run --rm web python manage.py createsuperuser
 #   → http://localhost:5907
-#
-# BASE DE DONNÉES EXTERNE : commenter tout le service `db` ainsi que le bloc
-# `depends_on` du service `web`, puis renseigner DATABASE_URL dans .env.
-# Voir docs/INSTALL.md.
 # =============================================================================
 
 services:
-  db:
-    image: mariadb:11.4
-    restart: unless-stopped
-    environment:
-      MARIADB_DATABASE: ${DB_NAME:-gym}
-      MARIADB_USER: ${DB_USER:-gym}
-      MARIADB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD est obligatoire}
-      MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD:?MARIADB_ROOT_PASSWORD est obligatoire}
-    command: >
-      --character-set-server=utf8mb4
-      --collation-server=utf8mb4_unicode_ci
-    volumes:
-      - db_data:/var/lib/mysql
-    healthcheck:
-      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-      start_period: 30s
-    # Port non publié par défaut : la base n'est joignable que depuis le réseau
-    # interne. Décommenter pour l'inspecter depuis l'hôte.
-    # ports:
-    #   - "3306:3306"
-
   web:
     build:
       context: .
       dockerfile: Dockerfile
-    image: lenoirpatrick/ultimate-gym-generator:latest
+    image: plenoir/ultimate-gym-generator:latest
     restart: unless-stopped
     env_file:
       - .env
     environment:
-      # Le nom du service compose fait office d'hôte de base de données.
-      DB_HOST: ${DB_HOST:-db}
       DJANGO_SETTINGS_MODULE: config.settings.prod
       DJANGO_PORT: "5907"
+      # Chemin monté sur le volume ci-dessous : la base survit à toute
+      # reconstruction de l'image.
+      DJANGO_DB_PATH: /app/data/db.sqlite3
     ports:
       - "${DJANGO_PORT:-5907}:5907"
-    depends_on:
-      db:
-        condition: service_healthy
     volumes:
+      - db_data:/app/data
       # Persistance des fichiers déposés par les utilisateurs.
       - media_data:/app/media
 

@@ -93,43 +93,21 @@ TEMPLATES = [
 # --------------------------------------------------------------------------- #
 # Base de données
 #
-# Deux modes, sans changement de code :
-#   1. MariaDB fournie par docker-compose  -> valeurs DB_* par défaut
-#   2. MariaDB externe                     -> renseigner DATABASE_URL
-# Voir docs/INSTALL.md.
+# SQLite uniquement. En local, le fichier vit dans le projet ; en conteneur,
+# DJANGO_DB_PATH doit pointer vers un volume persistant (voir docker-compose.yml
+# et `config.settings.prod`, qui refuse de démarrer sans ce réglage explicite).
 # --------------------------------------------------------------------------- #
 
+#: Chemin explicite du fichier SQLite. Vide en développement local (repli
+#: ci-dessous) ; `config.settings.prod` exige qu'il soit renseigné.
+DB_PATH = env.str("DJANGO_DB_PATH", default="")
 
-def _database_config() -> dict:
-    """Résout la base à utiliser, par ordre de priorité décroissant."""
-    if url := env.str("DATABASE_URL", default=""):
-        return env.db_url_config(url)
-
-    if host := env.str("DB_HOST", default=""):
-        return {
-            "ENGINE": "django.db.backends.mysql",
-            "NAME": env.str("DB_NAME", default="gym"),
-            "USER": env.str("DB_USER", default="gym"),
-            "PASSWORD": env.str("DB_PASSWORD", default=""),
-            "HOST": host,
-            "PORT": env.int("DB_PORT", default=3306),
-        }
-
-    # Aucune base déclarée : SQLite, pour démarrer en local sans rien installer.
-    # `config.settings.prod` refuse ce cas.
-    return {"ENGINE": "django.db.backends.sqlite3", "NAME": str(BASE_DIR / "db.sqlite3")}
-
-
-DATABASES = {"default": _database_config()}
-DATABASES["default"].setdefault("OPTIONS", {})
-if DATABASES["default"]["ENGINE"] == "django.db.backends.mysql":
-    DATABASES["default"]["OPTIONS"].update(
-        {
-            "charset": "utf8mb4",
-            "init_command": "SET sql_mode='STRICT_TRANS_TABLES'",
-        }
-    )
-    DATABASES["default"]["CONN_MAX_AGE"] = env.int("DB_CONN_MAX_AGE", default=60)
+DATABASES = {
+    "default": {
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": DB_PATH or str(BASE_DIR / "db.sqlite3"),
+    }
+}
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
