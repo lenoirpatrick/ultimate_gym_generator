@@ -43,7 +43,7 @@ check: ## Contrôle la configuration de déploiement
 	$(PYTHON) manage.py check --deploy
 
 docker-build: ## Construit l'image
-	docker build -t lenoirpatrick/ultimate-gym-generator:latest .
+	docker build -t plenoir/ultimate-gym-generator:latest .
 
 docker-up: ## Démarre la pile complète
 	docker compose up -d --build

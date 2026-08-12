@@ -3,6 +3,10 @@
 *.pem
 *.key
 
+# Données persistées du bind mount docker-compose.yml (base SQLite, avatars,
+# secret_key et credentials_key générés au démarrage) : jamais dans l'image.
+ugg_data/
+
 # Contrôle de version et outillage local
 .git
 .gitignore

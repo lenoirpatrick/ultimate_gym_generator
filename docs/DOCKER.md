@@ -24,14 +24,16 @@ Commandes utiles :
 ```bash
 docker compose logs -f web        # suivre les journaux
 docker compose ps                 # état des services et des healthchecks
-docker compose down               # arrêter (les volumes sont conservés)
-docker compose down -v            # arrêter ET supprimer les données ⚠️
+docker compose down               # arrêter (les données restent sur l'hôte)
 ```
 
-La base SQLite (`db_data`) et les avatars (`media_data`) vivent chacun sur
-leur propre volume nommé, en dehors de l'image : `docker compose down -v`
-les supprime, tout le reste les conserve d'un redéploiement à l'autre. Voir
-[INSTALL.md](INSTALL.md) pour le détail de `DJANGO_DB_PATH`.
+La base SQLite et les avatars vivent dans `./ugg_data` sur l'hôte (bind
+mount, pas un volume Docker nommé) : `docker-compose.yml` monte
+`./ugg_data:/app/ugg_data` (contient `db.sqlite3`) et
+`./ugg_data/media:/app/media`. Ce dossier survit à `docker compose down`
+comme à toute reconstruction de l'image — seule sa suppression manuelle
+(`rm -rf ./ugg_data`) efface les données ⚠️. Voir [INSTALL.md](INSTALL.md)
+pour le détail de `DJANGO_DB_PATH`.
 
 ---
 
@@ -48,14 +50,14 @@ Les outils de compilation restent dans l'étape `builder` : l'image finale ne
 les contient pas.
 
 ```bash
-docker build -t lenoirpatrick/ultimate-gym-generator:latest .
+docker build -t plenoir/ultimate-gym-generator:latest .
 ```
 
 Vérifier l'image avant publication :
 
 ```bash
-docker image inspect lenoirpatrick/ultimate-gym-generator:latest --format '{{.Config.User}}'   # → gym
-docker run --rm lenoirpatrick/ultimate-gym-generator:latest python -c "import django; print(django.get_version())"
+docker image inspect plenoir/ultimate-gym-generator:latest --format '{{.Config.User}}'   # → gym
+docker run --rm plenoir/ultimate-gym-generator:latest python -c "import django; print(django.get_version())"
 ```
 
 ---
@@ -64,7 +66,7 @@ docker run --rm lenoirpatrick/ultimate-gym-generator:latest python -c "import dj
 
 ### Préparation (une seule fois)
 
-1. Créer le dépôt `lenoirpatrick/ultimate-gym-generator` sur
+1. Créer le dépôt `plenoir/ultimate-gym-generator` sur
    [hub.docker.com](https://hub.docker.com/).
 2. Générer un **jeton d'accès** (Account Settings → Personal access tokens) —
    ne jamais utiliser le mot de passe du compte.
@@ -75,20 +77,27 @@ docker run --rm lenoirpatrick/ultimate-gym-generator:latest python -c "import dj
 
 ```bash
 # 1. Authentification (le jeton est lu sur l'entrée standard, pas dans l'historique shell)
-echo "$DOCKERHUB_TOKEN" | docker login --username lenoirpatrick --password-stdin
+echo "$DOCKERHUB_TOKEN" | docker login --username plenoir --password-stdin
 
-# 2. Construction et double étiquetage
+# 2. Construction multi-architecture et envoi en une seule étape
+# --platform : sans ça, l'image ne cible que l'architecture de la machine qui
+# construit — inutilisable sur un Raspberry Pi (linux/arm64) si elle vient
+# d'un poste linux/amd64 (« exec format error » au démarrage).
+# --provenance=false --sbom=false : sans ça, un manifest list d'attestations
+# s'ajoute et certains clients échouent à le lire (« does not provide any
+# platform »). --push est obligatoire ici : une image multi-plateforme ne
+# peut pas être chargée dans le moteur Docker local (pas de --load possible),
+# seulement poussée directement vers le registre.
 VERSION=0.1.0
-docker build \
-  -t lenoirpatrick/ultimate-gym-generator:$VERSION \
-  -t lenoirpatrick/ultimate-gym-generator:latest \
+docker buildx build \
+  --platform linux/amd64,linux/arm64 \
+  --provenance=false --sbom=false \
+  --push \
+  -t plenoir/ultimate-gym-generator:$VERSION \
+  -t plenoir/ultimate-gym-generator:latest \
   .
 
-# 3. Envoi
-docker push lenoirpatrick/ultimate-gym-generator:$VERSION
-docker push lenoirpatrick/ultimate-gym-generator:latest
-
-# 4. Déconnexion (le jeton reste sinon en clair dans ~/.docker/config.json)
+# 3. Déconnexion (le jeton reste sinon en clair dans ~/.docker/config.json)
 docker logout
 ```
 
@@ -121,6 +130,27 @@ compose pull` ne doit jamais changer de version applicative par surprise.
   au démarrage. `.env` est exclu par `.dockerignore` et par `.gitignore`.
 - **Aucun secret en argument de build.** Un `ARG` reste lisible dans les
   couches de l'image via `docker history`.
+- **`DJANGO_SECRET_KEY` et `CREDENTIALS_ENCRYPTION_KEY` peuvent rester vides** :
+  `docker/entrypoint.sh` en génère une pour chacune au premier démarrage si
+  elle est absente, et la persiste dans `<dossier de DJANGO_DB_PATH>/secret_key`
+  et `.../credentials_key`, sur le même volume que la base — elles survivent
+  donc aux redémarrages et reconstructions d'image, tant que le volume
+  `ugg_data` n'est pas supprimé (`docker compose down -v`). Perdre ce volume
+  perd la base chiffrée en même temps que la clé qui la protège, donc pas de
+  credentials orphelins illisibles. Les renseigner explicitement dans `.env`
+  reste nécessaire si plusieurs environnements doivent partager les mêmes
+  clés (sessions/jetons ou credentials valables des deux côtés).
+- **`DJANGO_DB_PATH` a aussi un défaut prêt à l'emploi** : `/app/ugg_data/db.sqlite3`,
+  baké dans l'image (Dockerfile) et repris explicitement par
+  `docker-compose.yml`. Un `docker run` sans docker-compose fonctionne donc
+  sans variable supplémentaire, à condition de monter un volume sur
+  `/app/ugg_data` (sinon Docker en crée un anonyme, perdu au prochain `docker
+  run` — voir la table de diagnostic).
+- **Bind mount et utilisateur non-root (hôte Linux) :** si `./ugg_data`
+  n'existe pas encore, Docker le crée appartenant à `root`, inaccessible en
+  écriture à `gym` (UID 10001) qui exécute le conteneur — voir la table de
+  diagnostic. Sur Docker Desktop (Windows/macOS), la couche de partage de
+  fichiers n'applique pas cette contrainte d'UID.
 - Le conteneur tourne en **non-root** (`gym`, UID 10001).
 - Le `HEALTHCHECK` interroge `/healthz`, qui vérifie aussi l'accès à la base :
   un conteneur qui répond sans base est signalé `unhealthy`.
@@ -132,8 +162,11 @@ compose pull` ne doit jamais changer de version applicative par surprise.
 | Symptôme | Piste |
 |---|---|
 | `exec /app/docker/entrypoint.sh: no such file` | Fins de ligne CRLF. `.gitattributes` force LF ; vérifier avec `file docker/entrypoint.sh`. |
-| `ImproperlyConfigured: DJANGO_DB_PATH` | Variable absente ou vide en production. `docker-compose.yml` la renseigne déjà ; vérifier qu'elle n'a pas été retirée du service `web`. |
-| `ImproperlyConfigured: CREDENTIALS_ENCRYPTION_KEY` | Variable absente du `.env`. La générer (voir `.env.example`). |
+| `ImproperlyConfigured: Set the DJANGO_SECRET_KEY environment variable` ou `CREDENTIALS_ENCRYPTION_KEY est obligatoire` | Ne devrait plus se produire via `docker compose up` (génération automatique par `docker/entrypoint.sh`, voir « Règles de sécurité » ci-dessus). Si l'erreur persiste : le conteneur est lancé autrement que par l'entrypoint (`docker run --entrypoint …`), ou `DJANGO_DB_PATH` pointe vers un dossier non accessible en écriture par `gym`. |
+| `ImproperlyConfigured: DJANGO_DB_PATH` | Variable explicitement vidée (`DJANGO_DB_PATH=` dans `.env` ou l'environnement) : l'image fournit un défaut, ce message n'apparaît que si quelque chose l'écrase par une valeur vide. |
+| Base réinitialisée à chaque `docker run` (hors compose) | Aucun volume monté sur `/app/ugg_data` : Docker en crée un anonyme à chaque nouveau conteneur. Monter un dossier hôte explicitement (`-v $(pwd)/ugg_data:/app/ugg_data`), ou passer par `docker-compose.yml` qui le fait déjà. |
+| `PermissionError` / `sqlite3.OperationalError: unable to open database file` (hôte Linux) | `./ugg_data` appartient à `root` (créé par Docker au premier montage). Corriger une fois : `sudo mkdir -p ./ugg_data/media && sudo chown -R 10001:10001 ./ugg_data`. |
+| Toute requête reçoit un `301` et n'aboutit jamais (navigateur ou `HEALTHCHECK`, conteneur `unhealthy`) | `SECURE_SSL_REDIRECT` (vrai par défaut en production) redirige vers `https://`, absent de cette pile. `docker-compose.yml` le force déjà à `False` ; vérifier qu'il n'a pas été retiré du service `web`. À ne repasser à `True` que derrière un reverse proxy TLS transmettant `X-Forwarded-Proto`. |
 | `DisallowedHost` | Ajouter le nom d'hôte à `DJANGO_ALLOWED_HOSTS`. |
 | CSRF refusé derrière un proxy | Renseigner `DJANGO_CSRF_TRUSTED_ORIGINS` avec le schéma (`https://…`). |
 | Statiques absents | L'image les collecte au build : reconstruire sans cache (`docker build --no-cache`). |

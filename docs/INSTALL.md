@@ -34,7 +34,7 @@ qui documente chaque variable.
 | `DJANGO_CSRF_TRUSTED_ORIGINS` | vide | Requis derrière un reverse proxy HTTPS |
 | `DJANGO_TIME_ZONE` | `Europe/Paris` | |
 | `GUNICORN_WORKERS` | `3` | Processus applicatifs (conteneur) |
-| `DJANGO_DB_PATH` | fichier du projet | Chemin de la base SQLite ; obligatoire en production (voir § 2) |
+| `DJANGO_DB_PATH` | fichier du projet (local) · `/app/ugg_data/db.sqlite3` (image) | Chemin de la base SQLite (voir § 2) |
 
 ---
 
@@ -43,11 +43,12 @@ qui documente chaque variable.
 SQLite, uniquement — aucun serveur à installer ni à administrer.
 
 - En local, le fichier `db.sqlite3` est créé à la racine du projet.
-- En conteneur, `DJANGO_DB_PATH` pointe vers `/app/data/db.sqlite3`, monté sur
-  le volume persistant `db_data` par le `docker-compose.yml` fourni : la base
-  survit à toute reconstruction de l'image. `config.settings.prod` refuse de
-  démarrer si `DJANGO_DB_PATH` n'est pas renseigné, pour ne jamais perdre de
-  données silencieusement.
+- En conteneur, `DJANGO_DB_PATH` pointe par défaut vers
+  `/app/ugg_data/db.sqlite3` (baké dans l'image), monté par le
+  `docker-compose.yml` fourni sur `./ugg_data` côté hôte (bind mount) : la
+  base survit à toute reconstruction de l'image. `config.settings.prod`
+  refuse de démarrer si la variable est explicitement vidée, pour ne jamais
+  retomber silencieusement sur un chemin non persistant.
 - En installation locale (hors conteneur), laisser `DJANGO_DB_PATH` vide dans
   `.env` : le repli dans le projet convient au développement.
 

@@ -1,5 +1,6 @@
 # =============================================================================
-# Pile complète : application, base SQLite persistée sur volume.
+# Pile complète : application, base SQLite persistée dans ./ugg_data (bind
+# mount local, pas un volume Docker nommé).
 #
 #   cp .env.example .env      puis renseigner les valeurs obligatoires
 #   docker compose up -d --build
@@ -18,17 +19,24 @@ services:
       - .env
     environment:
       DJANGO_SETTINGS_MODULE: config.settings.prod
+      # Cette pile est la pile de production : DEBUG ne doit jamais dépendre
+      # d'un .env recopié depuis .env.example (qui vaut True par défaut, pour
+      # le développement local).
+      DJANGO_DEBUG: "False"
+      # Cette pile expose directement http://localhost:5907, sans reverse
+      # proxy TLS devant : le défaut de production (redirection vers https,
+      # config/settings/prod.py) redirigerait toute requête vers un https qui
+      # n'existe pas ici, cassant l'accès et le HEALTHCHECK. À retirer (ou
+      # passer à "True") si un reverse proxy TLS est placé devant ce service.
+      DJANGO_SECURE_SSL_REDIRECT: "False"
       DJANGO_PORT: "5907"
       # Chemin monté sur le volume ci-dessous : la base survit à toute
-      # reconstruction de l'image.
-      DJANGO_DB_PATH: /app/data/db.sqlite3
+      # reconstruction de l'image. Reprend le défaut déjà baké dans l'image
+      # (Dockerfile) — explicite ici pour documenter le lien avec le volume.
+      DJANGO_DB_PATH: /app/ugg_data/db.sqlite3
     ports:
       - "${DJANGO_PORT:-5907}:5907"
     volumes:
-      - db_data:/app/data
+      - ./ugg_data:/app/ugg_data
       # Persistance des fichiers déposés par les utilisateurs.
-      - media_data:/app/media
-
-volumes:
-  db_data:
-  media_data:
+      - ./ugg_data/media:/app/media

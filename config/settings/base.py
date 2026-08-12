@@ -94,8 +94,11 @@ TEMPLATES = [
 # Base de données
 #
 # SQLite uniquement. En local, le fichier vit dans le projet ; en conteneur,
-# DJANGO_DB_PATH doit pointer vers un volume persistant (voir docker-compose.yml
-# et `config.settings.prod`, qui refuse de démarrer sans ce réglage explicite).
+# DJANGO_DB_PATH doit pointer vers un volume persistant — le Dockerfile en
+# fournit un défaut prêt à l'emploi (/app/ugg_data/db.sqlite3, voir la
+# déclaration VOLUME) repris explicitement par docker-compose.yml.
+# `config.settings.prod` refuse de démarrer si la variable est explicitement
+# vidée, pour ne jamais retomber silencieusement sur un chemin non persistant.
 # --------------------------------------------------------------------------- #
 
 #: Chemin explicite du fichier SQLite. Vide en développement local (repli

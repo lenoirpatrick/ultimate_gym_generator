@@ -36,10 +36,15 @@ RUN DJANGO_SETTINGS_MODULE=config.settings.dev \
 # =============================================================================
 FROM python:3.14-slim AS runtime
 
+# DJANGO_DB_PATH a un défaut prêt à l'emploi pour un `docker run` sans
+# docker-compose : la base vit alors sur le volume déclaré plus bas.
+# `docker-compose.yml` reprend la même valeur explicitement, pour documenter
+# le lien avec son propre volume nommé.
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     DJANGO_SETTINGS_MODULE=config.settings.prod \
     DJANGO_PORT=5907 \
+    DJANGO_DB_PATH=/app/ugg_data/db.sqlite3 \
     PATH="/opt/venv/bin:$PATH"
 
 RUN useradd --create-home --uid 10001 gym
@@ -53,11 +58,11 @@ RUN chmod +x /app/docker/entrypoint.sh \
     # Points de montage des avatars et de la base SQLite : créés et attribués
     # avant de perdre les droits root, sinon un volume monté ici serait
     # inaccessible en écriture.
-    && mkdir -p /app/media /app/data && chown gym:gym /app/media /app/data
+    && mkdir -p /app/media /app/ugg_data && chown gym:gym /app/media /app/ugg_data
 
 USER gym
 
-VOLUME ["/app/media", "/app/data"]
+VOLUME ["/app/media", "/app/ugg_data"]
 
 # 5907 = « sport » en leet.
 EXPOSE 5907

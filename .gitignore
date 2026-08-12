@@ -228,3 +228,7 @@ core/static/core/css/app.css
 
 # Fichiers déposés par les utilisateurs
 media/
+
+# Données persistées du conteneur (bind mount docker-compose.yml) : base
+# SQLite, avatars, secret_key et credentials_key générés au démarrage.
+ugg_data/
