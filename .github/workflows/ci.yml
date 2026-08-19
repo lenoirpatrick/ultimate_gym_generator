@@ -38,7 +38,7 @@ jobs:
     name: Style et qualité
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: actions/setup-python@v5
         with:
@@ -63,7 +63,7 @@ jobs:
       DJANGO_SETTINGS_MODULE: config.settings.test
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: actions/setup-python@v5
         with:
@@ -96,7 +96,7 @@ jobs:
     needs: [secrets-gate, test]
     if: needs.secrets-gate.outputs.sonar == 'true'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           # Historique complet : Sonar en a besoin pour attribuer les lignes
           # (« new code ») et dater les problèmes.
@@ -116,7 +116,7 @@ jobs:
     name: Construction de l'image
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: docker/setup-buildx-action@v3
 
