@@ -452,6 +452,19 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
 - L'image porte un `alt` nommant la personne ; le repli initiales est
   `aria-hidden` et doublé d'un libellé lisible par lecteur d'écran.
 
+### Favicon
+
+- `core/static/core/favicon.svg` — un haltère (mêmes tracés que le spinner
+  `dumbbell`, voir « Spinners et indicateurs de chargement ») en accent
+  citron (`--ugg-lime-500`) sur fond graphite (`--ugg-graphite-950`), pas
+  l'icône par défaut du framework. Fond volontairement fixe, indépendant du
+  thème clair/sombre de la page : un onglet de navigateur ne suit pas
+  `prefers-color-scheme` de la même façon qu'une page, une seule version
+  suffit.
+- Un seul fichier SVG (`<link rel="icon" type="image/svg+xml">`,
+  `core/templates/core/base.html`), sans PNG/ICO généré ni build supplémentaire
+  — cohérent avec le zéro dépendance déjà en place pour les spinners.
+
 ### Référentiel visuel
 
 `/style-guide/` (disponible en `DEBUG` uniquement) affiche tokens, composants et spinners.
