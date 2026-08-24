@@ -46,9 +46,9 @@ class TimerStep:
 def _item_steps(
     item: WorkoutExercise, lap: int, total_laps: int, *, include_rest: bool = True
 ) -> list[TimerStep]:
-    """Un pas d'effort, suivi de son repos — sauf `include_rest=False` (issue #60) :
-    quand une récupération suit immédiatement, le repos entre exercices ferait double
-    emploi avec elle."""
+    """Un pas d'effort, suivi de son repos — sauf `include_rest=False` : quand une
+    récupération suit immédiatement (issue #60) ou que la séance s'arrête juste après
+    (issue #66), un repos individuel ne servirait à rien."""
     reps = item.reps[lap - 1] if item.reps else None
     seconds = None if item.reps else item.work_seconds
     steps = [TimerStep(item.pk, "work", seconds, reps, lap, total_laps)]
@@ -67,7 +67,10 @@ def build_timeline(workout: Workout) -> list[dict]:
     directement sur `workout.recovery_seconds`, pas caché, comme lui, à chaque
     rendu de l'écran de détail. Le repos individuel qui suivrait le dernier
     exercice d'un tour/round est omis quand une récupération lui succède
-    immédiatement (issue #60) : les deux marqueraient la même pause deux fois.
+    immédiatement (issue #60), et plus largement quand rien ne le suit du tout
+    — le dernier exercice du dernier tour/circuit ne marque pas non plus son
+    propre repos (issue #66) : la séance s'arrête juste après, un repos n'y
+    servirait à rien de plus qu'après le dernier pas de récupération.
     """
     items = list(workout.items.all())
     if not items:
@@ -79,22 +82,22 @@ def build_timeline(workout: Workout) -> list[dict]:
         total_laps = items[0].rounds or 1
         for lap in range(1, total_laps + 1):
             recovery_follows = bool(recovery and lap < total_laps)
+            is_final_lap = lap == total_laps
             for position, item in enumerate(items):
                 is_last_of_lap = position == len(items) - 1
-                steps += _item_steps(
-                    item, lap, total_laps, include_rest=not (is_last_of_lap and recovery_follows)
-                )
+                omit_rest = is_last_of_lap and (recovery_follows or is_final_lap)
+                steps += _item_steps(item, lap, total_laps, include_rest=not omit_rest)
             if recovery_follows:
                 steps.append(TimerStep(items[-1].pk, "recovery", recovery, None, lap, total_laps))
     else:
         for index, item in enumerate(items):
             total_laps = item.rounds or 1
             recovery_follows = bool(recovery and index < len(items) - 1)
+            is_final_item = index == len(items) - 1
             for lap in range(1, total_laps + 1):
                 is_last_lap = lap == total_laps
-                steps += _item_steps(
-                    item, lap, total_laps, include_rest=not (is_last_lap and recovery_follows)
-                )
+                omit_rest = is_last_lap and (recovery_follows or is_final_item)
+                steps += _item_steps(item, lap, total_laps, include_rest=not omit_rest)
             if recovery_follows:
                 steps.append(TimerStep(item.pk, "recovery", recovery, None, total_laps, total_laps))
 

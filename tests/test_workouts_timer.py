@@ -228,6 +228,9 @@ def test_aucun_repos_individuel_avant_une_recuperation(user, rng):
 
 
 def test_aucune_recuperation_apres_le_dernier_tour(user, rng):
+    """Ni récupération, ni repos individuel après le tout dernier exercice du
+    tout dernier tour (issue #66) : la séance s'arrête juste après, une pause
+    n'y servirait à rien."""
     workout = composer(
         user,
         rng,
@@ -237,7 +240,7 @@ def test_aucune_recuperation_apres_le_dernier_tour(user, rng):
     )
     steps = timer.build_timeline(workout)
 
-    assert steps[-1]["phase"] != "recovery"
+    assert steps[-1]["phase"] == "work"
 
 
 def test_le_tabata_marque_une_recuperation_entre_les_blocs(user, rng):
@@ -274,3 +277,58 @@ def test_sans_recuperation_aucun_pas_de_recuperation(user, rng):
     steps = timer.build_timeline(workout)
 
     assert all(step["phase"] != "recovery" for step in steps)
+
+
+# --------------------------------------------------------------------------- #
+# Fin de séance : jamais de repos superflu (issue #66)
+# --------------------------------------------------------------------------- #
+
+
+def test_aucun_repos_apres_le_dernier_exercice_sans_recuperation(user, rng):
+    """Sans récupération configurée, le dernier exercice du dernier tour ne
+    marque pas non plus son propre repos : rien ne le suit."""
+    workout = composer(
+        user,
+        rng,
+        workout_format=Workout.Format.CIRCUIT,
+        duration_minutes=20,
+        recovery_seconds=0,
+    )
+    steps = timer.build_timeline(workout)
+
+    assert steps[-1]["phase"] == "work"
+
+
+def test_le_tabata_ne_marque_pas_de_repos_apres_le_dernier_round(user, rng):
+    workout = composer(
+        user,
+        rng,
+        workout_format=Workout.Format.TABATA,
+        duration_minutes=20,
+        recovery_seconds=0,
+    )
+    steps = timer.build_timeline(workout)
+
+    assert steps[-1]["phase"] == "work"
+
+
+def test_le_tabata_ne_marque_pas_de_repos_apres_le_dernier_round_avec_recuperation(user, rng):
+    workout = composer(
+        user,
+        rng,
+        workout_format=Workout.Format.TABATA,
+        duration_minutes=20,
+        recovery_seconds=45,
+    )
+    steps = timer.build_timeline(workout)
+
+    assert steps[-1]["phase"] == "work"
+
+
+def test_la_pyramide_ne_marque_pas_de_repos_apres_le_dernier_round(user, rng):
+    workout = composer(
+        user, rng, workout_format=Workout.Format.PYRAMID, duration_minutes=20, peak_reps=12
+    )
+    steps = timer.build_timeline(workout)
+
+    assert steps[-1]["phase"] == "work"

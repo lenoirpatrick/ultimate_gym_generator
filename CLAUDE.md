@@ -336,6 +336,12 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
   **récupération** entre tours/blocs en `--ugg-info` — seul usage d'une couleur froide
   dans tout le projet, réservé à cette pause pour ne jamais se confondre avec le repos
   entre exercices. La couleur ne fait que renforcer le libellé, jamais le remplacer.
+- Le tout dernier exercice du tout dernier tour/circuit ne marque pas son propre
+  repos (issue #66, généralisation de #60) : la séance s'arrête juste après, une
+  pause n'y servirait à rien de plus qu'après le dernier pas de récupération. Même
+  mécanique côté serveur (`workouts.timer.build_timeline`, `omit_rest`) — que le
+  format soit interleaved (dernier exercice du dernier tour) ou non (dernier round
+  du dernier exercice), avec ou sans récupération configurée.
 - L'écran ne s'éteint pas pendant la séance (issue #53) : un verrou d'écran (Screen
   Wake Lock API, `requestWakeLock()`) est posé à l'ouverture du minuteur et relâché à
   sa fermeture, y compris quand l'onglet reprend la main après une perte de visibilité
