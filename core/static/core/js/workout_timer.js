@@ -98,7 +98,7 @@
         osc.type = type || "sine";
         osc.frequency.value = frequency;
         gain.gain.setValueAtTime(0.0001, start);
-        gain.gain.exponentialRampToValueAtTime(peakGain || 0.2, start + 0.015);
+        gain.gain.exponentialRampToValueAtTime(peakGain || 0.38, start + 0.015);
         gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
         osc.connect(gain).connect(audioCtx.destination);
         osc.start(start);
@@ -124,7 +124,7 @@
         } else if (name === "tick") {
             // Un bip discret par seconde sur les quatre dernières secondes
             // d'un décompte — la préparation comme un effort chronométré.
-            tone(660, now, 0.08, "sine", 0.14);
+            tone(660, now, 0.08, "sine", 0.3);
         }
     }
 
