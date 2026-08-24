@@ -226,7 +226,10 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
   marquer la pause à l'exécution — désormais un pas dédié (`phase: "recovery"`)
   s'intercale entre deux tours ou deux blocs, jamais après le dernier ; distingué de
   l'effort par son libellé (« Récupération ») comme le repos, sans dépendre de la seule
-  couleur, et partage sa tonalité.
+  couleur, et partage sa tonalité. Le repos individuel du dernier exercice d'un tour (ou
+  du dernier round d'un exercice) est omis quand une récupération le suit immédiatement
+  (issue #60, `timer._item_steps(..., include_rest=False)`) : les deux marqueraient
+  sinon la même transition deux fois de suite.
 - Le nom d'un exercice dans le déroulé est lui-même un panneau repliable
   (`.ugg-disclosure.ugg-disclosure--plain`, issue #30) : le déplier donne le même rappel
   que le catalogue — consignes traduites et galerie zoomable, via le partiel commun
