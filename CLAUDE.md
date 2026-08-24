@@ -259,7 +259,8 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
   surbrillance l'exercice en cours (liseré d'accent, jamais la seule couleur). Le pas
   courant porte le temps décompté en grand ; un effort en répétitions (pyramide) affiche
   la cible et attend une confirmation manuelle plutôt qu'un décompte qui n'aurait pas de
-  sens.
+  sens. Le chrono (`.ugg-timer__clock`) et les répétitions (`.ugg-timer__reps`) se lisent
+  à bout de bras : 4.25rem / 3rem sur mobile, 6rem / 4rem à partir de `40rem` (issue #58).
 - Le **tiers bas de l'écran** (`.ugg-timer__current`) reprend l'exercice en cours en
   grand — photo, matériel, muscles principaux — pour s'y référer d'un coup d'œil sans
   chercher la bonne ligne dans la timeline, qui reste au-dessus pour le contexte des pas

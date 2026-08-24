@@ -1355,7 +1355,7 @@
 .ugg-timer__clock {
     margin-top: var(--ugg-space-3);
     font-family: var(--ugg-font-display);
-    font-size: 3.5rem;
+    font-size: 4.25rem;
     font-weight: 700;
     font-variant-numeric: tabular-nums;
     letter-spacing: var(--ugg-tracking-display);
@@ -1365,9 +1365,21 @@
 .ugg-timer__reps {
     margin-top: var(--ugg-space-3);
     font-family: var(--ugg-font-display);
-    font-size: 2.5rem;
+    font-size: 3rem;
     font-weight: 700;
     color: var(--ugg-timer-phase-color);
+}
+
+/* Le chrono se lit à bout de bras : plus grand encore dès qu'il y a la place
+   (issue #58). */
+@media (min-width: 40rem) {
+    .ugg-timer__clock {
+        font-size: 6rem;
+    }
+
+    .ugg-timer__reps {
+        font-size: 4rem;
+    }
 }
 
 .ugg-timer__controls {
