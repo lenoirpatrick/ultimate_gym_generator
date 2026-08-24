@@ -299,6 +299,12 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
   **récupération** entre tours/blocs en `--ugg-info` — seul usage d'une couleur froide
   dans tout le projet, réservé à cette pause pour ne jamais se confondre avec le repos
   entre exercices. La couleur ne fait que renforcer le libellé, jamais le remplacer.
+- L'écran ne s'éteint pas pendant la séance (issue #53) : un verrou d'écran (Screen
+  Wake Lock API, `requestWakeLock()`) est posé à l'ouverture du minuteur et relâché à
+  sa fermeture, y compris quand l'onglet reprend la main après une perte de visibilité
+  (le verrou se relâche alors automatiquement, contrainte de la spec). Le web ne donne
+  accès à aucun réglage de luminosité matérielle — c'est l'équivalent le plus proche,
+  sur PC comme sur smartphone. Dégradation silencieuse si l'API est absente.
 
 ### Bascules d'état (favori)
 

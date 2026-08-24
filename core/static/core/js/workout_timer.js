@@ -61,6 +61,36 @@
     let photoRotationId = null;
     let photoUrls = [];
     let photoIndex = 0;
+    let wakeLock = null;
+
+    // Le web ne donne accès à aucun réglage de luminosité matérielle : le plus
+    // proche disponible est d'empêcher l'écran de s'éteindre ou de s'assombrir
+    // pendant la séance (issue #53). Dégradation silencieuse si l'API est
+    // absente (Safari desktop, anciens navigateurs) — comportement inchangé.
+    async function requestWakeLock() {
+        if (!("wakeLock" in navigator)) return;
+        try {
+            wakeLock = await navigator.wakeLock.request("screen");
+        } catch {
+            wakeLock = null;
+        }
+    }
+
+    function releaseWakeLock() {
+        if (wakeLock) {
+            wakeLock.release().catch(() => {});
+            wakeLock = null;
+        }
+    }
+
+    // Le verrou se relâche automatiquement quand l'onglet perd la visibilité
+    // (contrainte de la spec) — on le redemande au retour, tant que le
+    // minuteur est toujours ouvert.
+    document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "visible" && dialog.open) {
+            requestWakeLock();
+        }
+    });
 
     function tone(frequency, start, duration, type, peakGain) {
         const osc = audioCtx.createOscillator();
@@ -323,6 +353,7 @@
 
         reset();
         dialog.showModal();
+        requestWakeLock();
         playCue("start");
         startPrep();
     });
@@ -351,5 +382,6 @@
     dialog.addEventListener("close", () => {
         stopInterval();
         stopPhotoRotation();
+        releaseWakeLock();
     });
 })();
