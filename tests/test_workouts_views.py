@@ -897,8 +897,9 @@ def test_le_deroule_chronometre_est_transmis_en_json(logged_client, user):
     content = logged_client.get(reverse("workouts:detail", args=[workout.pk])).content.decode()
 
     assert 'id="minuteur-donnees"' in content
-    # Trois rounds de répétitions, un repos entre chacun : six pas.
-    assert content.count('"itemId"') == 6
+    # Trois rounds de répétitions, un repos entre chacun sauf après le
+    # dernier (issue #66, rien ne le suit) : cinq pas.
+    assert content.count('"itemId"') == 5
 
 
 def test_sans_exercice_le_bouton_de_lancement_n_apparait_pas(logged_client, user):
