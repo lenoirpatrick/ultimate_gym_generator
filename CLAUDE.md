@@ -280,7 +280,13 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
   un cadre vide. La photo s'y affiche entière (`object-fit: contain`, fond neutre en
   lettrboxing, issue #62) — un rognage (`cover`) couperait la posture qu'elle montre ;
   portée volontairement limitée à ce grand panneau, la vignette de la timeline et la
-  galerie du catalogue restent en `cover`, un usage différent (aperçu carré). Un exercice qui en compte plusieurs les fait défiler toutes les 5 s
+  galerie du catalogue restent en `cover`, un usage différent (aperçu carré). Les
+  consignes traduites (repli sur l'anglais) y figurent aussi (issue #63,
+  `.ugg-timer__current-instructions`), scrollables au-delà de 5.5rem plutôt que de
+  faire déborder le panneau sur mobile — une liste cachée par exercice dans la
+  timeline (`.ugg-timer__step-instructions`, `timer_timeline.html`) sert de source,
+  clonée par `updateCurrentExercisePanel()`, même principe que le nom, le matériel et
+  les muscles. Un exercice qui en compte plusieurs les fait défiler toutes les 5 s
   (`startPhotoRotation()`, issue #35 suite) tant que la séance n'est pas en pause — la
   liste complète voyage dans `data-photos` sur la ligne de la timeline (`workouts/
   partials/timer_timeline.html`), séparée par `|`, sur le même principe que

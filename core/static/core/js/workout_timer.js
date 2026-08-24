@@ -51,6 +51,7 @@
     const currentName = document.getElementById("minuteur-exercice-actuel-nom");
     const currentEquipment = document.getElementById("minuteur-exercice-actuel-materiel");
     const currentMuscles = document.getElementById("minuteur-exercice-actuel-muscles");
+    const currentInstructions = document.getElementById("minuteur-exercice-actuel-description");
 
     let index = -1;
     let remaining = 0;
@@ -202,6 +203,18 @@
             currentMuscles.textContent = stepEl.dataset.muscles;
         } else {
             currentMuscles.hidden = true;
+        }
+
+        // Consignes (issue #63) : clonées depuis la liste cachée de la ligne
+        // de la timeline plutôt que dupliquées dans le JSON du minuteur —
+        // même principe que le nom, le matériel et les muscles ci-dessus.
+        const instructions = stepEl.querySelector(".ugg-timer__step-instructions");
+        if (instructions) {
+            currentInstructions.replaceChildren(...instructions.cloneNode(true).children);
+            currentInstructions.hidden = false;
+        } else {
+            currentInstructions.replaceChildren();
+            currentInstructions.hidden = true;
         }
 
         photoUrls = stepEl.dataset.photos ? stepEl.dataset.photos.split("|") : [];
