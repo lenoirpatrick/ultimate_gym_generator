@@ -232,10 +232,12 @@
 
     // Pendant une pause (repos, récupération), affiche l'exercice qui arrive
     // plutôt que celui qu'on vient de terminer (issue #59) : le prochain pas
-    // d'effort dans l'ordre chronologique du minuteur.
-    function nextWorkExerciseName(fromIndex) {
+    // d'effort dans l'ordre chronologique du minuteur — le pas entier, pas
+    // seulement son nom, pour piloter aussi bien le libellé que le panneau
+    // photo/consignes (highlight() ci-dessous, dans activateStep()).
+    function nextWorkStep(fromIndex) {
         for (let i = fromIndex + 1; i < steps.length; i += 1) {
-            if (steps[i].phase === "work") return exerciseName(steps[i].itemId);
+            if (steps[i].phase === "work") return steps[i];
         }
         return null;
     }
@@ -311,15 +313,17 @@
         }
 
         const step = steps[index];
-        highlight(step.itemId);
+        // Pendant une pause, le pas d'effort qui arrive — jamais celui qu'on
+        // vient de terminer (issue #59) : pilote à la fois le libellé et le
+        // panneau photo/consignes (highlight() lit dessus la ligne de la
+        // timeline correspondante), pas seulement le texte.
+        const upcoming = step.phase === "work" ? null : nextWorkStep(index);
+        highlight(upcoming ? upcoming.itemId : step.itemId);
         dialog.dataset.phase = step.phase;
         phaseEl.textContent = PHASE_LABELS[step.phase] || "Repos";
-        if (step.phase === "work") {
-            exerciseEl.textContent = exerciseName(step.itemId);
-        } else {
-            const upcoming = nextWorkExerciseName(index);
-            exerciseEl.textContent = upcoming ? `Suivant : ${upcoming}` : exerciseName(step.itemId);
-        }
+        exerciseEl.textContent = upcoming
+            ? `Suivant : ${exerciseName(upcoming.itemId)}`
+            : exerciseName(step.itemId);
         lapEl.textContent = step.totalLaps > 1 ? `Tour ${step.lap} / ${step.totalLaps}` : "";
         progressWrap.hidden = false;
 
