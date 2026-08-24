@@ -293,9 +293,12 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
   reprend la tonalité du repos — les deux sont une pause, pas un effort — mais garde son
   propre libellé (« Récupération »).
 - Chaque phase du minuteur porte, en plus de son libellé, une couleur constante sur tout
-  l'écran (issue #35 suite) : **préparation** en `--ugg-danger` (on démarre, l'urgence du
-  compte à rebours), **effort** dans l'accent de marque (`--ugg-accent`, déjà la couleur
-  par défaut de `.ugg-timer__phase`), **repos** entre exercices en `--ugg-success`, et
+  l'écran (issue #35 suite), portée par une seule variable `--ugg-timer-phase-color`
+  posée sur `.ugg-timer[data-phase="…"]` et reprise par l'étiquette de phase, le chrono
+  **et** les répétitions (issue #57 — le gros chrono, plus lisible à distance qu'une
+  étiquette, portait encore une couleur neutre) : **préparation** en `--ugg-danger` (on
+  démarre, l'urgence du compte à rebours), **effort** dans l'accent de marque
+  (`--ugg-accent`, valeur par défaut), **repos** entre exercices en `--ugg-success`, et
   **récupération** entre tours/blocs en `--ugg-info` — seul usage d'une couleur froide
   dans tout le projet, réservé à cette pause pour ne jamais se confondre avec le repos
   entre exercices. La couleur ne fait que renforcer le libellé, jamais le remplacer.

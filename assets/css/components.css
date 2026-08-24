@@ -1275,6 +1275,10 @@
    "agent utilisateur", quelle que soit la spécificité) et la modale resterait
    visible même fermée. */
 .ugg-timer {
+    /* Couleur de phase portée ici plutôt que sur chaque élément coloré (issue
+       #57) : une seule variable, reprise par l'étiquette, le chrono et les
+       répétitions ci-dessous — la source de vérité de la couleur active. */
+    --ugg-timer-phase-color: var(--ugg-accent);
     position: fixed;
     inset: 0;
     z-index: 60;
@@ -1310,27 +1314,29 @@
     font-weight: 700;
     letter-spacing: var(--ugg-tracking-label);
     text-transform: uppercase;
-    color: var(--ugg-accent);
+    color: var(--ugg-timer-phase-color);
 }
 
 /* Chaque phase se distingue de l'effort sans dépendre de la seule couleur :
    le libellé du texte porte déjà la différence (« Préparation » / « Effort »
    / « Repos » / « Récupération »). La couleur ne fait que renforcer, un code
-   constant sur tout le minuteur (issue #35 suite) : préparation en danger
-   (on démarre, l'urgence du compte à rebours), repos en success (la pause la
-   plus fréquente, la plus « acquise »), récupération en info — seule couleur
-   froide du projet, réservée à cette pause entre tours/blocs pour ne pas se
-   confondre avec le repos entre exercices. L'effort garde l'accent de marque. */
-.ugg-timer[data-phase="prep"] .ugg-timer__phase {
-    color: var(--ugg-danger);
+   constant sur tout le minuteur (issue #35 suite), étendu du seul libellé au
+   chrono et aux répétitions (issue #57) via `--ugg-timer-phase-color` :
+   préparation en danger (on démarre, l'urgence du compte à rebours), repos
+   en success (la pause la plus fréquente, la plus « acquise »), récupération
+   en info — seule couleur froide du projet, réservée à cette pause entre
+   tours/blocs pour ne pas se confondre avec le repos entre exercices.
+   L'effort garde l'accent de marque (valeur par défaut ci-dessus). */
+.ugg-timer[data-phase="prep"] {
+    --ugg-timer-phase-color: var(--ugg-danger);
 }
 
-.ugg-timer[data-phase="rest"] .ugg-timer__phase {
-    color: var(--ugg-success);
+.ugg-timer[data-phase="rest"] {
+    --ugg-timer-phase-color: var(--ugg-success);
 }
 
-.ugg-timer[data-phase="recovery"] .ugg-timer__phase {
-    color: var(--ugg-info);
+.ugg-timer[data-phase="recovery"] {
+    --ugg-timer-phase-color: var(--ugg-info);
 }
 
 .ugg-timer__exercise {
@@ -1353,6 +1359,7 @@
     font-weight: 700;
     font-variant-numeric: tabular-nums;
     letter-spacing: var(--ugg-tracking-display);
+    color: var(--ugg-timer-phase-color);
 }
 
 .ugg-timer__reps {
@@ -1360,6 +1367,7 @@
     font-family: var(--ugg-font-display);
     font-size: 2.5rem;
     font-weight: 700;
+    color: var(--ugg-timer-phase-color);
 }
 
 .ugg-timer__controls {
