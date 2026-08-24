@@ -51,16 +51,58 @@
     const currentName = document.getElementById("minuteur-exercice-actuel-nom");
     const currentEquipment = document.getElementById("minuteur-exercice-actuel-materiel");
     const currentMuscles = document.getElementById("minuteur-exercice-actuel-muscles");
+    const currentInstructions = document.getElementById("minuteur-exercice-actuel-description");
 
     let index = -1;
     let remaining = 0;
     let total = 0;
     let intervalId = null;
+    // Fonction rebranchée par Pause/Reprendre : celle d'un pas normal (tick)
+    // ou celle d'une préparation (prepTick), selon ce qui tournait avant la
+    // pause (issue #61).
+    let activeIntervalCallback = null;
+    // Décompte propre à une préparation (5 s), distinct de `remaining`/`total`
+    // qui restent figés sur le dernier pas réellement joué tant qu'elle dure —
+    // c'est ce qui garde la préparation hors de l'avancement de la séance.
+    let prepRemaining = 0;
+    // Index du pas visé par la préparation en cours, ou `null` hors
+    // préparation — permet à « Passer » d'y couper court (issue #61).
+    let pendingPrepIndex = null;
     let audioCtx = null;
     let currentStepEl = null;
     let photoRotationId = null;
     let photoUrls = [];
     let photoIndex = 0;
+    let wakeLock = null;
+
+    // Le web ne donne accès à aucun réglage de luminosité matérielle : le plus
+    // proche disponible est d'empêcher l'écran de s'éteindre ou de s'assombrir
+    // pendant la séance (issue #53). Dégradation silencieuse si l'API est
+    // absente (Safari desktop, anciens navigateurs) — comportement inchangé.
+    async function requestWakeLock() {
+        if (!("wakeLock" in navigator)) return;
+        try {
+            wakeLock = await navigator.wakeLock.request("screen");
+        } catch {
+            wakeLock = null;
+        }
+    }
+
+    function releaseWakeLock() {
+        if (wakeLock) {
+            wakeLock.release().catch(() => {});
+            wakeLock = null;
+        }
+    }
+
+    // Le verrou se relâche automatiquement quand l'onglet perd la visibilité
+    // (contrainte de la spec) — on le redemande au retour, tant que le
+    // minuteur est toujours ouvert.
+    document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "visible" && dialog.open) {
+            requestWakeLock();
+        }
+    });
 
     function tone(frequency, start, duration, type, peakGain) {
         const osc = audioCtx.createOscillator();
@@ -68,7 +110,7 @@
         osc.type = type || "sine";
         osc.frequency.value = frequency;
         gain.gain.setValueAtTime(0.0001, start);
-        gain.gain.exponentialRampToValueAtTime(peakGain || 0.2, start + 0.015);
+        gain.gain.exponentialRampToValueAtTime(peakGain || 0.38, start + 0.015);
         gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
         osc.connect(gain).connect(audioCtx.destination);
         osc.start(start);
@@ -84,9 +126,12 @@
             tone(523, now, 0.14, "sine");
             tone(784, now + 0.16, 0.2, "sine");
         } else if (name === "end") {
-            tone(784, now, 0.16, "sine");
-            tone(659, now + 0.18, 0.16, "sine");
-            tone(523, now + 0.36, 0.28, "sine");
+            // Arpège montant (do-mi-sol-do) plutôt qu'une séquence descendante :
+            // une fin de séance se fête, elle ne se referme pas simplement.
+            tone(523, now, 0.14, "sine");
+            tone(659, now + 0.15, 0.14, "sine");
+            tone(784, now + 0.3, 0.14, "sine");
+            tone(1047, now + 0.45, 0.35, "sine");
         } else if (name === "work") {
             tone(880, now, 0.18, "triangle");
         } else if (name === "rest" || name === "recovery") {
@@ -94,7 +139,7 @@
         } else if (name === "tick") {
             // Un bip discret par seconde sur les quatre dernières secondes
             // d'un décompte — la préparation comme un effort chronométré.
-            tone(660, now, 0.08, "sine", 0.14);
+            tone(660, now, 0.08, "sine", 0.3);
         }
     }
 
@@ -160,6 +205,18 @@
             currentMuscles.hidden = true;
         }
 
+        // Consignes (issue #63) : clonées depuis la liste cachée de la ligne
+        // de la timeline plutôt que dupliquées dans le JSON du minuteur —
+        // même principe que le nom, le matériel et les muscles ci-dessus.
+        const instructions = stepEl.querySelector(".ugg-timer__step-instructions");
+        if (instructions) {
+            currentInstructions.replaceChildren(...instructions.cloneNode(true).children);
+            currentInstructions.hidden = false;
+        } else {
+            currentInstructions.replaceChildren();
+            currentInstructions.hidden = true;
+        }
+
         photoUrls = stepEl.dataset.photos ? stepEl.dataset.photos.split("|") : [];
         photoIndex = 0;
         showCurrentPhoto();
@@ -171,6 +228,18 @@
             `.ugg-timer__step[data-item-id="${itemId}"] .ugg-timer__step-name`
         );
         return el ? el.textContent : "";
+    }
+
+    // Pendant une pause (repos, récupération), affiche l'exercice qui arrive
+    // plutôt que celui qu'on vient de terminer (issue #59) : le prochain pas
+    // d'effort dans l'ordre chronologique du minuteur — le pas entier, pas
+    // seulement son nom, pour piloter aussi bien le libellé que le panneau
+    // photo/consignes (highlight() ci-dessous, dans activateStep()).
+    function nextWorkStep(fromIndex) {
+        for (let i = fromIndex + 1; i < steps.length; i += 1) {
+            if (steps[i].phase === "work") return steps[i];
+        }
+        return null;
     }
 
     function stopInterval() {
@@ -218,8 +287,25 @@
         }
     }
 
+    // Une reprise après une récupération de tour/bloc redonne 5 s de
+    // préparation, comme au tout début de la séance (issue #61).
+    function needsPrep(nextIndex) {
+        return (
+            nextIndex > 0 && nextIndex < steps.length && steps[nextIndex - 1].phase === "recovery"
+        );
+    }
+
     function goTo(nextIndex) {
         stopInterval();
+        if (needsPrep(nextIndex)) {
+            runPrep(nextIndex);
+            return;
+        }
+        activateStep(nextIndex);
+    }
+
+    function activateStep(nextIndex) {
+        pendingPrepIndex = null;
         index = nextIndex;
         if (index >= steps.length) {
             finish();
@@ -227,10 +313,17 @@
         }
 
         const step = steps[index];
-        highlight(step.itemId);
+        // Pendant une pause, le pas d'effort qui arrive — jamais celui qu'on
+        // vient de terminer (issue #59) : pilote à la fois le libellé et le
+        // panneau photo/consignes (highlight() lit dessus la ligne de la
+        // timeline correspondante), pas seulement le texte.
+        const upcoming = step.phase === "work" ? null : nextWorkStep(index);
+        highlight(upcoming ? upcoming.itemId : step.itemId);
         dialog.dataset.phase = step.phase;
         phaseEl.textContent = PHASE_LABELS[step.phase] || "Repos";
-        exerciseEl.textContent = exerciseName(step.itemId);
+        exerciseEl.textContent = upcoming
+            ? `Suivant : ${exerciseName(upcoming.itemId)}`
+            : exerciseName(step.itemId);
         lapEl.textContent = step.totalLaps > 1 ? `Tour ${step.lap} / ${step.totalLaps}` : "";
         progressWrap.hidden = false;
 
@@ -248,7 +341,8 @@
             remaining = step.seconds;
             total = step.seconds;
             updateClock();
-            intervalId = window.setInterval(tick, 1000);
+            activeIntervalCallback = tick;
+            intervalId = window.setInterval(activeIntervalCallback, 1000);
         }
 
         updateProgress();
@@ -260,6 +354,8 @@
         stopInterval();
         stopPhotoRotation();
         photoUrls = [];
+        activeIntervalCallback = null;
+        pendingPrepIndex = null;
         dialog.dataset.phase = "";
         phaseEl.textContent = "Séance terminée";
         exerciseEl.textContent = "";
@@ -281,23 +377,29 @@
     function reset() {
         stopInterval();
         index = -1;
+        pendingPrepIndex = null;
         pauseBtn.disabled = false;
         pauseBtn.textContent = "Pause";
         nextBtn.disabled = false;
         stopBtn.textContent = "Arrêter";
     }
 
-    // Cinq secondes pour se mettre en place avant le premier pas, plutôt que
-    // de décompter dès la fermeture de la porte du casier.
-    function startPrep() {
+    // Cinq secondes pour se mettre en place avant un pas d'effort : au tout
+    // début de la séance, et après chaque récupération entre tours/blocs
+    // (issue #61) — le même sas, généralisé. `remaining`/`total` restent
+    // figés sur le dernier pas réellement joué pendant qu'elle dure : c'est
+    // ce qui garde la préparation hors de l'avancement de la séance
+    // (overallPercent ne s'appuie que sur eux, jamais sur prepRemaining).
+    function runPrep(nextIndex) {
         stopInterval();
-        index = -1;
-        const first = steps[0];
-        highlight(first.itemId);
+        pendingPrepIndex = nextIndex;
+        const nextStep = steps[nextIndex];
+        highlight(nextStep.itemId);
         dialog.dataset.phase = "prep";
         phaseEl.textContent = "Préparation";
-        exerciseEl.textContent = exerciseName(first.itemId);
-        lapEl.textContent = "";
+        exerciseEl.textContent = exerciseName(nextStep.itemId);
+        lapEl.textContent =
+            nextStep.totalLaps > 1 ? `Tour ${nextStep.lap} / ${nextStep.totalLaps}` : "";
 
         clockEl.hidden = false;
         repsEl.hidden = true;
@@ -305,12 +407,24 @@
         pauseBtn.disabled = false;
         pauseBtn.textContent = "Pause";
 
-        remaining = PREP_SECONDS;
-        total = PREP_SECONDS;
-        updateClock();
+        prepRemaining = PREP_SECONDS;
+        clockEl.textContent = formatClock(prepRemaining);
         updateProgress();
         announceEl.textContent = `Préparation : ${exerciseEl.textContent}`;
-        intervalId = window.setInterval(tick, 1000);
+        activeIntervalCallback = () => prepTick(nextIndex);
+        intervalId = window.setInterval(activeIntervalCallback, 1000);
+    }
+
+    function prepTick(nextIndex) {
+        prepRemaining -= 1;
+        clockEl.textContent = formatClock(Math.max(0, prepRemaining));
+        if (prepRemaining > 0 && prepRemaining <= 4) {
+            playCue("tick");
+        }
+        if (prepRemaining <= 0) {
+            stopInterval();
+            activateStep(nextIndex);
+        }
     }
 
     opener.addEventListener("click", () => {
@@ -323,26 +437,74 @@
 
         reset();
         dialog.showModal();
+        requestWakeLock();
+        setupMediaSession();
         playCue("start");
-        startPrep();
+        runPrep(0);
     });
 
-    pauseBtn.addEventListener("click", () => {
+    // Extraites en fonctions nommées pour être aussi déclenchables par les
+    // touches multimédias du clavier sur poste de bureau (issue #55).
+    function togglePause() {
+        if (pauseBtn.disabled) return;
         if (intervalId) {
             stopInterval();
             stopPhotoRotation();
             pauseBtn.textContent = "Reprendre";
             announceEl.textContent = "Séance en pause.";
-        } else if (remaining > 0) {
-            intervalId = window.setInterval(tick, 1000);
+        } else if (activeIntervalCallback) {
+            intervalId = window.setInterval(activeIntervalCallback, 1000);
             startPhotoRotation();
             pauseBtn.textContent = "Pause";
             announceEl.textContent = "Séance reprise.";
         }
-    });
+    }
 
-    nextBtn.addEventListener("click", () => goTo(index + 1));
+    function skipStep() {
+        if (nextBtn.disabled) return;
+        // Une préparation en cours (issue #61) est un sas, pas un pas à part
+        // entière : « Passer » y coupe court directement au pas visé, plutôt
+        // que de la redéclencher (goTo la relancerait, `needsPrep` restant vrai).
+        if (pendingPrepIndex !== null) {
+            stopInterval();
+            activateStep(pendingPrepIndex);
+            return;
+        }
+        goTo(index + 1);
+    }
+
+    pauseBtn.addEventListener("click", togglePause);
+    nextBtn.addEventListener("click", skipStep);
     stopBtn.addEventListener("click", () => dialog.close());
+
+    // Aucune API web ne permet de piloter une appli tierce (Spotify, lecteur
+    // du téléphone…) — barrière de sécurité du navigateur. Sur poste de
+    // bureau seulement (≥ 40rem), les touches multimédias du clavier
+    // pilotent donc le minuteur lui-même ; rien n'est affiché à l'écran, et
+    // rien n'est enregistré sur mobile.
+    const desktopQuery = window.matchMedia("(min-width: 40rem)");
+
+    function setSessionHandler(action, handler) {
+        try {
+            navigator.mediaSession.setActionHandler(action, handler);
+        } catch {
+            // Action non supportée par ce navigateur : ignorée silencieusement.
+        }
+    }
+
+    function setupMediaSession() {
+        if (!("mediaSession" in navigator) || !desktopQuery.matches) return;
+        setSessionHandler("play", togglePause);
+        setSessionHandler("pause", togglePause);
+        setSessionHandler("nexttrack", skipStep);
+    }
+
+    function teardownMediaSession() {
+        if (!("mediaSession" in navigator)) return;
+        setSessionHandler("play", null);
+        setSessionHandler("pause", null);
+        setSessionHandler("nexttrack", null);
+    }
 
     // Pas de fermeture au clic sur le fond : une séance en cours ne doit pas
     // s'interrompre d'un geste accidentel. Seul « Arrêter » — ou Échap, natif
@@ -351,5 +513,7 @@
     dialog.addEventListener("close", () => {
         stopInterval();
         stopPhotoRotation();
+        releaseWakeLock();
+        teardownMediaSession();
     });
 })();

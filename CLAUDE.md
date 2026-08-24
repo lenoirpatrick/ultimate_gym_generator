@@ -226,7 +226,10 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
   marquer la pause à l'exécution — désormais un pas dédié (`phase: "recovery"`)
   s'intercale entre deux tours ou deux blocs, jamais après le dernier ; distingué de
   l'effort par son libellé (« Récupération ») comme le repos, sans dépendre de la seule
-  couleur, et partage sa tonalité.
+  couleur, et partage sa tonalité. Le repos individuel du dernier exercice d'un tour (ou
+  du dernier round d'un exercice) est omis quand une récupération le suit immédiatement
+  (issue #60, `timer._item_steps(..., include_rest=False)`) : les deux marqueraient
+  sinon la même transition deux fois de suite.
 - Le nom d'un exercice dans le déroulé est lui-même un panneau repliable
   (`.ugg-disclosure.ugg-disclosure--plain`, issue #30) : le déplier donne le même rappel
   que le catalogue — consignes traduites et galerie zoomable, via le partiel commun
@@ -249,6 +252,13 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
   navigation et au `.ugg-lightbox`, le clic sur le fond **ne referme pas** la modale — un
   effort en cours ne doit pas s'interrompre d'un geste accidentel ; seuls le bouton
   « Arrêter » et Échap (natif au `<dialog>`) y mettent fin.
+- Empilée sur mobile, la modale se divise en **deux colonnes à partir de `40rem`**
+  (issue #52), pour plus de lisibilité sur grand écran : `.ugg-timer__column-primary`
+  (infos de timer, commandes, timeline) et `.ugg-timer__column-secondary` (l'ancien
+  « tiers bas », devenu une colonne entière — photo pleine largeur, repères, consignes,
+  empilement vertical plutôt que la photo étroite du mobile). Markup et JS inchangés par
+  ailleurs : `workout_timer.js` cible des `id`, jamais la structure de leurs parents, ce
+  qui a permis d'envelopper sans y toucher.
 - L'ordre chronologique réel — un tour de circuit ou HIIT enchaîne tous ses exercices
   avant de le répéter (round-robin), un Tabata ou une pyramide épuisent un exercice avant
   de passer au suivant — est calculé côté serveur par `workouts.timer.build_timeline`,
@@ -259,7 +269,16 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
   surbrillance l'exercice en cours (liseré d'accent, jamais la seule couleur). Le pas
   courant porte le temps décompté en grand ; un effort en répétitions (pyramide) affiche
   la cible et attend une confirmation manuelle plutôt qu'un décompte qui n'aurait pas de
-  sens.
+  sens. Le chrono (`.ugg-timer__clock`) et les répétitions (`.ugg-timer__reps`) se lisent
+  à bout de bras : 4.25rem / 3rem sur mobile, 6rem / 4rem à partir de `40rem` (issue #58).
+- Pendant un repos ou une récupération, c'est l'exercice qui **arrive** qui s'affiche —
+  jamais celui qu'on vient de terminer (issue #59) : le libellé en grand
+  (`#minuteur-exercice`, préfixé « Suivant : ») **et** le panneau photo/consignes du
+  tiers bas (`highlight()`, voir plus haut) pointent tous les deux sur lui, pas
+  seulement le texte — la photo restait sinon celle de l'exercice fini, contradiction
+  relevée après une première version qui n'avait corrigé que le libellé. `nextWorkStep()`
+  cherche le prochain pas de phase `work` dans l'ordre chronologique du minuteur ; un pas
+  d'effort affiche son propre exercice, sans préfixe, comme avant.
 - Le **tiers bas de l'écran** (`.ugg-timer__current`) reprend l'exercice en cours en
   grand — photo, matériel, muscles principaux — pour s'y référer d'un coup d'œil sans
   chercher la bonne ligne dans la timeline, qui reste au-dessus pour le contexte des pas
@@ -267,14 +286,30 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
   `workout_timer.js`) : il relit la ligne correspondante de la timeline plutôt que de
   dupliquer photo/matériel/muscles dans le JSON du minuteur — une seule source pour ces
   informations. Absent d'exercice sans photo : l'image se masque plutôt que d'afficher
-  un cadre vide. Un exercice qui en compte plusieurs les fait défiler toutes les 5 s
+  un cadre vide. La photo s'y affiche entière (`object-fit: contain`, fond neutre en
+  lettrboxing, issue #62) — un rognage (`cover`) couperait la posture qu'elle montre ;
+  portée volontairement limitée à ce grand panneau, la vignette de la timeline et la
+  galerie du catalogue restent en `cover`, un usage différent (aperçu carré). Les
+  consignes traduites (repli sur l'anglais) y figurent aussi (issue #63,
+  `.ugg-timer__current-instructions`, agrandies à 0.9375rem — issue #67 —, scrollables
+  au-delà de 6.5rem plutôt que de faire déborder le panneau sur mobile) — une liste
+  cachée par exercice dans la timeline (`.ugg-timer__step-instructions`,
+  `timer_timeline.html`) sert de source, clonée par `updateCurrentExercisePanel()`,
+  même principe que le nom, le matériel et les muscles. Un exercice qui en compte
+  plusieurs les fait défiler toutes les 5 s
   (`startPhotoRotation()`, issue #35 suite) tant que la séance n'est pas en pause — la
   liste complète voyage dans `data-photos` sur la ligne de la timeline (`workouts/
   partials/timer_timeline.html`), séparée par `|`, sur le même principe que
   `data-equipment`/`data-muscles` ; la vignette de la timeline, elle, reste fixe sur la
   première photo.
 - Cinq secondes de **préparation**, décomptées avant le premier pas, pour le temps de se
-  mettre en place — pas encore comptées dans l'avancement de la séance.
+  mettre en place — pas encore comptées dans l'avancement de la séance. Le même sas
+  reprend après chaque récupération entre tours/blocs, avant de relancer l'effort
+  (issue #61, `runPrep()`/`prepTick()` dans `workout_timer.js`) : redémarrer un tour à
+  froid n'est pas plus praticable que démarrer la séance à froid. Toujours hors de
+  l'avancement de la séance — la barre reste sur la valeur atteinte à la fin de la
+  récupération qui précède, `remaining`/`total` n'étant jamais réassignés pour une
+  préparation (`prepRemaining`, une variable dédiée, porte son propre décompte).
 - La **barre de progression** chiffre l'avancement de la séance entière (pas de la seule
   phase en cours) : elle avance en continu au fil du décompte du pas courant, pas par
   à-coups à chaque changement de pas ; la préparation ne compte pas encore. Un effort en
@@ -293,12 +328,33 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
   reprend la tonalité du repos — les deux sont une pause, pas un effort — mais garde son
   propre libellé (« Récupération »).
 - Chaque phase du minuteur porte, en plus de son libellé, une couleur constante sur tout
-  l'écran (issue #35 suite) : **préparation** en `--ugg-danger` (on démarre, l'urgence du
-  compte à rebours), **effort** dans l'accent de marque (`--ugg-accent`, déjà la couleur
-  par défaut de `.ugg-timer__phase`), **repos** entre exercices en `--ugg-success`, et
+  l'écran (issue #35 suite), portée par une seule variable `--ugg-timer-phase-color`
+  posée sur `.ugg-timer[data-phase="…"]` et reprise par l'étiquette de phase, le chrono
+  **et** les répétitions (issue #57 — le gros chrono, plus lisible à distance qu'une
+  étiquette, portait encore une couleur neutre) : **préparation** en `--ugg-danger` (on
+  démarre, l'urgence du compte à rebours), **effort** dans l'accent de marque
+  (`--ugg-accent`, valeur par défaut), **repos** entre exercices en `--ugg-success`, et
   **récupération** entre tours/blocs en `--ugg-info` — seul usage d'une couleur froide
   dans tout le projet, réservé à cette pause pour ne jamais se confondre avec le repos
   entre exercices. La couleur ne fait que renforcer le libellé, jamais le remplacer.
+- Le tout dernier exercice du tout dernier tour/circuit ne marque pas son propre
+  repos (issue #66, généralisation de #60) : la séance s'arrête juste après, une
+  pause n'y servirait à rien de plus qu'après le dernier pas de récupération. Même
+  mécanique côté serveur (`workouts.timer.build_timeline`, `omit_rest`) — que le
+  format soit interleaved (dernier exercice du dernier tour) ou non (dernier round
+  du dernier exercice), avec ou sans récupération configurée.
+- L'écran ne s'éteint pas pendant la séance (issue #53) : un verrou d'écran (Screen
+  Wake Lock API, `requestWakeLock()`) est posé à l'ouverture du minuteur et relâché à
+  sa fermeture, y compris quand l'onglet reprend la main après une perte de visibilité
+  (le verrou se relâche alors automatiquement, contrainte de la spec). Le web ne donne
+  accès à aucun réglage de luminosité matérielle — c'est l'équivalent le plus proche,
+  sur PC comme sur smartphone. Dégradation silencieuse si l'API est absente.
+- Sur poste de bureau uniquement (`≥ 40rem`, issue #55) : les touches multimédias du
+  clavier (Lecture/Pause, Piste suivante) pilotent le minuteur via la Media Session
+  API (`setupMediaSession()`), branchées sur les mêmes fonctions que les boutons
+  Pause/Passer. Aucune API web ne permet de piloter une application tierce (lecteur de
+  musique du système) — barrière de sécurité du navigateur, pas une limite du projet ;
+  rien n'est affiché à l'écran, et rien n'est enregistré sur mobile.
 
 ### Bascules d'état (favori)
 
@@ -315,6 +371,13 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
   bouton se remplace lui-même (`hx-swap="outerHTML"`) — pas de rechargement pour un
   simple marquage. Compact (cible tactile 44 px de haut conservée, mais resserré en
   largeur) pour tenir à côté d'un titre sans le pousser hors de sa ligne.
+- Un exercice du **déroulé d'une séance** (`workouts/partials/exercise_item.html`)
+  porte la même bascule que sa fiche du catalogue (issue #64) : marquer un favori sans
+  quitter la séance pour retrouver l'exercice ailleurs. `item.exercise` doit être
+  annoté de `is_favorite` par la vue (`workouts.views._annotate_favorites`, réutilisée
+  par `workout_detail` et `workout_exercise_refresh` — ce dernier remplace l'exercice,
+  l'état favori doit suivre le remplaçant) ; le partiel n'introduit aucune route
+  propre, il réutilise `exercises:toggle_favorite` tel quel.
 
 ### Formulaire de composition d'une séance
 

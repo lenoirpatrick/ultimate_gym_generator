@@ -693,6 +693,53 @@ def test_on_ne_rafraichit_pas_l_exercice_d_une_seance_d_un_autre(logged_client, 
 
 
 # --------------------------------------------------------------------------- #
+# Favoris dans le déroulé (issue #64)
+# --------------------------------------------------------------------------- #
+
+
+def test_le_deroule_affiche_la_bascule_favori_d_un_exercice(logged_client, user):
+    squat = Exercise.objects.get(slug="Barbell_Squat")
+    workout = build_workout(user, squat)
+    item = workout.items.first()
+
+    content = logged_client.get(reverse("workouts:detail", args=[workout.pk])).content.decode()
+
+    assert reverse("exercises:toggle_favorite", args=[item.exercise_id]) in content
+
+
+def test_le_favori_bascule_depuis_le_deroule(logged_client, user):
+    squat = Exercise.objects.get(slug="Barbell_Squat")
+    workout = build_workout(user, squat)
+    item = workout.items.first()
+
+    response = logged_client.post(reverse("exercises:toggle_favorite", args=[item.exercise_id]))
+
+    assert response.status_code == 200
+    assert squat.favorited_by.filter(user=user).exists()
+
+
+def test_le_rafraichissement_d_exercice_garde_l_etat_favori(logged_client, user):
+    """`workout_exercise_refresh` remplace `item.exercise` : la bascule qu'il
+    rend doit refléter l'état favori du nouvel exercice, pas planter faute
+    d'attribut `is_favorite` (issue #64)."""
+    from exercises.models import Muscle
+
+    squat = Exercise.objects.get(slug="Barbell_Squat")
+    UserEquipment.objects.create(user=user, equipment="dumbbell", mode="fixed", weights=[10])
+    workout = build_workout(user, squat)
+    workout.muscles.set(Muscle.objects.filter(slug="chest"))
+    item = workout.items.first()
+
+    response = logged_client.post(reverse("workouts:exercise_refresh", args=[workout.pk, item.pk]))
+
+    item.refresh_from_db()
+    assert response.status_code == 200
+    assert (
+        reverse("exercises:toggle_favorite", args=[item.exercise_id]) in response.content.decode()
+    )
+
+
+# --------------------------------------------------------------------------- #
 # Suppression
 # --------------------------------------------------------------------------- #
 
@@ -850,8 +897,9 @@ def test_le_deroule_chronometre_est_transmis_en_json(logged_client, user):
     content = logged_client.get(reverse("workouts:detail", args=[workout.pk])).content.decode()
 
     assert 'id="minuteur-donnees"' in content
-    # Trois rounds de répétitions, un repos entre chacun : six pas.
-    assert content.count('"itemId"') == 6
+    # Trois rounds de répétitions, un repos entre chacun sauf après le
+    # dernier (issue #66, rien ne le suit) : cinq pas.
+    assert content.count('"itemId"') == 5
 
 
 def test_sans_exercice_le_bouton_de_lancement_n_apparait_pas(logged_client, user):

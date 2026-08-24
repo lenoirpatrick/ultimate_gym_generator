@@ -1275,6 +1275,10 @@
    "agent utilisateur", quelle que soit la spécificité) et la modale resterait
    visible même fermée. */
 .ugg-timer {
+    /* Couleur de phase portée ici plutôt que sur chaque élément coloré (issue
+       #57) : une seule variable, reprise par l'étiquette, le chrono et les
+       répétitions ci-dessous — la source de vérité de la couleur active. */
+    --ugg-timer-phase-color: var(--ugg-accent);
     position: fixed;
     inset: 0;
     z-index: 60;
@@ -1297,6 +1301,17 @@
     background: var(--ugg-overlay);
 }
 
+/* Colonne 1 (issue #52) : infos de timer, commandes, timeline — sur mobile,
+   simple enveloppe transparente qui reprend le rôle jadis tenu directement
+   par `.ugg-timer` (colonne unique, l'espace flexible restant après le
+   panneau « exercice en cours »). */
+.ugg-timer__column-primary {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+}
+
 .ugg-timer__display {
     flex: none;
     padding: calc(var(--ugg-space-6) + var(--ugg-safe-top)) var(--ugg-space-4) var(--ugg-space-4);
@@ -1310,27 +1325,29 @@
     font-weight: 700;
     letter-spacing: var(--ugg-tracking-label);
     text-transform: uppercase;
-    color: var(--ugg-accent);
+    color: var(--ugg-timer-phase-color);
 }
 
 /* Chaque phase se distingue de l'effort sans dépendre de la seule couleur :
    le libellé du texte porte déjà la différence (« Préparation » / « Effort »
    / « Repos » / « Récupération »). La couleur ne fait que renforcer, un code
-   constant sur tout le minuteur (issue #35 suite) : préparation en danger
-   (on démarre, l'urgence du compte à rebours), repos en success (la pause la
-   plus fréquente, la plus « acquise »), récupération en info — seule couleur
-   froide du projet, réservée à cette pause entre tours/blocs pour ne pas se
-   confondre avec le repos entre exercices. L'effort garde l'accent de marque. */
-.ugg-timer[data-phase="prep"] .ugg-timer__phase {
-    color: var(--ugg-danger);
+   constant sur tout le minuteur (issue #35 suite), étendu du seul libellé au
+   chrono et aux répétitions (issue #57) via `--ugg-timer-phase-color` :
+   préparation en danger (on démarre, l'urgence du compte à rebours), repos
+   en success (la pause la plus fréquente, la plus « acquise »), récupération
+   en info — seule couleur froide du projet, réservée à cette pause entre
+   tours/blocs pour ne pas se confondre avec le repos entre exercices.
+   L'effort garde l'accent de marque (valeur par défaut ci-dessus). */
+.ugg-timer[data-phase="prep"] {
+    --ugg-timer-phase-color: var(--ugg-danger);
 }
 
-.ugg-timer[data-phase="rest"] .ugg-timer__phase {
-    color: var(--ugg-success);
+.ugg-timer[data-phase="rest"] {
+    --ugg-timer-phase-color: var(--ugg-success);
 }
 
-.ugg-timer[data-phase="recovery"] .ugg-timer__phase {
-    color: var(--ugg-info);
+.ugg-timer[data-phase="recovery"] {
+    --ugg-timer-phase-color: var(--ugg-info);
 }
 
 .ugg-timer__exercise {
@@ -1349,17 +1366,31 @@
 .ugg-timer__clock {
     margin-top: var(--ugg-space-3);
     font-family: var(--ugg-font-display);
-    font-size: 3.5rem;
+    font-size: 4.25rem;
     font-weight: 700;
     font-variant-numeric: tabular-nums;
     letter-spacing: var(--ugg-tracking-display);
+    color: var(--ugg-timer-phase-color);
 }
 
 .ugg-timer__reps {
     margin-top: var(--ugg-space-3);
     font-family: var(--ugg-font-display);
-    font-size: 2.5rem;
+    font-size: 3rem;
     font-weight: 700;
+    color: var(--ugg-timer-phase-color);
+}
+
+/* Le chrono se lit à bout de bras : plus grand encore dès qu'il y a la place
+   (issue #58). */
+@media (min-width: 40rem) {
+    .ugg-timer__clock {
+        font-size: 6rem;
+    }
+
+    .ugg-timer__reps {
+        font-size: 4rem;
+    }
 }
 
 .ugg-timer__controls {
@@ -1449,7 +1480,11 @@
     height: 100%;
     max-width: 45%;
     border-radius: var(--ugg-radius-md);
-    object-fit: cover;
+    /* `contain`, pas `cover` (issue #62) : l'exercice se reconnaît à sa
+       posture complète, un rognage la couperait. Le fond neutre comble
+       l'espace laissé par le lettrboxing plutôt que de le montrer transparent. */
+    object-fit: contain;
+    background: var(--ugg-surface-sunken);
 }
 
 .ugg-timer__current-body {
@@ -1469,6 +1504,65 @@
     display: flex;
     flex-wrap: wrap;
     gap: var(--ugg-space-2);
+}
+
+/* Consignes de l'exercice actif (issue #63, agrandies issue #67) : le panneau
+   tient à un tiers d'écran sur mobile, la liste défile plutôt que de le
+   faire déborder. */
+.ugg-timer__current-instructions {
+    margin-top: var(--ugg-space-3);
+    /* Longueur fixe, pas un pourcentage : `.ugg-timer__current-body` n'a pas
+       de hauteur propre (`.ugg-timer__current` centre son contenu au lieu de
+       l'étirer), un `max-height` relatif ne s'y résoudrait pas. */
+    max-height: 6.5rem;
+    overflow-y: auto;
+    display: grid;
+    gap: var(--ugg-space-1);
+    font-size: 0.9375rem;
+    line-height: 1.4;
+    color: var(--ugg-text-muted);
+}
+
+/* Deux colonnes à partir de `40rem` (issue #52) : plus de lisibilité qu'un
+   empilement vertical sur grand écran. Colonne 1 (infos + commandes +
+   timeline) et colonne 2 (l'ancien tiers bas, devenu une colonne entière) se
+   partagent la largeur ; la colonne 2 passe en empilement vertical
+   (photo pleine largeur au-dessus, détails en dessous) plutôt que de garder
+   la photo étroite du tiers bas. */
+@media (min-width: 40rem) {
+    .ugg-timer {
+        flex-direction: row;
+    }
+
+    .ugg-timer__column-primary {
+        flex: 1 1 50%;
+        min-width: 0;
+    }
+
+    .ugg-timer__column-secondary {
+        flex: 1 1 50%;
+        flex-direction: column;
+        align-items: stretch;
+        min-width: 0;
+        min-height: 0;
+        max-height: none;
+        overflow-y: auto;
+        border-top: none;
+        border-left: 1px solid var(--ugg-border);
+    }
+
+    .ugg-timer__current-photo {
+        flex: 0 0 auto;
+        width: 100%;
+        max-width: 100%;
+        height: auto;
+        max-height: 50%;
+        aspect-ratio: 4 / 3;
+    }
+
+    .ugg-timer__current-instructions {
+        max-height: none;
+    }
 }
 
 /* =========================================================================

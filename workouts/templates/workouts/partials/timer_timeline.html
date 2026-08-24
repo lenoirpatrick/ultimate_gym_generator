@@ -14,7 +14,10 @@ depuis la ligne correspondante de cette timeline au moment de mettre en
 surbrillance. `data-photos` porte la liste complète des photos, séparées par
 « | » (absent des chemins vendorés) — un exercice qui en compte plusieurs
 défile toutes les 5 s dans ce panneau (issue #35 suite), la vignette de la
-timeline, elle, reste fixe sur la première.
+timeline, elle, reste fixe sur la première. Les consignes (issue #63) suivent
+le même principe : `.ugg-timer__step-instructions`, cachée ici, est clonée
+dans le panneau par `updateCurrentExercisePanel()` — une seule source, pas de
+duplication dans le JSON.
 
 Attend `workout`.
 {% endcomment %}
@@ -42,6 +45,13 @@ Attend `workout`.
                         {% endif %}
                     </span>
                 </span>
+                {% with steps=item.exercise.instructions_fr|default:item.exercise.instructions %}
+                    {% if steps %}
+                        <ol class="ugg-timer__step-instructions" hidden>
+                            {% for step in steps %}<li>{{ step }}</li>{% endfor %}
+                        </ol>
+                    {% endif %}
+                {% endwith %}
             </li>
         {% endfor %}
     {% endfor %}
