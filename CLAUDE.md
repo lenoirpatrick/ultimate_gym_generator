@@ -355,6 +355,13 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
   bouton se remplace lui-même (`hx-swap="outerHTML"`) — pas de rechargement pour un
   simple marquage. Compact (cible tactile 44 px de haut conservée, mais resserré en
   largeur) pour tenir à côté d'un titre sans le pousser hors de sa ligne.
+- Un exercice du **déroulé d'une séance** (`workouts/partials/exercise_item.html`)
+  porte la même bascule que sa fiche du catalogue (issue #64) : marquer un favori sans
+  quitter la séance pour retrouver l'exercice ailleurs. `item.exercise` doit être
+  annoté de `is_favorite` par la vue (`workouts.views._annotate_favorites`, réutilisée
+  par `workout_detail` et `workout_exercise_refresh` — ce dernier remplace l'exercice,
+  l'état favori doit suivre le remplaçant) ; le partiel n'introduit aucune route
+  propre, il réutilise `exercises:toggle_favorite` tel quel.
 
 ### Formulaire de composition d'une séance
 

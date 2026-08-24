@@ -8,8 +8,10 @@ est modifiable (voir partials/recovery.html, issue #44 suite).
 Racine avec id stable pour l'auto-remplacement (`hx-target`/`hx-swap="outerHTML"`
 depuis le bouton ci-dessous, sur le même principe que partials/name.html).
 
-Attend `item`, `can_translate` et `refresh_failed` (facultatif, mis par
-workout_exercise_refresh quand aucun remplacement n'est possible).
+Attend `item` (avec `item.exercise` annoté de `is_favorite` — voir
+workouts.views._annotate_favorites, issue #64), `can_translate` et
+`refresh_failed` (facultatif, mis par workout_exercise_refresh quand aucun
+remplacement n'est possible).
 {% endcomment %}
 <li class="ugg-set" id="seance-exercice-{{ item.pk }}">
     <div class="ugg-set__timing">
@@ -25,15 +27,21 @@ workout_exercise_refresh quand aucun remplacement n'est possible).
     </div>
 
     <div class="min-w-0 flex-1">
-        {% if item.exercise.instructions or item.exercise.image_urls %}
-            {# Rappel replié : de quoi se souvenir d'un exercice sans quitter la séance (issue #30). #}
-            <details class="ugg-disclosure ugg-disclosure--plain">
-                <summary>{{ item.exercise.name }}</summary>
-                {% include "exercises/partials/description.html" with exercise=item.exercise %}
-            </details>
-        {% else %}
-            <p class="font-semibold">{{ item.exercise.name }}</p>
-        {% endif %}
+        <div class="flex items-start justify-between gap-3">
+            <div class="min-w-0 flex-1">
+                {% if item.exercise.instructions or item.exercise.image_urls %}
+                    {# Rappel replié : de quoi se souvenir d'un exercice sans quitter la séance (issue #30). #}
+                    <details class="ugg-disclosure ugg-disclosure--plain">
+                        <summary>{{ item.exercise.name }}</summary>
+                        {% include "exercises/partials/description.html" with exercise=item.exercise %}
+                    </details>
+                {% else %}
+                    <p class="font-semibold">{{ item.exercise.name }}</p>
+                {% endif %}
+            </div>
+            {# Bascule favori de cet exercice, sans quitter la séance (issue #64). #}
+            {% include "exercises/partials/favorite_button.html" with exercise=item.exercise %}
+        </div>
         <p class="mt-1 text-sm text-muted">
             {{ item.exercise.get_equipment_display|default:"Poids du corps" }}
             {% if item.load_summary %}

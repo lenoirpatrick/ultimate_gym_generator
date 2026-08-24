@@ -7,6 +7,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
 from aiproviders.clients import get_active_client
+from exercises.models import Favorite
 
 from . import coaching, generator, timer
 from .forms import WorkoutForm
@@ -65,6 +66,22 @@ def workout_create(request: HttpRequest) -> HttpResponse:
     return render(request, "workouts/workout_form.html", {"form": form})
 
 
+def _annotate_favorites(user, items: list[WorkoutExercise]) -> None:
+    """Pose `exercise.is_favorite` sur chaque exercice du déroulé (issue #64).
+
+    Même mécanique que `exercises.views.translate_exercise` (attribut posé à
+    la volée) plutôt qu'un `annotate()` de requête : les exercices sont déjà
+    préchargés, une seule requête suffit à récupérer les ids favoris.
+    """
+    favorite_ids = set(
+        Favorite.objects.filter(
+            user=user, exercise_id__in=[item.exercise_id for item in items]
+        ).values_list("exercise_id", flat=True)
+    )
+    for item in items:
+        item.exercise.is_favorite = item.exercise_id in favorite_ids
+
+
 @login_required
 def workout_detail(request: HttpRequest, pk: int) -> HttpResponse:
     """Déroulé d'une séance. Filtré sur l'utilisateur : une séance ne se partage pas."""
@@ -75,6 +92,7 @@ def workout_detail(request: HttpRequest, pk: int) -> HttpResponse:
         pk=pk,
         user=request.user,
     )
+    _annotate_favorites(request.user, list(workout.items.all()))
     context = {
         "workout": workout,
         # Bouton de traduction unitaire du rappel d'exercice (issue #31) :
@@ -204,6 +222,7 @@ def workout_exercise_refresh(request: HttpRequest, pk: int, item_pk: int) -> Htt
         generator.refresh_exercise(item)
     except generator.GenerationError:
         failed = True
+    _annotate_favorites(request.user, [item])
 
     return render(
         request,
