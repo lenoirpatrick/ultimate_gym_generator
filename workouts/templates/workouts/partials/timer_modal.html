@@ -10,47 +10,56 @@ Un <dialog> natif porte gratuitement le piège de focus, la fermeture à Échap
 et le retour de focus au déclencheur — aucun script à écrire pour ça.
 
 Le panneau « exercice en cours » (`.ugg-timer__current`) occupe le tiers bas
-de l'écran : photo, repères (matériel, muscles principaux) et consignes
-(issue #63) de l'exercice actif, plus grands et plus lisibles que la ligne de
-la timeline — qui reste disponible juste au-dessus pour le contexte des pas
-à venir.
+de l'écran sur mobile : photo, repères (matériel, muscles principaux) et
+consignes (issue #63) de l'exercice actif, plus grands et plus lisibles que
+la ligne de la timeline — qui reste disponible juste au-dessus pour le
+contexte des pas à venir.
+
+À partir de `40rem` (issue #52), l'écran se divise en deux colonnes plutôt
+que de rester empilé : `.ugg-timer__column-primary` (infos de timer,
+commandes, timeline) et `.ugg-timer__column-secondary` (l'ancien tiers bas,
+qui devient la colonne entière — photo, repères, consignes). Markup et JS
+inchangés par ailleurs : `workout_timer.js` cible des `id`, jamais la
+structure de leurs parents.
 
 Attend `workout`, `timeline` (workouts.timer.build_timeline, sérialisée ici).
 {% endcomment %}
 {{ timeline|json_script:"minuteur-donnees" }}
 <dialog id="minuteur-modal" class="ugg-timer" aria-label="Suivi de la séance">
-    <div class="ugg-timer__display">
-        <p class="ugg-timer__phase" id="minuteur-phase">Prêt</p>
-        <p class="ugg-timer__exercise" id="minuteur-exercice"></p>
-        <p class="ugg-timer__meta" id="minuteur-tour"></p>
+    <div class="ugg-timer__column-primary">
+        <div class="ugg-timer__display">
+            <p class="ugg-timer__phase" id="minuteur-phase">Prêt</p>
+            <p class="ugg-timer__exercise" id="minuteur-exercice"></p>
+            <p class="ugg-timer__meta" id="minuteur-tour"></p>
 
-        <p class="ugg-timer__clock" id="minuteur-horloge" hidden>00:00</p>
-        <p class="ugg-timer__reps" id="minuteur-reps" hidden></p>
+            <p class="ugg-timer__clock" id="minuteur-horloge" hidden>00:00</p>
+            <p class="ugg-timer__reps" id="minuteur-reps" hidden></p>
 
-        <div class="ugg-progress mt-4" id="minuteur-progress">
-            <p class="ugg-progress__head">
-                <span>Avancement de la séance</span>
-                <span class="ugg-progress__value" id="minuteur-pourcentage">0&nbsp;%</span>
-            </p>
-            <div class="ugg-progress__track" id="minuteur-barre" role="progressbar"
-                 aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"
-                 aria-label="Avancement de la séance">
-                <div class="ugg-progress__fill" id="minuteur-remplissage" style="width: 0%"></div>
+            <div class="ugg-progress mt-4" id="minuteur-progress">
+                <p class="ugg-progress__head">
+                    <span>Avancement de la séance</span>
+                    <span class="ugg-progress__value" id="minuteur-pourcentage">0&nbsp;%</span>
+                </p>
+                <div class="ugg-progress__track" id="minuteur-barre" role="progressbar"
+                     aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"
+                     aria-label="Avancement de la séance">
+                    <div class="ugg-progress__fill" id="minuteur-remplissage" style="width: 0%"></div>
+                </div>
             </div>
+
+            <div class="ugg-timer__controls">
+                <button type="button" id="minuteur-pause" class="ugg-btn ugg-btn--ghost">Pause</button>
+                <button type="button" id="minuteur-suivant" class="ugg-btn ugg-btn--ghost">Passer</button>
+                <button type="button" id="minuteur-stop" class="ugg-btn ugg-btn--danger">Arrêter</button>
+            </div>
+
+            <p class="sr-only" id="minuteur-annonce" aria-live="polite"></p>
         </div>
 
-        <div class="ugg-timer__controls">
-            <button type="button" id="minuteur-pause" class="ugg-btn ugg-btn--ghost">Pause</button>
-            <button type="button" id="minuteur-suivant" class="ugg-btn ugg-btn--ghost">Passer</button>
-            <button type="button" id="minuteur-stop" class="ugg-btn ugg-btn--danger">Arrêter</button>
-        </div>
-
-        <p class="sr-only" id="minuteur-annonce" aria-live="polite"></p>
+        {% include "workouts/partials/timer_timeline.html" with workout=workout %}
     </div>
 
-    {% include "workouts/partials/timer_timeline.html" with workout=workout %}
-
-    <div class="ugg-timer__current" id="minuteur-exercice-actuel" hidden>
+    <div class="ugg-timer__current ugg-timer__column-secondary" id="minuteur-exercice-actuel" hidden>
         <img class="ugg-timer__current-photo" id="minuteur-exercice-actuel-photo" src="" alt="" hidden>
         <div class="ugg-timer__current-body">
             <p class="ugg-timer__current-name" id="minuteur-exercice-actuel-nom"></p>

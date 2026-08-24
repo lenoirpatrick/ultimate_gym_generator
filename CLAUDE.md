@@ -252,6 +252,13 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
   navigation et au `.ugg-lightbox`, le clic sur le fond **ne referme pas** la modale — un
   effort en cours ne doit pas s'interrompre d'un geste accidentel ; seuls le bouton
   « Arrêter » et Échap (natif au `<dialog>`) y mettent fin.
+- Empilée sur mobile, la modale se divise en **deux colonnes à partir de `40rem`**
+  (issue #52), pour plus de lisibilité sur grand écran : `.ugg-timer__column-primary`
+  (infos de timer, commandes, timeline) et `.ugg-timer__column-secondary` (l'ancien
+  « tiers bas », devenu une colonne entière — photo pleine largeur, repères, consignes,
+  empilement vertical plutôt que la photo étroite du mobile). Markup et JS inchangés par
+  ailleurs : `workout_timer.js` cible des `id`, jamais la structure de leurs parents, ce
+  qui a permis d'envelopper sans y toucher.
 - L'ordre chronologique réel — un tour de circuit ou HIIT enchaîne tous ses exercices
   avant de le répéter (round-robin), un Tabata ou une pyramide épuisent un exercice avant
   de passer au suivant — est calculé côté serveur par `workouts.timer.build_timeline`,
