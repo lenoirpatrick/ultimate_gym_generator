@@ -56,6 +56,17 @@
     let remaining = 0;
     let total = 0;
     let intervalId = null;
+    // Fonction rebranchée par Pause/Reprendre : celle d'un pas normal (tick)
+    // ou celle d'une préparation (prepTick), selon ce qui tournait avant la
+    // pause (issue #61).
+    let activeIntervalCallback = null;
+    // Décompte propre à une préparation (5 s), distinct de `remaining`/`total`
+    // qui restent figés sur le dernier pas réellement joué tant qu'elle dure —
+    // c'est ce qui garde la préparation hors de l'avancement de la séance.
+    let prepRemaining = 0;
+    // Index du pas visé par la préparation en cours, ou `null` hors
+    // préparation — permet à « Passer » d'y couper court (issue #61).
+    let pendingPrepIndex = null;
     let audioCtx = null;
     let currentStepEl = null;
     let photoRotationId = null;
@@ -261,8 +272,25 @@
         }
     }
 
+    // Une reprise après une récupération de tour/bloc redonne 5 s de
+    // préparation, comme au tout début de la séance (issue #61).
+    function needsPrep(nextIndex) {
+        return (
+            nextIndex > 0 && nextIndex < steps.length && steps[nextIndex - 1].phase === "recovery"
+        );
+    }
+
     function goTo(nextIndex) {
         stopInterval();
+        if (needsPrep(nextIndex)) {
+            runPrep(nextIndex);
+            return;
+        }
+        activateStep(nextIndex);
+    }
+
+    function activateStep(nextIndex) {
+        pendingPrepIndex = null;
         index = nextIndex;
         if (index >= steps.length) {
             finish();
@@ -296,7 +324,8 @@
             remaining = step.seconds;
             total = step.seconds;
             updateClock();
-            intervalId = window.setInterval(tick, 1000);
+            activeIntervalCallback = tick;
+            intervalId = window.setInterval(activeIntervalCallback, 1000);
         }
 
         updateProgress();
@@ -308,6 +337,8 @@
         stopInterval();
         stopPhotoRotation();
         photoUrls = [];
+        activeIntervalCallback = null;
+        pendingPrepIndex = null;
         dialog.dataset.phase = "";
         phaseEl.textContent = "Séance terminée";
         exerciseEl.textContent = "";
@@ -329,23 +360,29 @@
     function reset() {
         stopInterval();
         index = -1;
+        pendingPrepIndex = null;
         pauseBtn.disabled = false;
         pauseBtn.textContent = "Pause";
         nextBtn.disabled = false;
         stopBtn.textContent = "Arrêter";
     }
 
-    // Cinq secondes pour se mettre en place avant le premier pas, plutôt que
-    // de décompter dès la fermeture de la porte du casier.
-    function startPrep() {
+    // Cinq secondes pour se mettre en place avant un pas d'effort : au tout
+    // début de la séance, et après chaque récupération entre tours/blocs
+    // (issue #61) — le même sas, généralisé. `remaining`/`total` restent
+    // figés sur le dernier pas réellement joué pendant qu'elle dure : c'est
+    // ce qui garde la préparation hors de l'avancement de la séance
+    // (overallPercent ne s'appuie que sur eux, jamais sur prepRemaining).
+    function runPrep(nextIndex) {
         stopInterval();
-        index = -1;
-        const first = steps[0];
-        highlight(first.itemId);
+        pendingPrepIndex = nextIndex;
+        const nextStep = steps[nextIndex];
+        highlight(nextStep.itemId);
         dialog.dataset.phase = "prep";
         phaseEl.textContent = "Préparation";
-        exerciseEl.textContent = exerciseName(first.itemId);
-        lapEl.textContent = "";
+        exerciseEl.textContent = exerciseName(nextStep.itemId);
+        lapEl.textContent =
+            nextStep.totalLaps > 1 ? `Tour ${nextStep.lap} / ${nextStep.totalLaps}` : "";
 
         clockEl.hidden = false;
         repsEl.hidden = true;
@@ -353,12 +390,24 @@
         pauseBtn.disabled = false;
         pauseBtn.textContent = "Pause";
 
-        remaining = PREP_SECONDS;
-        total = PREP_SECONDS;
-        updateClock();
+        prepRemaining = PREP_SECONDS;
+        clockEl.textContent = formatClock(prepRemaining);
         updateProgress();
         announceEl.textContent = `Préparation : ${exerciseEl.textContent}`;
-        intervalId = window.setInterval(tick, 1000);
+        activeIntervalCallback = () => prepTick(nextIndex);
+        intervalId = window.setInterval(activeIntervalCallback, 1000);
+    }
+
+    function prepTick(nextIndex) {
+        prepRemaining -= 1;
+        clockEl.textContent = formatClock(Math.max(0, prepRemaining));
+        if (prepRemaining > 0 && prepRemaining <= 4) {
+            playCue("tick");
+        }
+        if (prepRemaining <= 0) {
+            stopInterval();
+            activateStep(nextIndex);
+        }
     }
 
     opener.addEventListener("click", () => {
@@ -374,7 +423,7 @@
         requestWakeLock();
         setupMediaSession();
         playCue("start");
-        startPrep();
+        runPrep(0);
     });
 
     // Extraites en fonctions nommées pour être aussi déclenchables par les
@@ -386,8 +435,8 @@
             stopPhotoRotation();
             pauseBtn.textContent = "Reprendre";
             announceEl.textContent = "Séance en pause.";
-        } else if (remaining > 0) {
-            intervalId = window.setInterval(tick, 1000);
+        } else if (activeIntervalCallback) {
+            intervalId = window.setInterval(activeIntervalCallback, 1000);
             startPhotoRotation();
             pauseBtn.textContent = "Pause";
             announceEl.textContent = "Séance reprise.";
@@ -396,6 +445,14 @@
 
     function skipStep() {
         if (nextBtn.disabled) return;
+        // Une préparation en cours (issue #61) est un sas, pas un pas à part
+        // entière : « Passer » y coupe court directement au pas visé, plutôt
+        // que de la redéclencher (goTo la relancerait, `needsPrep` restant vrai).
+        if (pendingPrepIndex !== null) {
+            stopInterval();
+            activateStep(pendingPrepIndex);
+            return;
+        }
         goTo(index + 1);
     }
 

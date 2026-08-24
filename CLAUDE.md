@@ -284,7 +284,13 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
   `data-equipment`/`data-muscles` ; la vignette de la timeline, elle, reste fixe sur la
   première photo.
 - Cinq secondes de **préparation**, décomptées avant le premier pas, pour le temps de se
-  mettre en place — pas encore comptées dans l'avancement de la séance.
+  mettre en place — pas encore comptées dans l'avancement de la séance. Le même sas
+  reprend après chaque récupération entre tours/blocs, avant de relancer l'effort
+  (issue #61, `runPrep()`/`prepTick()` dans `workout_timer.js`) : redémarrer un tour à
+  froid n'est pas plus praticable que démarrer la séance à froid. Toujours hors de
+  l'avancement de la séance — la barre reste sur la valeur atteinte à la fin de la
+  récupération qui précède, `remaining`/`total` n'étant jamais réassignés pour une
+  préparation (`prepRemaining`, une variable dédiée, porte son propre décompte).
 - La **barre de progression** chiffre l'avancement de la séance entière (pas de la seule
   phase en cours) : elle avance en continu au fil du décompte du pas courant, pas par
   à-coups à chaque changement de pas ; la préparation ne compte pas encore. Un effort en
