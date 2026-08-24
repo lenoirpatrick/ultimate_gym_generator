@@ -1506,18 +1506,20 @@
     gap: var(--ugg-space-2);
 }
 
-/* Consignes de l'exercice actif (issue #63) : le panneau tient à un tiers
-   d'écran sur mobile, la liste défile plutôt que de le faire déborder. */
+/* Consignes de l'exercice actif (issue #63, agrandies issue #67) : le panneau
+   tient à un tiers d'écran sur mobile, la liste défile plutôt que de le
+   faire déborder. */
 .ugg-timer__current-instructions {
     margin-top: var(--ugg-space-3);
     /* Longueur fixe, pas un pourcentage : `.ugg-timer__current-body` n'a pas
        de hauteur propre (`.ugg-timer__current` centre son contenu au lieu de
        l'étirer), un `max-height` relatif ne s'y résoudrait pas. */
-    max-height: 5.5rem;
+    max-height: 6.5rem;
     overflow-y: auto;
     display: grid;
     gap: var(--ugg-space-1);
-    font-size: 0.8125rem;
+    font-size: 0.9375rem;
+    line-height: 1.4;
     color: var(--ugg-text-muted);
 }
 
