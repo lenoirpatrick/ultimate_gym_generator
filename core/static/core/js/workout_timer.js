@@ -114,9 +114,12 @@
             tone(523, now, 0.14, "sine");
             tone(784, now + 0.16, 0.2, "sine");
         } else if (name === "end") {
-            tone(784, now, 0.16, "sine");
-            tone(659, now + 0.18, 0.16, "sine");
-            tone(523, now + 0.36, 0.28, "sine");
+            // Arpège montant (do-mi-sol-do) plutôt qu'une séquence descendante :
+            // une fin de séance se fête, elle ne se referme pas simplement.
+            tone(523, now, 0.14, "sine");
+            tone(659, now + 0.15, 0.14, "sine");
+            tone(784, now + 0.3, 0.14, "sine");
+            tone(1047, now + 0.45, 0.35, "sine");
         } else if (name === "work") {
             tone(880, now, 0.18, "triangle");
         } else if (name === "rest" || name === "recovery") {
