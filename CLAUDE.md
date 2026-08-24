@@ -305,6 +305,12 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
   (le verrou se relâche alors automatiquement, contrainte de la spec). Le web ne donne
   accès à aucun réglage de luminosité matérielle — c'est l'équivalent le plus proche,
   sur PC comme sur smartphone. Dégradation silencieuse si l'API est absente.
+- Sur poste de bureau uniquement (`≥ 40rem`, issue #55) : les touches multimédias du
+  clavier (Lecture/Pause, Piste suivante) pilotent le minuteur via la Media Session
+  API (`setupMediaSession()`), branchées sur les mêmes fonctions que les boutons
+  Pause/Passer. Aucune API web ne permet de piloter une application tierce (lecteur de
+  musique du système) — barrière de sécurité du navigateur, pas une limite du projet ;
+  rien n'est affiché à l'écran, et rien n'est enregistré sur mobile.
 
 ### Bascules d'état (favori)
 

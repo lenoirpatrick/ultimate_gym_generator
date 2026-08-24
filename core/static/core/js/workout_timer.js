@@ -354,11 +354,15 @@
         reset();
         dialog.showModal();
         requestWakeLock();
+        setupMediaSession();
         playCue("start");
         startPrep();
     });
 
-    pauseBtn.addEventListener("click", () => {
+    // Extraites en fonctions nommées pour être aussi déclenchables par les
+    // touches multimédias du clavier sur poste de bureau (issue #55).
+    function togglePause() {
+        if (pauseBtn.disabled) return;
         if (intervalId) {
             stopInterval();
             stopPhotoRotation();
@@ -370,10 +374,45 @@
             pauseBtn.textContent = "Pause";
             announceEl.textContent = "Séance reprise.";
         }
-    });
+    }
 
-    nextBtn.addEventListener("click", () => goTo(index + 1));
+    function skipStep() {
+        if (nextBtn.disabled) return;
+        goTo(index + 1);
+    }
+
+    pauseBtn.addEventListener("click", togglePause);
+    nextBtn.addEventListener("click", skipStep);
     stopBtn.addEventListener("click", () => dialog.close());
+
+    // Aucune API web ne permet de piloter une appli tierce (Spotify, lecteur
+    // du téléphone…) — barrière de sécurité du navigateur. Sur poste de
+    // bureau seulement (≥ 40rem), les touches multimédias du clavier
+    // pilotent donc le minuteur lui-même ; rien n'est affiché à l'écran, et
+    // rien n'est enregistré sur mobile.
+    const desktopQuery = window.matchMedia("(min-width: 40rem)");
+
+    function setSessionHandler(action, handler) {
+        try {
+            navigator.mediaSession.setActionHandler(action, handler);
+        } catch {
+            // Action non supportée par ce navigateur : ignorée silencieusement.
+        }
+    }
+
+    function setupMediaSession() {
+        if (!("mediaSession" in navigator) || !desktopQuery.matches) return;
+        setSessionHandler("play", togglePause);
+        setSessionHandler("pause", togglePause);
+        setSessionHandler("nexttrack", skipStep);
+    }
+
+    function teardownMediaSession() {
+        if (!("mediaSession" in navigator)) return;
+        setSessionHandler("play", null);
+        setSessionHandler("pause", null);
+        setSessionHandler("nexttrack", null);
+    }
 
     // Pas de fermeture au clic sur le fond : une séance en cours ne doit pas
     // s'interrompre d'un geste accidentel. Seul « Arrêter » — ou Échap, natif
@@ -383,5 +422,6 @@
         stopInterval();
         stopPhotoRotation();
         releaseWakeLock();
+        teardownMediaSession();
     });
 })();
