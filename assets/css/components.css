@@ -1469,7 +1469,11 @@
     height: 100%;
     max-width: 45%;
     border-radius: var(--ugg-radius-md);
-    object-fit: cover;
+    /* `contain`, pas `cover` (issue #62) : l'exercice se reconnaît à sa
+       posture complète, un rognage la couperait. Le fond neutre comble
+       l'espace laissé par le lettrboxing plutôt que de le montrer transparent. */
+    object-fit: contain;
+    background: var(--ugg-surface-sunken);
 }
 
 .ugg-timer__current-body {

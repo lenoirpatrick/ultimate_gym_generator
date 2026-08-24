@@ -277,7 +277,10 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
   `workout_timer.js`) : il relit la ligne correspondante de la timeline plutôt que de
   dupliquer photo/matériel/muscles dans le JSON du minuteur — une seule source pour ces
   informations. Absent d'exercice sans photo : l'image se masque plutôt que d'afficher
-  un cadre vide. Un exercice qui en compte plusieurs les fait défiler toutes les 5 s
+  un cadre vide. La photo s'y affiche entière (`object-fit: contain`, fond neutre en
+  lettrboxing, issue #62) — un rognage (`cover`) couperait la posture qu'elle montre ;
+  portée volontairement limitée à ce grand panneau, la vignette de la timeline et la
+  galerie du catalogue restent en `cover`, un usage différent (aperçu carré). Un exercice qui en compte plusieurs les fait défiler toutes les 5 s
   (`startPhotoRotation()`, issue #35 suite) tant que la séance n'est pas en pause — la
   liste complète voyage dans `data-photos` sur la ligne de la timeline (`workouts/
   partials/timer_timeline.html`), séparée par `|`, sur le même principe que
