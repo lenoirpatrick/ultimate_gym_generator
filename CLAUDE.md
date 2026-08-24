@@ -261,6 +261,12 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
   la cible et attend une confirmation manuelle plutôt qu'un décompte qui n'aurait pas de
   sens. Le chrono (`.ugg-timer__clock`) et les répétitions (`.ugg-timer__reps`) se lisent
   à bout de bras : 4.25rem / 3rem sur mobile, 6rem / 4rem à partir de `40rem` (issue #58).
+- Pendant un repos ou une récupération, le nom d'exercice affiché en grand
+  (`#minuteur-exercice`) est celui qui **arrive**, préfixé « Suivant : » — pas celui
+  qu'on vient de terminer (issue #59) : c'est l'information utile pour se préparer
+  pendant la pause. `nextWorkExerciseName()` cherche le prochain pas d'effort dans
+  l'ordre chronologique du minuteur ; un pas d'effort affiche son propre exercice, sans
+  préfixe, comme avant.
 - Le **tiers bas de l'écran** (`.ugg-timer__current`) reprend l'exercice en cours en
   grand — photo, matériel, muscles principaux — pour s'y référer d'un coup d'œil sans
   chercher la bonne ligne dans la timeline, qui reste au-dessus pour le contexte des pas

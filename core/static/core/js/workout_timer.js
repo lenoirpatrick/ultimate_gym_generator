@@ -206,6 +206,16 @@
         return el ? el.textContent : "";
     }
 
+    // Pendant une pause (repos, récupération), affiche l'exercice qui arrive
+    // plutôt que celui qu'on vient de terminer (issue #59) : le prochain pas
+    // d'effort dans l'ordre chronologique du minuteur.
+    function nextWorkExerciseName(fromIndex) {
+        for (let i = fromIndex + 1; i < steps.length; i += 1) {
+            if (steps[i].phase === "work") return exerciseName(steps[i].itemId);
+        }
+        return null;
+    }
+
     function stopInterval() {
         if (intervalId) {
             window.clearInterval(intervalId);
@@ -263,7 +273,12 @@
         highlight(step.itemId);
         dialog.dataset.phase = step.phase;
         phaseEl.textContent = PHASE_LABELS[step.phase] || "Repos";
-        exerciseEl.textContent = exerciseName(step.itemId);
+        if (step.phase === "work") {
+            exerciseEl.textContent = exerciseName(step.itemId);
+        } else {
+            const upcoming = nextWorkExerciseName(index);
+            exerciseEl.textContent = upcoming ? `Suivant : ${upcoming}` : exerciseName(step.itemId);
+        }
         lapEl.textContent = step.totalLaps > 1 ? `Tour ${step.lap} / ${step.totalLaps}` : "";
         progressWrap.hidden = false;
 
