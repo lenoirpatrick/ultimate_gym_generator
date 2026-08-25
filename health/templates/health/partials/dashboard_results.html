@@ -1,0 +1,67 @@
+{% comment %}
+Résultats de l'analyse : KPI, graphiques, activités. Bloc remplacé à chaque
+changement de filtre — voir health.views.dashboard. `chart_data` voyage en
+JSON (`json_script`) pour `core/static/core/js/health_charts.js`, qui
+réinitialise les graphiques Chart.js à chaque remplacement HTMX
+(`htmx:afterSettle`).
+{% endcomment %}
+{% if not has_data %}
+    {% url 'health:import' as import_url %}
+    {% include "core/components/empty_state.html" with title="Aucune donnée importée" body="Importe un export Apple Health pour voir apparaître tes indicateurs et graphiques." action_url=import_url action_label="Importer un export" %}
+{% else %}
+    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {% for kpi in kpis %}
+            {% include "core/components/stat_tile.html" with kpi=kpi %}
+        {% endfor %}
+    </div>
+
+    {{ chart_data|json_script:"health-chart-data" }}
+
+    <div class="mt-6 grid gap-4 lg:grid-cols-3">
+        <div class="ugg-card ugg-chart">
+            <p class="ugg-chart__title">Poids</p>
+            <canvas id="chart-weight" height="220"></canvas>
+        </div>
+        <div class="ugg-card ugg-chart">
+            <p class="ugg-chart__title">Volume d'activité (h / semaine)</p>
+            <canvas id="chart-volume" height="220"></canvas>
+        </div>
+        <div class="ugg-card ugg-chart">
+            <p class="ugg-chart__title">Allure de course (min/km)</p>
+            <canvas id="chart-pace" height="220"></canvas>
+        </div>
+    </div>
+
+    <div class="mt-8 flex flex-wrap items-baseline justify-between gap-3">
+        <p class="ugg-eyebrow">
+            {{ activities|length }} activité{{ activities|length|pluralize }} affichée{{ activities|length|pluralize }}
+        </p>
+        {% if filtered %}
+            <a href="{{ base_url }}" class="text-sm">Tout effacer</a>
+        {% endif %}
+    </div>
+
+    {% if activities %}
+        <div class="mt-4 grid gap-3">
+            {% for activity in activities %}
+                <div class="ugg-card flex flex-wrap items-center justify-between gap-3 p-4">
+                    <div class="min-w-0">
+                        <p class="ugg-title text-base">{{ activity.get_activity_type_display }}</p>
+                        <p class="mt-1 text-sm text-muted">{{ activity.started_at|date:"d/m/Y H:i" }}</p>
+                    </div>
+                    <div class="flex flex-wrap gap-2">
+                        <span class="ugg-tag">{{ activity.duration_label }}</span>
+                        {% if activity.distance_km_label %}
+                            <span class="ugg-tag">{{ activity.distance_km_label }}</span>
+                        {% endif %}
+                        {% if activity.pace_label %}
+                            <span class="ugg-tag ugg-tag--accent">{{ activity.pace_label }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        {% include "core/components/empty_state.html" with title="Aucune activité sur cette période" body="Élargis la période ou décoche un type d'activité." action_url=base_url action_label="Tout effacer" %}
+    {% endif %}
+{% endif %}

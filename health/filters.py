@@ -1,0 +1,89 @@
+"""Filtrage des activités affichées sur la page d'analyse (#73).
+
+Deux critères, cumulés en ET, chacun avec sa propre sémantique :
+- le type d'activité est à choix multiples (OU entre les valeurs cochées), en
+  panneau repliable — patron d'`exercises.filters` ;
+- la période est un choix fermé à une seule valeur (règle CLAUDE.md : un choix
+  fermé passe par un contrôle segmenté `.ugg-segmented`, pas un `<details>`).
+"""
+
+from dataclasses import dataclass
+
+from django.db.models import QuerySet
+from django.utils import timezone
+
+from core.filtering import FilterGroup, Option, selected_values
+
+from .models import Activity
+
+TYPE_PARAM = "type"
+PERIOD_PARAM = "periode"
+
+#: (valeur, libellé, nombre de jours — `None` pour « tout »)
+PERIOD_CHOICES: tuple[tuple[str, str, int | None], ...] = (
+    ("7", "7 jours", 7),
+    ("30", "30 jours", 30),
+    ("90", "90 jours", 90),
+    ("tout", "Tout", None),
+)
+DEFAULT_PERIOD = "30"
+
+
+@dataclass(frozen=True)
+class PeriodOption:
+    value: str
+    label: str
+    selected: bool
+
+
+_PERIOD_DAYS_BY_VALUE = {value: days for value, _label, days in PERIOD_CHOICES}
+
+
+def selected_period(params) -> tuple[str, int | None]:
+    """Période choisie, repliée sur la valeur par défaut si absente/inconnue."""
+    value = params.get(PERIOD_PARAM, DEFAULT_PERIOD)
+    if value not in _PERIOD_DAYS_BY_VALUE:
+        value = DEFAULT_PERIOD
+    return value, _PERIOD_DAYS_BY_VALUE[value]
+
+
+def period_options(params) -> list[PeriodOption]:
+    selected_value, _days = selected_period(params)
+    return [
+        PeriodOption(value=value, label=label, selected=value == selected_value)
+        for value, label, _days in PERIOD_CHOICES
+    ]
+
+
+def build_type_group(params) -> FilterGroup:
+    allowed = set(Activity.ActivityType.values)
+    chosen = set(selected_values(params, TYPE_PARAM, allowed))
+    return FilterGroup(
+        name=TYPE_PARAM,
+        legend="Type d'activité",
+        options=[
+            Option(value=value, label=label, selected=value in chosen)
+            for value, label in Activity.ActivityType.choices
+        ],
+    )
+
+
+def filter_activities(params, user) -> QuerySet[Activity]:
+    """Activités de `user` restreintes aux critères cochés."""
+    queryset = Activity.objects.filter(user=user)
+
+    _period_value, days = selected_period(params)
+    if days is not None:
+        cutoff = timezone.now() - timezone.timedelta(days=days)
+        queryset = queryset.filter(started_at__gte=cutoff)
+
+    types = selected_values(params, TYPE_PARAM, set(Activity.ActivityType.values))
+    if types:
+        queryset = queryset.filter(activity_type__in=types)
+
+    return queryset.order_by("-started_at")
+
+
+def has_active_filters(type_group: FilterGroup, params) -> bool:
+    value, _days = selected_period(params)
+    return bool(type_group.selected_count) or value != DEFAULT_PERIOD

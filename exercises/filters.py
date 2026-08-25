@@ -7,35 +7,26 @@ barre). Une valeur inconnue est ignorée plutôt que refusée — un lien partag
 doit pas casser parce que le référentiel a changé depuis.
 """
 
-from dataclasses import dataclass
-
 from django.db.models import Exists, OuterRef, Q, QuerySet
+
+from core.filtering import FilterGroup, Option, selected_values
 
 from .models import Exercise, Favorite, Muscle
 
-
-@dataclass(frozen=True)
-class Option:
-    """Valeur cochable d'un critère."""
-
-    value: str
-    label: str
-    selected: bool
-
-
-@dataclass(frozen=True)
-class FilterGroup:
-    """Critère de filtrage et l'état de ses options."""
-
-    #: Nom du paramètre de requête, en français comme le reste des URL.
-    name: str
-    legend: str
-    options: list[Option]
-
-    @property
-    def selected_count(self) -> int:
-        return sum(1 for option in self.options if option.selected)
-
+__all__ = [
+    "CHOICE_FILTERS",
+    "FAVORITES_PARAM",
+    "MUSCLE_PARAM",
+    "SEARCH_PARAM",
+    "FilterGroup",
+    "Option",
+    "build_groups",
+    "favorites_only",
+    "filter_exercises",
+    "has_active_filters",
+    "search_query",
+    "selected_values",
+]
 
 #: Critères à valeurs fermées : paramètre de requête, champ, libellé, énumération.
 #: Le type d'exercice vient en tête : c'est lui qui écarte le plus de catalogue
@@ -57,11 +48,6 @@ FAVORITES_PARAM = "favoris"
 #: Recherche texte libre, sur le nom de l'exercice. Se cumule (ET) avec les
 #: autres critères, comme n'importe lequel d'entre eux.
 SEARCH_PARAM = "recherche"
-
-
-def selected_values(params, name: str, allowed: set[str]) -> list[str]:
-    """Valeurs cochées pour un critère, réduites à celles qui existent."""
-    return [value for value in params.getlist(name) if value in allowed]
 
 
 def search_query(params) -> str:

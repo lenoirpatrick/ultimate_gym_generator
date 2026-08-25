@@ -1,42 +1,47 @@
 """Import, API d'ingestion, gestion des clés API et page d'analyse."""
 
 import json
-from datetime import datetime, timedelta
+from datetime import datetime
 
 from django.contrib.auth.decorators import login_required
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, render
+from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 
-from . import analytics, auth
+from . import analytics, auth, filters
 from . import ingest as ingest_module
 from .forms import ApiKeyForm, HealthImportForm
 from .importer import ExportParseError, parse_export
 from .models import Activity, ApiKey, WeightMeasurement
 
-#: Fenêtre par défaut de la page d'analyse, avant que le filtrage par période
-#: (#73) ne la rende réglable.
-DEFAULT_DASHBOARD_DAYS = 30
-
 
 @login_required
 def dashboard(request: HttpRequest) -> HttpResponse:
-    """Page d'analyse : KPI et graphiques sur les trente derniers jours (#72)."""
+    """Page d'analyse : KPI, graphiques et activités, filtrables (#72, #73)."""
+    params = request.GET
     user = request.user
-    cutoff = timezone.now() - timedelta(days=DEFAULT_DASHBOARD_DAYS)
-    activities = Activity.objects.filter(user=user, started_at__gte=cutoff).order_by("-started_at")
+
+    type_group = filters.build_type_group(params)
+    activities = filters.filter_activities(params, user)
+    _period_value, days = filters.selected_period(params)
 
     context = {
+        "type_group": type_group,
+        "period_options": filters.period_options(params),
+        "filtered": filters.has_active_filters(type_group, params),
         "activities": activities[:50],
-        "kpis": analytics.build_kpis(user, activities, DEFAULT_DASHBOARD_DAYS),
-        "chart_data": analytics.build_chart_data(
-            user, activities, DEFAULT_DASHBOARD_DAYS
-        ).as_dict(),
+        "kpis": analytics.build_kpis(user, activities, days),
+        "chart_data": analytics.build_chart_data(user, activities, days).as_dict(),
         "has_data": WeightMeasurement.objects.filter(user=user).exists()
         or Activity.objects.filter(user=user).exists(),
+        "base_url": reverse("health:dashboard"),
     }
+
+    if request.headers.get("HX-Request"):
+        return render(request, "health/partials/dashboard_results.html", context)
     return render(request, "health/dashboard.html", context)
 
 

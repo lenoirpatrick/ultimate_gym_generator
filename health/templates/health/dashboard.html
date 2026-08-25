@@ -8,65 +8,55 @@
     <h1 class="ugg-title mt-2 text-3xl">Analyse</h1>
     <p class="mt-3 max-w-2xl text-muted">
         Poids, activités et temps de course, à partir des données HealthKit
-        importées sur les 30 derniers jours. <a href="{% url 'health:import' %}">Importer un export</a>
+        importées. <a href="{% url 'health:import' %}">Importer un export</a>
         · <a href="{% url 'health:api_keys' %}">Clés API</a>
     </p>
 
-    {% if not has_data %}
-        {% url 'health:import' as import_url %}
-        {% include "core/components/empty_state.html" with title="Aucune donnée importée" body="Importe un export Apple Health pour voir apparaître tes indicateurs et graphiques." action_url=import_url action_label="Importer un export" %}
-    {% else %}
-        <div class="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {% for kpi in kpis %}
-                {% include "core/components/stat_tile.html" with kpi=kpi %}
-            {% endfor %}
-        </div>
+    {% if has_data %}
+        {% comment %}
+        Un seul formulaire pour les deux critères : chaque changement relance
+        l'analyse et réécrit l'adresse, comme le catalogue d'exercices.
+        {% endcomment %}
+        <form class="mt-8"
+              method="get"
+              action="{{ base_url }}"
+              hx-get="{{ base_url }}"
+              hx-trigger="change"
+              hx-target="#resultats-sante"
+              hx-push-url="true"
+              hx-indicator="#analyse-en-cours">
 
-        {{ chart_data|json_script:"health-chart-data" }}
+            <fieldset class="ugg-field">
+                <legend class="ugg-field__label">Période</legend>
+                <div class="ugg-segmented mt-2">
+                    {% for option in period_options %}
+                        <label>
+                            <input type="radio" name="periode" value="{{ option.value }}"
+                                   {% if option.selected %}checked{% endif %}>
+                            <span>{{ option.label }}</span>
+                        </label>
+                    {% endfor %}
+                </div>
+            </fieldset>
 
-        <div class="mt-6 grid gap-4 lg:grid-cols-3">
-            <div class="ugg-card ugg-chart">
-                <p class="ugg-chart__title">Poids</p>
-                <canvas id="chart-weight" height="220"></canvas>
+            <div class="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {% include "core/components/filter_group.html" with group=type_group %}
             </div>
-            <div class="ugg-card ugg-chart">
-                <p class="ugg-chart__title">Volume d'activité (h / semaine)</p>
-                <canvas id="chart-volume" height="220"></canvas>
-            </div>
-            <div class="ugg-card ugg-chart">
-                <p class="ugg-chart__title">Allure de course (min/km)</p>
-                <canvas id="chart-pace" height="220"></canvas>
-            </div>
-        </div>
 
-        <p class="mt-8 ugg-eyebrow">
-            {{ activities|length }} activité{{ activities|length|pluralize }} sur les 30 derniers jours
-        </p>
-
-        {% if activities %}
-            <div class="mt-4 grid gap-3">
-                {% for activity in activities %}
-                    <div class="ugg-card flex flex-wrap items-center justify-between gap-3 p-4">
-                        <div class="min-w-0">
-                            <p class="ugg-title text-base">{{ activity.get_activity_type_display }}</p>
-                            <p class="mt-1 text-sm text-muted">{{ activity.started_at|date:"d/m/Y H:i" }}</p>
-                        </div>
-                        <div class="flex flex-wrap gap-2">
-                            <span class="ugg-tag">{{ activity.duration_label }}</span>
-                            {% if activity.distance_km_label %}
-                                <span class="ugg-tag">{{ activity.distance_km_label }}</span>
-                            {% endif %}
-                            {% if activity.pace_label %}
-                                <span class="ugg-tag ugg-tag--accent">{{ activity.pace_label }}</span>
-                            {% endif %}
-                        </div>
-                    </div>
-                {% endfor %}
+            <div class="mt-4 flex flex-wrap items-center gap-3">
+                <noscript>
+                    <button type="submit" class="ugg-btn ugg-btn--primary">Filtrer</button>
+                </noscript>
+                <span id="analyse-en-cours" class="ugg-indicator">
+                    {% include "core/components/spinner.html" with variant="runner" size="md" label="Mise à jour de l'analyse" visible_label=True %}
+                </span>
             </div>
-        {% else %}
-            {% include "core/components/empty_state.html" with title="Aucune activité sur les 30 derniers jours" body="Importe un export plus récent, ou reviens après ta prochaine séance." %}
-        {% endif %}
+        </form>
     {% endif %}
+
+    <div id="resultats-sante" class="mt-8" aria-live="polite">
+        {% include "health/partials/dashboard_results.html" %}
+    </div>
 {% endblock %}
 
 {% block extra_scripts %}

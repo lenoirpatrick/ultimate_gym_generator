@@ -143,8 +143,11 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
 ### Filtres de catalogue
 
 - Un critère de filtrage est un panneau **repliable natif** (`<details>`), jamais un
-  `<select multiple>` — impraticable au pouce. Composant :
-  `exercises/templates/exercises/partials/filter_group.html`.
+  `<select multiple>` — impraticable au pouce. Composant partagé :
+  `core/templates/core/components/filter_group.html` (extrait d'`exercises` vers
+  `core` quand `health` en a eu besoin à son tour, issue #73 — les dataclasses
+  `Option`/`FilterGroup` et `selected_values()` vivent maintenant dans
+  `core/filtering.py`, réutilisées par `exercises.filters` et `health.filters`).
 - Replié par défaut, **déplié dès qu'une de ses cases est cochée**, et le nombre de
   sélections reste affiché sur l'onglet fermé : un filtre actif ne doit jamais pouvoir
   s'oublier.
@@ -216,9 +219,11 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
   principe que HTMX : un seul fichier minifié déposé tel quel, aucun bundler). Chargé
   uniquement sur cette page (`{% block extra_scripts %}` de `core/base.html`), pas
   globalement.
-- Les données voyagent en JSON via `json_script` (`health/templates/health/dashboard.html`,
+- Les données voyagent en JSON via `json_script` (`health/partials/dashboard_results.html`,
   même technique que la timeline du minuteur de séance) plutôt que par un appel réseau
-  séparé.
+  séparé. Le bloc de résultats étant remplacé par HTMX à chaque changement de filtre
+  (#73), `core/static/core/js/health_charts.js` réinitialise les graphiques sur
+  `htmx:afterSettle`, en détruisant les instances précédentes avant d'en recréer.
 - Couleurs des séries : uniquement les tokens existants (`--ugg-accent` pour les trois
   séries — poids, volume, allure). `--ugg-info`, seule couleur froide du projet, reste
   réservé à la récupération du minuteur (voir plus haut) ; il n'a pas été réutilisé ici
@@ -229,12 +234,17 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
   couleur, et le sens « bon/mauvais » n'est pas universel (perdre du poids peut être
   l'objectif ou non) : la convention prise ici est `--ugg-danger` pour une hausse de
   poids, propre à cette page.
+- Filtres : période (choix fermé 7j/30j/90j/tout) en **contrôle segmenté**
+  (`.ugg-segmented`, règle déjà en vigueur pour tout choix fermé) — jamais un
+  `<details>`, réservé aux critères à choix multiples comme le type d'activité (panneau
+  repliable partagé avec le catalogue, voir « Filtres de catalogue »). KPI, graphiques
+  et liste d'activités affichée partagent le même filtrage (`health.filters`) : jamais
+  deux logiques de restriction séparées qui pourraient diverger.
 - Entrée de navigation « Analyse » ajoutée à `core/nav.py` `PRIMARY` — consultée
   régulièrement, au même titre que Séances/Exercices/Favoris, pas un réglage ponctuel
   derrière Configuration.
-- Fenêtre fixe des trente derniers jours pour cette première version ; tous les états
-  traités : aucune donnée importée (`empty_state.html`, lien vers l'import), aucune
-  activité sur la période, chargement (spinner `hx-indicator`).
+- Tous les états traités : aucune donnée importée (`empty_state.html`, lien vers
+  l'import), période/types filtrés sans résultat, chargement (spinner `hx-indicator`).
 
 ### Blocs de séance
 
