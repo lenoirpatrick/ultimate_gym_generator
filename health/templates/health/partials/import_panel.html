@@ -58,6 +58,9 @@ requête, HTMX ou non (health.views.import_view).
                     </li>
                 {% endif %}
             </ul>
+            <a href="{% url 'health:dashboard' %}" class="ugg-btn ugg-btn--primary mt-4">
+                Voir l'analyse
+            </a>
         </div>
     {% endif %}
 </div>

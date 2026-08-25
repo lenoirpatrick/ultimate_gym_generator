@@ -210,6 +210,32 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
 - Une entrée invalide dans un lot n'empêche pas les autres d'être appliquées : la
   réponse détaille les erreurs par entrée plutôt que de rejeter l'envoi entier.
 
+### Page d'analyse (issue #72)
+
+- KPI et graphiques sur **Chart.js vendoré** (`core/static/core/js/chart.min.js`, même
+  principe que HTMX : un seul fichier minifié déposé tel quel, aucun bundler). Chargé
+  uniquement sur cette page (`{% block extra_scripts %}` de `core/base.html`), pas
+  globalement.
+- Les données voyagent en JSON via `json_script` (`health/templates/health/dashboard.html`,
+  même technique que la timeline du minuteur de séance) plutôt que par un appel réseau
+  séparé.
+- Couleurs des séries : uniquement les tokens existants (`--ugg-accent` pour les trois
+  séries — poids, volume, allure). `--ugg-info`, seule couleur froide du projet, reste
+  réservé à la récupération du minuteur (voir plus haut) ; il n'a pas été réutilisé ici
+  pour ne pas rouvrir cette règle.
+- Indicateur clé (KPI) : composant partagé `core/templates/core/components/stat_tile.html`
+  (label, valeur en gros, tendance). La tendance se lit à la couleur (`--ugg-success`/
+  `--ugg-danger`) **et** à un signe explicite (▲/▼ + delta chiffré) — jamais la seule
+  couleur, et le sens « bon/mauvais » n'est pas universel (perdre du poids peut être
+  l'objectif ou non) : la convention prise ici est `--ugg-danger` pour une hausse de
+  poids, propre à cette page.
+- Entrée de navigation « Analyse » ajoutée à `core/nav.py` `PRIMARY` — consultée
+  régulièrement, au même titre que Séances/Exercices/Favoris, pas un réglage ponctuel
+  derrière Configuration.
+- Fenêtre fixe des trente derniers jours pour cette première version ; tous les états
+  traités : aucune donnée importée (`empty_state.html`, lien vers l'import), aucune
+  activité sur la période, chargement (spinner `hx-indicator`).
+
 ### Blocs de séance
 
 - Une séance se lit **à bout de bras, entre deux séries** : le temps d'effort passe avant

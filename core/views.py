@@ -58,6 +58,7 @@ def style_guide(request: HttpRequest) -> HttpResponse:
 
     from exercises.filters import FilterGroup, Option
     from exercises.models import Exercise
+    from health.analytics import Kpi
     from workouts.forms import WorkoutForm
 
     user_model = get_user_model()
@@ -112,5 +113,16 @@ def style_guide(request: HttpRequest) -> HttpResponse:
             "workout_form_demo": WorkoutForm(),
             # Une icône par matériel du référentiel (issue #37).
             "equipment_choices": Exercise.Equipment.choices,
+            # Indicateur clé (issue #72) : les trois formes de tendance possibles.
+            "kpi_demos": [
+                Kpi(
+                    label="Poids actuel",
+                    value="80.20 kg",
+                    trend="down",
+                    trend_label="-1.1 kg sur la période",
+                ),
+                Kpi(label="Activités", value="6", trend_label="4 h 12"),
+                Kpi(label="Allure moyenne (course)", value="—", trend_label="aucune course"),
+            ],
         },
     )

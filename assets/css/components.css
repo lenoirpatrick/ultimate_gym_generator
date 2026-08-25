@@ -1637,3 +1637,65 @@
 .ugg-equipment-row:has(select[name$="-equipment"] option[value="other"]:checked) .ugg-equipment__icon--other {
     display: block;
 }
+
+/* =========================================================================
+   PAGE D'ANALYSE (issue #72) — indicateurs clés et graphiques
+   ========================================================================= */
+
+/* Indicateur clé (KPI) : label discret, valeur en accent affichage, tendance
+   couleur ET signe explicite (+/−) — jamais la seule couleur pour porter le
+   sens, comme ailleurs dans le projet. */
+.ugg-stat {
+    padding: var(--ugg-space-4) var(--ugg-space-6);
+    min-width: 0;
+}
+
+.ugg-stat__label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: var(--ugg-tracking-label);
+    text-transform: uppercase;
+    color: var(--ugg-text-muted);
+}
+
+.ugg-stat__value {
+    margin-top: var(--ugg-space-2);
+    font-family: var(--ugg-font-display);
+    font-size: 1.75rem;
+    font-weight: 800;
+    letter-spacing: var(--ugg-tracking-display);
+    color: var(--ugg-text);
+}
+
+.ugg-stat__trend {
+    margin-top: var(--ugg-space-1);
+    font-size: 0.8125rem;
+    color: var(--ugg-text-muted);
+}
+
+.ugg-stat__trend--up { color: var(--ugg-danger); }
+.ugg-stat__trend--down { color: var(--ugg-success); }
+
+/* Le sens n'est pas universellement bon/mauvais (perdre du poids peut être
+   l'objectif ou non) : la couleur suit la convention prise sur ce projet pour
+   la seule série concernée (poids qui monte = ugg-danger) plutôt qu'un
+   jugement générique — voir CLAUDE.md, Règles graphiques. */
+
+/* Un graphique Chart.js occupe une carte comme le reste du projet ; la
+   hauteur est fixée sur le <canvas> lui-même (attribut `height`, requis par
+   Chart.js) pour éviter le redimensionnement continu que provoquerait un
+   pourcentage. */
+.ugg-chart {
+    padding: var(--ugg-space-4) var(--ugg-space-6);
+}
+
+.ugg-chart__title {
+    font-family: var(--ugg-font-display);
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--ugg-text);
+}
+
+.ugg-chart canvas {
+    max-width: 100%;
+}

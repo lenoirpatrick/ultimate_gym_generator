@@ -1,7 +1,7 @@
-"""Import, API d'ingestion et gestion des clés API."""
+"""Import, API d'ingestion, gestion des clés API et page d'analyse."""
 
 import json
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from django.contrib.auth.decorators import login_required
 from django.http import HttpRequest, HttpResponse, JsonResponse
@@ -10,11 +10,34 @@ from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 
-from . import auth
+from . import analytics, auth
 from . import ingest as ingest_module
 from .forms import ApiKeyForm, HealthImportForm
 from .importer import ExportParseError, parse_export
-from .models import Activity, ApiKey
+from .models import Activity, ApiKey, WeightMeasurement
+
+#: Fenêtre par défaut de la page d'analyse, avant que le filtrage par période
+#: (#73) ne la rende réglable.
+DEFAULT_DASHBOARD_DAYS = 30
+
+
+@login_required
+def dashboard(request: HttpRequest) -> HttpResponse:
+    """Page d'analyse : KPI et graphiques sur les trente derniers jours (#72)."""
+    user = request.user
+    cutoff = timezone.now() - timedelta(days=DEFAULT_DASHBOARD_DAYS)
+    activities = Activity.objects.filter(user=user, started_at__gte=cutoff).order_by("-started_at")
+
+    context = {
+        "activities": activities[:50],
+        "kpis": analytics.build_kpis(user, activities, DEFAULT_DASHBOARD_DAYS),
+        "chart_data": analytics.build_chart_data(
+            user, activities, DEFAULT_DASHBOARD_DAYS
+        ).as_dict(),
+        "has_data": WeightMeasurement.objects.filter(user=user).exists()
+        or Activity.objects.filter(user=user).exists(),
+    }
+    return render(request, "health/dashboard.html", context)
 
 
 @login_required

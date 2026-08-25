@@ -37,6 +37,7 @@ PRIMARY = NavGroup(
         NavLink("Séances", "workouts:list"),
         NavLink("Exercices", "exercises:list"),
         NavLink("Favoris", "exercises:favorites"),
+        NavLink("Analyse", "health:dashboard"),
         NavLink("Compte", "accounts:profile"),
     ),
 )

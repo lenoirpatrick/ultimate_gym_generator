@@ -127,6 +127,20 @@
     </section>
 
     <section class="mt-12">
+        <h2 class="ugg-title text-xl">Indicateur clé (KPI)</h2>
+        <p class="mt-2 text-muted">
+            Libellé, valeur en gros, tendance optionnelle — la couleur de la
+            tendance renforce le signe explicite (+/−), elle ne le remplace
+            jamais. Page d'analyse HealthKit (issue #72).
+        </p>
+        <div class="mt-6 grid gap-4 sm:grid-cols-3">
+            {% for kpi in kpi_demos %}
+                {% include "core/components/stat_tile.html" with kpi=kpi %}
+            {% endfor %}
+        </div>
+    </section>
+
+    <section class="mt-12">
         <h2 class="ugg-title text-xl">Règle de durée</h2>
         <p class="mt-2 text-muted">
             Six valeurs possibles, donc six crans — on ne peut pas tomber entre deux.
