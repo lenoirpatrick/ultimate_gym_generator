@@ -35,6 +35,7 @@ qui documente chaque variable.
 | `DJANGO_TIME_ZONE` | `Europe/Paris` | |
 | `GUNICORN_WORKERS` | `3` | Processus applicatifs (conteneur) |
 | `DJANGO_DB_PATH` | fichier du projet (local) · `/app/ugg_data/db.sqlite3` (image) | Chemin de la base SQLite (voir § 2) |
+| `APPLE_HEALTH_IMPORT_MAX_BYTES` | `524288000` (500 Mo) | Taille maximale d'un export Apple Health importé (issue #70) |
 
 ---
 

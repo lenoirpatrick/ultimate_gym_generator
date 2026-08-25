@@ -168,6 +168,30 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
   jour à la frappe — via un second déclencheur HTMX sur le même formulaire
   (`keyup changed delay:400ms from:#recherche-input`), sans aucun script custom.
 
+### Import Apple Health (issue #70)
+
+- Contrairement au catalogue d'exercices — un petit JSON versionné, ré-échantillonnable
+  par tranches — un export Apple Health est un **unique fichier XML** à parcourir
+  séquentiellement, potentiellement volumineux : le re-parcourir par tranches à chaque
+  appel HTMX coûterait un balayage complet à chaque tranche (O(n²)). L'import se fait
+  donc en **une seule requête synchrone** (`health.importer.parse_export`), bornée par
+  `APPLE_HEALTH_IMPORT_MAX_BYTES`.
+- La durée totale n'étant pas connue à l'avance, l'indicateur correct reste le **spinner
+  sport** (`hx-indicator`, patron des conseils IA de séance), jamais une barre de
+  progression — cohérente avec la règle des « Barres de progression » ci-dessus.
+- Le fichier est lu avec `defusedxml` plutôt que `xml.etree` directement : un fichier
+  déposé par l'utilisateur reste une entrée non fiable, à l'abri des attaques XML
+  classiques (entités externes, expansion d'entités).
+- Idempotent par construction : `WeightMeasurement`/`Activity` portent une contrainte
+  d'unicité sur leur clé naturelle (utilisateur + instant de mesure, ou utilisateur +
+  type + début d'activité — un export Apple Health classique ne porte aucun identifiant
+  stable par enregistrement). Un réimport met donc à jour plutôt que dupliquer. La même
+  fonction d'upsert (`health.ingest`) sert l'import fichier et l'API d'ingestion
+  (issue #71), pour que les deux ne divergent jamais sur cette clé.
+- Un type d'activité HealthKit non couvert par `health.importer.WORKOUT_TYPE_MAP`
+  est importé quand même, classé `Activity.ActivityType.OTHER` — traiter la donnée
+  comme un coach professionnel ne consiste pas à en jeter une partie silencieusement.
+
 ### Blocs de séance
 
 - Une séance se lit **à bout de bras, entre deux séries** : le temps d'effort passe avant

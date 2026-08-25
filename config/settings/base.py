@@ -226,6 +226,16 @@ EXERCISES_IMAGES_SOURCE = env.str(
 )
 
 # --------------------------------------------------------------------------- #
+# Données de santé (Apple HealthKit)
+#
+# Un export Apple Health est un unique fichier XML, parcouru en une seule
+# requête synchrone (issue #70) : ce plafond borne la durée de cette requête
+# et protège le volume de stockage d'un envoi accidentel.
+# --------------------------------------------------------------------------- #
+
+APPLE_HEALTH_IMPORT_MAX_BYTES = env.int("APPLE_HEALTH_IMPORT_MAX_BYTES", default=500 * 1024 * 1024)
+
+# --------------------------------------------------------------------------- #
 # Journalisation
 # --------------------------------------------------------------------------- #
 
