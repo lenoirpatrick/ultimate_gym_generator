@@ -50,7 +50,7 @@ markers = [
 ]
 
 [tool.coverage.run]
-source = ["accounts", "aiproviders", "config", "core", "exercises"]
+source = ["accounts", "aiproviders", "config", "core", "exercises", "health"]
 omit = ["*/migrations/*", "*/tests/*", "*/wsgi.py", "*/asgi.py"]
 
 [tool.coverage.report]

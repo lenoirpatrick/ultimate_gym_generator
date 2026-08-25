@@ -27,6 +27,7 @@ config/settings/  base · dev · test · prod
 accounts/         utilisateur (avatar, mesures), authentification, SSO, gestion des comptes
 aiproviders/      credentials chiffrés, registre des fournisseurs, adaptateurs, /settings/ai/
 exercises/        catalogue d'exercices, import par lots, écran de chargement
+health/           données Apple HealthKit (poids, activités), import, API, page d'analyse
 core/             gabarit de base, composants, spinners, /healthz, /style-guide/
 docker/           entrypoint du conteneur
 docs/             INSTALL.md · DOCKER.md
