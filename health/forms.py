@@ -20,3 +20,11 @@ class HealthImportForm(forms.Form):
             )
 
         return uploaded
+
+
+class ApiKeyForm(forms.Form):
+    label = forms.CharField(
+        label="Nom de la clé",
+        max_length=120,
+        widget=forms.TextInput(attrs={"placeholder": "ex. iPhone — Raccourci"}),
+    )

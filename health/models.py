@@ -8,7 +8,9 @@ ligne existante plutôt que d'en créer une seconde (issue #70).
 """
 
 from django.conf import settings
+from django.contrib.auth.hashers import check_password, make_password
 from django.db import models
+from django.utils.crypto import get_random_string
 
 
 class WeightMeasurement(models.Model):
@@ -107,3 +109,47 @@ class Activity(models.Model):
             return None
         minutes, seconds = divmod(round(pace), 60)
         return f"{minutes}:{seconds:02d} /km"
+
+
+class ApiKey(models.Model):
+    """Clé d'accès à l'API d'ingestion (#71), propre à un utilisateur.
+
+    Hachée à sens unique (`make_password`, comme un mot de passe) plutôt que
+    chiffrée : contrairement aux credentials IA d'`aiproviders`, qui doivent
+    être relus en clair pour appeler un fournisseur, cette clé n'a jamais
+    besoin d'être redéchiffrée — seulement vérifiée. Elle n'est donc montrée
+    qu'une fois, à la création.
+    """
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="health_api_keys",
+        verbose_name="utilisateur",
+    )
+    label = models.CharField("nom", max_length=120)
+    prefix = models.CharField("préfixe", max_length=8, unique=True, db_index=True)
+    hashed_key = models.CharField("clé (hachée)", max_length=128)
+    created_at = models.DateTimeField("créée le", auto_now_add=True)
+    last_used_at = models.DateTimeField("dernière utilisation", null=True, blank=True)
+
+    class Meta:
+        verbose_name = "clé API"
+        verbose_name_plural = "clés API"
+        ordering = ("-created_at",)
+
+    def __str__(self) -> str:
+        return f"{self.label} ({self.prefix}…)"
+
+    @classmethod
+    def generate(cls, user, label: str) -> tuple["ApiKey", str]:
+        """Crée une clé et renvoie la valeur en clair — à afficher une seule fois."""
+        raw_key = get_random_string(43)
+        prefix = raw_key[:8]
+        instance = cls.objects.create(
+            user=user, label=label, prefix=prefix, hashed_key=make_password(raw_key)
+        )
+        return instance, raw_key
+
+    def matches(self, raw_key: str) -> bool:
+        return check_password(raw_key, self.hashed_key)

@@ -4,7 +4,7 @@ import pytest
 from django.db import IntegrityError
 from django.utils import timezone
 
-from health.models import Activity, WeightMeasurement
+from health.models import Activity, ApiKey, WeightMeasurement
 
 pytestmark = pytest.mark.django_db
 
@@ -65,3 +65,11 @@ def test_deux_activites_du_meme_type_au_meme_debut_sont_refusees(user):
             started_at=started,
             ended_at=started + timedelta(minutes=20),
         )
+
+
+def test_une_cle_api_generee_n_expose_jamais_le_secret_en_clair(user):
+    api_key, raw_key = ApiKey.generate(user, "iPhone — Raccourci")
+    assert api_key.hashed_key != raw_key
+    assert api_key.prefix == raw_key[:8]
+    assert api_key.matches(raw_key)
+    assert not api_key.matches("une-autre-valeur")

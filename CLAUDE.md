@@ -192,6 +192,24 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
   est importé quand même, classé `Activity.ActivityType.OTHER` — traiter la donnée
   comme un coach professionnel ne consiste pas à en jeter une partie silencieusement.
 
+### API d'ingestion à distance (issue #71)
+
+- `POST /sante/api/ingestion/` accepte les mêmes données que l'import fichier (poids,
+  activités), pour un raccourci iPhone ou une application tierce qui envoie directement
+  ses mesures. Authentifié par **clé API par utilisateur** (`health.ApiKey`), **hachée
+  à sens unique** (`make_password`, comme un mot de passe) plutôt que chiffrée — à la
+  différence des credentials IA d'`aiproviders`, cette clé n'a jamais besoin d'être
+  relue en clair, seulement vérifiée. Elle n'est donc affichée **qu'une fois**, à sa
+  création (`/sante/cles-api/`), pas de nouvelle entrée dans la navigation globale — un
+  réglage secondaire, au même titre que le matériel de l'utilisateur, atteint depuis la
+  page d'analyse plutôt que depuis la barre.
+- Hors session par nature (`@csrf_exempt`, pas de `@login_required` : l'authentification
+  est manuelle via `health.auth.authenticate_request`) et exempté de
+  `FirstRunMiddleware` (`accounts/middleware.py`) — un point d'entrée machine-à-machine
+  ne doit jamais être redirigé vers l'écran d'amorçage.
+- Une entrée invalide dans un lot n'empêche pas les autres d'être appliquées : la
+  réponse détaille les erreurs par entrée plutôt que de rejeter l'envoi entier.
+
 ### Blocs de séance
 
 - Une séance se lit **à bout de bras, entre deux séries** : le temps d'effort passe avant

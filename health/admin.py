@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Activity, WeightMeasurement
+from .models import Activity, ApiKey, WeightMeasurement
 
 
 @admin.register(WeightMeasurement)
@@ -17,3 +17,10 @@ class ActivityAdmin(admin.ModelAdmin):
     list_filter = ("activity_type", "source")
     date_hierarchy = "started_at"
     search_fields = ("user__email", "source")
+
+
+@admin.register(ApiKey)
+class ApiKeyAdmin(admin.ModelAdmin):
+    list_display = ("user", "label", "prefix", "created_at", "last_used_at")
+    search_fields = ("user__email", "label", "prefix")
+    readonly_fields = ("prefix", "hashed_key", "created_at", "last_used_at")

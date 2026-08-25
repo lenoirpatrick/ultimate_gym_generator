@@ -1,0 +1,41 @@
+{% extends "core/base.html" %}
+
+{% block title %}Clés API — {{ site_name }}{% endblock %}
+
+{% block content %}
+    <p class="ugg-eyebrow">Santé</p>
+    <h1 class="ugg-title mt-2 text-3xl">Clés API</h1>
+    <p class="mt-3 max-w-2xl text-muted">
+        Une clé permet à un raccourci iPhone ou une application tierce d'envoyer
+        directement tes mesures à l'application, sans repasser par un export
+        manuel — voir <code>POST /sante/api/ingestion/</code>.
+    </p>
+
+    {% if raw_key %}
+        <div class="ugg-alert ugg-alert--success mt-6 max-w-lg">
+            <p>
+                <strong>Clé créée : conserve-la maintenant, elle ne sera plus
+                jamais affichée.</strong>
+            </p>
+            <p class="mt-2 break-all font-mono text-sm">{{ raw_key }}</p>
+        </div>
+    {% endif %}
+
+    <form method="post" class="mt-8 flex max-w-lg flex-wrap items-end gap-3">
+        {% csrf_token %}
+        <div class="ugg-field flex-1">
+            <label class="ugg-field__label" for="{{ form.label.id_for_label }}">
+                {{ form.label.label }}
+            </label>
+            <div class="ugg-field__control">{{ form.label }}</div>
+            {% if form.label.errors %}
+                <p class="ugg-field__error">{{ form.label.errors|join:" " }}</p>
+            {% endif %}
+        </div>
+        <button type="submit" class="ugg-btn ugg-btn--primary">Créer une clé</button>
+    </form>
+
+    <div class="mt-8 max-w-lg">
+        {% include "health/partials/api_key_rows.html" %}
+    </div>
+{% endblock %}

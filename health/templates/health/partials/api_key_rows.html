@@ -1,0 +1,31 @@
+{% comment %}
+Lignes des clés API existantes. Bloc remplacé après révocation
+(health.views.api_key_revoke) — même patron que les lignes de matériel
+(accounts/partials/equipment_rows.html).
+{% endcomment %}
+<div id="cles-api-liste" class="grid gap-3">
+    {% for key in keys %}
+        <div class="ugg-card flex flex-wrap items-center justify-between gap-3 p-4">
+            <div class="min-w-0">
+                <p class="ugg-title text-base">{{ key.label }}</p>
+                <p class="mt-1 text-sm text-muted">
+                    {{ key.prefix }}… · créée le {{ key.created_at|date:"d/m/Y" }}
+                    {% if key.last_used_at %}
+                        · dernière utilisation le {{ key.last_used_at|date:"d/m/Y H:i" }}
+                    {% else %}
+                        · jamais utilisée
+                    {% endif %}
+                </p>
+            </div>
+            <button class="ugg-btn ugg-btn--danger"
+                    hx-post="{% url 'health:api_key_revoke' key.pk %}"
+                    hx-target="#cles-api-liste"
+                    hx-swap="outerHTML"
+                    hx-confirm="Révoquer la clé « {{ key.label }} » ? Toute application qui l'utilise cessera de fonctionner.">
+                Révoquer
+            </button>
+        </div>
+    {% empty %}
+        <p class="text-muted">Aucune clé créée pour l'instant.</p>
+    {% endfor %}
+</div>

@@ -63,6 +63,9 @@ class FirstRunMiddleware:
         exempt = (
             reverse("accounts:first_run"),
             reverse("core:healthz"),
+            # Point d'entrée machine-à-machine, authentifié par clé API et non
+            # par session : il ne doit jamais être redirigé vers l'amorçage.
+            reverse("health:ingest"),
             f"/{settings.STATIC_URL.lstrip('/')}",
             f"/{settings.MEDIA_URL.lstrip('/')}",
         )
