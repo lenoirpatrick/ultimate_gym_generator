@@ -48,18 +48,27 @@ def upsert_activity(
     started_at: datetime,
     ended_at: datetime,
     *,
+    duration_seconds: int | None = None,
     distance_meters: float | None = None,
     active_energy_kcal: float | None = None,
     average_heart_rate: int | None = None,
     source: str = "",
 ) -> bool:
-    """Crée ou met à jour l'activité qui a débuté à cet instant. Renvoie `created`."""
+    """Crée ou met à jour l'activité qui a débuté à cet instant. Renvoie `created`.
+
+    `duration_seconds` est la durée active HealthKit (issue #79), distincte de
+    `ended_at - started_at` qui inclut les pauses. Laissé à `None`, le modèle
+    (`Activity.save`) se replie lui-même sur cet écart horaire — seule
+    approximation disponible quand la source ne connaît pas la durée active
+    (export sans l'attribut, ou données API #71 qui ne le transmettent pas).
+    """
     _, created = Activity.objects.update_or_create(
         user=user,
         activity_type=activity_type,
         started_at=started_at,
         defaults={
             "ended_at": ended_at,
+            "duration_seconds": duration_seconds,
             "distance_meters": distance_meters,
             "active_energy_kcal": active_energy_kcal,
             "average_heart_rate": average_heart_rate,

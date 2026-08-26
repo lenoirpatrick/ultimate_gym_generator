@@ -2,7 +2,7 @@ import json
 
 import pytest
 
-from health.models import ApiKey
+from health.models import Activity, ApiKey
 
 pytestmark = pytest.mark.django_db
 
@@ -101,6 +101,26 @@ def test_un_type_d_activite_inconnu_tombe_sur_autre(client, user, api_key):
 
     assert response.status_code == 200
     assert response.json()["activities_created"] == 1
+
+
+def test_une_duree_active_explicite_est_prise_en_compte(client, user, api_key):
+    _instance, raw_key = api_key
+    payload = {
+        "activities": [
+            {
+                "activity_type": "running",
+                "started_at": "2024-01-02T07:00:00+01:00",
+                "ended_at": "2024-01-02T07:30:00+01:00",
+                "duration_seconds": 600,
+            }
+        ]
+    }
+
+    response = _post(client, raw_key, payload)
+
+    assert response.status_code == 200
+    activity = Activity.objects.get(user=user, activity_type="running")
+    assert activity.duration_seconds == 600
 
 
 def test_creation_et_revocation_d_une_cle(logged_client):

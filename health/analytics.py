@@ -6,13 +6,11 @@ liste affichée partagent le même filtrage, jamais deux logiques séparées.
 from dataclasses import dataclass, field
 from datetime import timedelta
 
-from django.db.models import Avg, Count, DurationField, ExpressionWrapper, F, QuerySet, Sum
+from django.db.models import Avg, Count, QuerySet, Sum
 from django.db.models.functions import TruncWeek
 from django.utils import timezone
 
 from .models import Activity, DailySteps, WeightMeasurement
-
-_DURATION = ExpressionWrapper(F("ended_at") - F("started_at"), output_field=DurationField())
 
 
 @dataclass(frozen=True)
@@ -43,11 +41,10 @@ class ChartData:
         }
 
 
-def _format_duration(total: timedelta | None) -> str:
-    if not total:
+def _format_duration(total_seconds: int | None) -> str:
+    if not total_seconds:
         return "0 min"
-    minutes = int(total.total_seconds() // 60)
-    hours, minutes = divmod(minutes, 60)
+    hours, minutes = divmod(int(total_seconds) // 60, 60)
     return f"{hours} h {minutes:02d}" if hours else f"{minutes} min"
 
 
@@ -91,7 +88,9 @@ def build_kpis(
         kpis.append(Kpi(label="Poids actuel", value="—", trend_label="aucune mesure importée"))
 
     aggregates = activities.aggregate(
-        count=Count("id"), total_duration=Sum(_DURATION), total_distance=Sum("distance_meters")
+        count=Count("id"),
+        total_duration=Sum("duration_seconds"),
+        total_distance=Sum("distance_meters"),
     )
     kpis.append(
         Kpi(
@@ -147,15 +146,14 @@ def build_chart_data(
         data.weight_values.append(float(measurement.weight_kg))
 
     weekly = (
-        activities.annotate(week=TruncWeek("started_at"), duration=_DURATION)
+        activities.annotate(week=TruncWeek("started_at"))
         .values("week")
-        .annotate(total_duration=Sum("duration"))
+        .annotate(total_duration=Sum("duration_seconds"))
         .order_by("week")
     )
     for row in weekly:
         data.volume_labels.append(row["week"].strftime("%d/%m"))
-        total: timedelta = row["total_duration"] or timedelta()
-        data.volume_values.append(round(total.total_seconds() / 3600, 1))
+        data.volume_values.append(round((row["total_duration"] or 0) / 3600, 1))
 
     runs = activities.filter(
         activity_type=Activity.ActivityType.RUNNING, distance_meters__isnull=False

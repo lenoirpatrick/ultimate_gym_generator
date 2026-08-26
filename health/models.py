@@ -62,6 +62,13 @@ class Activity(models.Model):
     )
     started_at = models.DateTimeField("débutée le")
     ended_at = models.DateTimeField("terminée le")
+    # Durée active HealthKit (attribut `duration`), pas `ended_at - started_at` :
+    # une séance mise en pause (feu rouge, calibrage GPS…) dure plus longtemps en
+    # horloge murale que son temps d'effort réel, faussant durée et allure d'un
+    # facteur proche de 2 dans les cas observés (issue #79). Repli sur l'écart
+    # horaire seulement si l'attribut HealthKit est absent (import#70) ou pour une
+    # activité créée via l'API (#71), qui ne le transmet pas forcément.
+    duration_seconds = models.PositiveIntegerField("durée (s)")
     distance_meters = models.FloatField("distance (m)", null=True, blank=True)
     active_energy_kcal = models.FloatField("énergie active (kcal)", null=True, blank=True)
     average_heart_rate = models.PositiveSmallIntegerField("FC moyenne (bpm)", null=True, blank=True)
@@ -80,9 +87,13 @@ class Activity(models.Model):
     def __str__(self) -> str:
         return f"{self.get_activity_type_display()} — {self.started_at:%d/%m/%Y}"
 
-    @property
-    def duration_seconds(self) -> int:
-        return max(0, int((self.ended_at - self.started_at).total_seconds()))
+    def save(self, *args, **kwargs) -> None:
+        # Repli centralisé, plutôt que dupliqué chez chaque appelant
+        # (`health.ingest`, tests) : sans durée active connue, l'écart horaire
+        # reste la meilleure approximation disponible.
+        if self.duration_seconds is None:
+            self.duration_seconds = max(0, int((self.ended_at - self.started_at).total_seconds()))
+        super().save(*args, **kwargs)
 
     @property
     def duration_label(self) -> str:

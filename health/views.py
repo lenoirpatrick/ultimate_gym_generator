@@ -151,6 +151,7 @@ def ingest(request: HttpRequest) -> JsonResponse:
                 activity_type=activity_type,
                 started_at=_parse_iso(entry["started_at"]),
                 ended_at=_parse_iso(entry["ended_at"]),
+                duration_seconds=entry.get("duration_seconds"),
                 distance_meters=entry.get("distance_meters"),
                 active_energy_kcal=entry.get("active_energy_kcal"),
                 average_heart_rate=entry.get("average_heart_rate"),

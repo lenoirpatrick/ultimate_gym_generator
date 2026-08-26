@@ -46,6 +46,9 @@ ENERGY_UNIT_TO_KCAL = {"kcal": 1.0, "Cal": 1.0, "kJ": 1 / 4.184}
 
 HEART_RATE_TYPE = "HKQuantityTypeIdentifierHeartRate"
 
+#: Durée active d'un `<Workout>` (attribut `duration`), en secondes.
+DURATION_UNIT_TO_SECONDS = {"sec": 1.0, "min": 60.0, "hr": 3600.0}
+
 #: Types d'activité HealthKit couverts explicitement ; un type absent de cette
 #: table est importé tout de même, classé `OTHER` — traiter la donnée comme un
 #: coach professionnel ne consiste pas à en jeter une partie silencieusement.
@@ -116,6 +119,26 @@ def _record_steps(attrib: dict) -> float | None:
         return None
 
 
+def _workout_duration_seconds(elem: ET.Element) -> int | None:
+    """Durée active HealthKit, si l'attribut `duration` est présent et exploitable.
+
+    Distincte de `endDate - startDate` : une séance mise en pause (feu rouge,
+    calibrage GPS…) dure plus longtemps en horloge murale que son temps
+    d'effort réel — c'est cette durée active que l'app Santé affiche
+    (issue #79), pas l'écart horaire brut.
+    """
+    value = elem.get("duration")
+    if value is None:
+        return None
+    factor = DURATION_UNIT_TO_SECONDS.get(elem.get("durationUnit") or "min")
+    if not factor:
+        return None
+    try:
+        return max(0, round(float(value) * factor))
+    except ValueError:
+        return None
+
+
 def _workout_statistics(elem: ET.Element) -> dict[str, dict]:
     """Statistiques imbriquées d'un `<Workout>`, indexées par type HealthKit.
 
@@ -179,7 +202,14 @@ def parse_export(user, file, since: date | None = None) -> ImportResult:
     déposé ne change pas, seul ce qui en est retenu diminue.
     """
     result = ImportResult()
-    steps_by_date: dict[date, float] = {}
+    #: Sommé par (source, jour) d'abord, jamais directement par jour (issue #78) :
+    #: iPhone et Apple Watch enregistrent souvent les mêmes pas en double quand les
+    #: deux sont portés/à proximité. Sommer toutes les sources indistinctement
+    #: doublait le total quotidien. Le total retenu par jour est le maximum
+    #: atteint par une seule source — l'hypothèse la plus proche de ce que fait
+    #: l'app Santé elle-même : une source complète plutôt que l'addition de
+    #: mesures redondantes.
+    steps_by_source_date: dict[tuple[str, date], float] = {}
 
     try:
         elements = SafeET.iterparse(file, events=("end",))
@@ -193,8 +223,8 @@ def parse_export(user, file, since: date | None = None) -> ImportResult:
 
                 steps = _record_steps(elem.attrib)
                 if started_at is not None and steps is not None:
-                    day = started_at.date()
-                    steps_by_date[day] = steps_by_date.get(day, 0) + steps
+                    key = (elem.get("sourceName", ""), started_at.date())
+                    steps_by_source_date[key] = steps_by_source_date.get(key, 0) + steps
                 elem.clear()
 
             elif elem.tag == "Record" and elem.get("type") == BODY_MASS_TYPE:
@@ -236,6 +266,7 @@ def parse_export(user, file, since: date | None = None) -> ImportResult:
                         activity_type=activity_type,
                         started_at=started_at,
                         ended_at=ended_at,
+                        duration_seconds=_workout_duration_seconds(elem),
                         distance_meters=_workout_distance_meters(elem, stats),
                         active_energy_kcal=_workout_energy_kcal(elem, stats),
                         average_heart_rate=_workout_average_heart_rate(stats),
@@ -250,6 +281,10 @@ def parse_export(user, file, since: date | None = None) -> ImportResult:
         raise ExportParseError(
             "Le fichier n'est pas un export Apple Health valide (XML illisible ou dangereux)."
         ) from exc
+
+    steps_by_date: dict[date, float] = {}
+    for (_source, day), steps in steps_by_source_date.items():
+        steps_by_date[day] = max(steps_by_date.get(day, 0), steps)
 
     for day, steps in steps_by_date.items():
         created = ingest.upsert_daily_steps(user, day, round(steps))

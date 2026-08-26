@@ -170,7 +170,7 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
   jour à la frappe — via un second déclencheur HTMX sur le même formulaire
   (`keyup changed delay:400ms from:#recherche-input`), sans aucun script custom.
 
-### Import Apple Health (issues #70, #74, #75)
+### Import Apple Health (issues #70, #74, #75, #78, #79)
 
 - Contrairement au catalogue d'exercices — un petit JSON versionné, ré-échantillonnable
   par tranches — un export Apple Health est un **unique fichier XML** à parcourir
@@ -208,6 +208,22 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
   total par jour à la fin (`health.ingest.upsert_daily_steps`). La clé naturelle
   de `DailySteps` est donc la date, pas l'instant — un réimport **remplace** le
   total du jour plutôt que de l'additionner une seconde fois.
+- Les pas ne se somment **jamais directement par jour** (issue #78) : iPhone et
+  Apple Watch enregistrent souvent les mêmes pas en double sur des intervalles
+  qui se recouvrent, quand les deux sont portés/à proximité. `parse_export`
+  agrège d'abord par **(source, jour)**, et retient pour chaque jour le
+  **maximum atteint par une seule source** — l'hypothèse la plus proche de ce
+  que fait l'app Santé elle-même, plutôt que la somme de mesures redondantes.
+- La durée d'une activité (`Activity.duration_seconds`) est un **champ stocké**,
+  pas calculé depuis `ended_at - started_at` (issue #79) : cet écart horaire
+  inclut les pauses (feu rouge, calibrage GPS…) et peut représenter près du
+  double du temps d'effort réel qu'affiche l'app Santé. `health.importer` lit
+  l'attribut `duration`/`durationUnit` de chaque `<Workout>` quand il existe ;
+  à défaut (export sans l'attribut, activité créée via l'API #71 sans
+  `duration_seconds` explicite), `Activity.save()` se replie lui-même sur
+  l'écart horaire — repli centralisé au niveau du modèle, jamais dupliqué chez
+  chaque appelant. Allure et volume d'activité (page d'analyse) s'appuient
+  tous les deux sur ce champ, jamais sur l'écart horaire brut.
 
 ### API d'ingestion à distance (issue #71)
 
@@ -640,6 +656,26 @@ Tout nouveau composant partagé y est ajouté en même temps qu'il est créé.
 - Ne pas créer de fichiers (docs, README, résumés) qui n'ont pas été demandés.
 - Modifier l'existant plutôt que de créer un doublon à côté.
 - Proposer une amélioration UX repérée en passant : la mentionner, ne pas l'implémenter sans accord.
+
+### Traiter une ou plusieurs issues GitHub
+
+Sur une demande du type « traite l'issue N » / « traite les issues N à M » :
+
+1. **Lire l'issue** (`gh issue view`) avant toute chose — ne jamais deviner son contenu.
+2. **Découper en sous-issues** si elle recouvre plusieurs changements indépendants
+   (comme la story #68, ou #77) — une sous-issue par changement livrable et testable
+   séparément, jamais une story fourre-tout. Une issue déjà atomique (un bug, un
+   changement cohérent) ne se découpe pas artificiellement.
+3. **Implémenter chaque sous-tâche dans un commit atomique** qui la référence deux
+   fois (titre `(#N)`, corps `Refs #N`) — voir *Commits et suivi des issues*.
+4. **Vérifier avant de commiter** : lint (`make lint`), suite de tests
+   (`make test`), et pour tout changement visuel ou de flux, une vérification
+   manuelle au navigateur (pas seulement les tests).
+5. **Commenter l'issue traitée** avec le périmètre livré, les décisions prises et ce
+   qui reste ouvert — sans la fermer : elle se ferme au merge, via `Closes #N` dans
+   un commit une fois la branche fusionnée dans `main`.
+6. **Ne jamais pousser sur le dépôt distant sans demande explicite** — les commits
+   restent locaux tant que ce n'est pas demandé.
 
 ---
 

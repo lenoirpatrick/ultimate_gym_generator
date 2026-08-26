@@ -48,6 +48,45 @@ def test_le_running_lit_la_distance_et_la_frequence_cardiaque(user):
     run = Activity.objects.get(user=user, activity_type=Activity.ActivityType.RUNNING)
     assert run.distance_meters == pytest.approx(5200)
     assert run.average_heart_rate == 148
+    # duration="32.5" durationUnit="min" — coïncide ici avec endDate - startDate.
+    assert run.duration_seconds == 1950
+
+
+def test_une_seance_mise_en_pause_utilise_la_duree_active_pas_l_ecart_horaire(user):
+    # Issue #79 : une séance interrompue (feu rouge, calibrage GPS…) dure plus
+    # longtemps en horloge murale (ici 24 min, 07:00 → 07:24) que son temps de
+    # course réel (attribut `duration`, ici 12 min) — c'est ce dernier que
+    # l'app Santé affiche, l'allure doit donc s'appuyer dessus.
+    xml = b"""<?xml version="1.0" encoding="UTF-8"?>
+    <HealthData>
+        <Workout workoutActivityType="HKWorkoutActivityTypeRunning"
+                 duration="12" durationUnit="min"
+                 totalDistance="2" totalDistanceUnit="km"
+                 sourceName="Apple Watch"
+                 startDate="2024-02-01 07:00:00 +0100"
+                 endDate="2024-02-01 07:24:00 +0100"/>
+    </HealthData>
+    """
+    parse_export(user, BytesIO(xml))
+    run = Activity.objects.get(user=user, activity_type=Activity.ActivityType.RUNNING)
+
+    assert run.duration_seconds == 12 * 60
+    # 12 min pour 2 km = 6 min/km, pas 12 min/km (durée horloge murale/distance).
+    assert run.pace_label == "6:00 /km"
+
+
+def test_sans_attribut_duration_le_repli_est_l_ecart_horaire(user):
+    xml = b"""<?xml version="1.0" encoding="UTF-8"?>
+    <HealthData>
+        <Workout workoutActivityType="HKWorkoutActivityTypeWalking"
+                 sourceName="iPhone"
+                 startDate="2024-02-01 07:00:00 +0100"
+                 endDate="2024-02-01 07:20:00 +0100"/>
+    </HealthData>
+    """
+    parse_export(user, BytesIO(xml))
+    walk = Activity.objects.get(user=user, activity_type=Activity.ActivityType.WALKING)
+    assert walk.duration_seconds == 20 * 60
 
 
 def test_reimporter_le_meme_fichier_ne_duplique_rien(user):
@@ -103,3 +142,28 @@ def test_reimporter_remplace_le_total_de_pas_sans_le_doubler(user):
     assert result.daily_steps_updated == 2
     assert DailySteps.objects.get(user=user, date=date(2024, 1, 1)).steps == 2000
     assert DailySteps.objects.filter(user=user).count() == 2
+
+
+def test_les_pas_ne_se_doublent_pas_entre_iphone_et_watch(user):
+    # Issue #78 : iPhone et Watch rapportent souvent les mêmes pas en double
+    # sur des intervalles qui se recouvrent. Le total du jour retenu est le
+    # maximum atteint par une seule source, pas la somme des deux.
+    xml = b"""<?xml version="1.0" encoding="UTF-8"?>
+    <HealthData>
+        <Record type="HKQuantityTypeIdentifierStepCount" sourceName="iPhone"
+                unit="count" startDate="2024-01-01 08:00:00 +0100"
+                endDate="2024-01-01 08:15:00 +0100" value="1000"/>
+        <Record type="HKQuantityTypeIdentifierStepCount" sourceName="iPhone"
+                unit="count" startDate="2024-01-01 09:00:00 +0100"
+                endDate="2024-01-01 09:15:00 +0100" value="500"/>
+        <Record type="HKQuantityTypeIdentifierStepCount" sourceName="Watch"
+                unit="count" startDate="2024-01-01 08:00:00 +0100"
+                endDate="2024-01-01 08:15:00 +0100" value="1000"/>
+    </HealthData>
+    """
+    result = parse_export(user, BytesIO(xml))
+
+    assert result.daily_steps_created == 1
+    # iPhone total 1500 (1000 + 500), Watch total 1000 : le jour retenu est
+    # 1500, pas 2500 (la somme des deux sources sur l'intervalle commun).
+    assert DailySteps.objects.get(user=user, date=date(2024, 1, 1)).steps == 1500

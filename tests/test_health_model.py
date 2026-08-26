@@ -37,6 +37,22 @@ def test_une_activite_calcule_sa_duree_et_son_allure(user):
     assert activity.pace_label == "6:00 /km"
 
 
+def test_une_duree_explicite_prime_sur_l_ecart_horaire(user):
+    # Issue #79 : une durée active connue (import HealthKit) doit primer sur
+    # l'écart started_at/ended_at, qui inclut les pauses.
+    started = timezone.now()
+    activity = Activity.objects.create(
+        user=user,
+        activity_type=Activity.ActivityType.RUNNING,
+        started_at=started,
+        ended_at=started + timedelta(minutes=30),
+        duration_seconds=600,
+        distance_meters=2000,
+    )
+    assert activity.duration_seconds == 600
+    assert activity.pace_label == "5:00 /km"
+
+
 def test_une_activite_sans_distance_n_a_pas_d_allure(user):
     started = timezone.now()
     activity = Activity.objects.create(
