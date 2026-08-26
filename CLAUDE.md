@@ -12,13 +12,13 @@ génération de programmes n'est pas encore implémentée.
 | Rôle | Choix |
 |---|---|
 | Runtime | Python 3.13+ · Django 6.1 |
-| Base | SQLite, fichier persisté sur volume en conteneur (`DJANGO_DB_PATH`) |
+| Base | SQLite, fichier persisté (`DJANGO_DB_PATH`) |
 | Configuration | `django-environ`, tout par variables d'environnement |
 | Interface | Gabarits Django + HTMX 2 (vendoré) + Tailwind CSS 4 (CLI autonome, zéro Node) |
 | Chiffrement | Fernet (`cryptography`) pour les clés d'API en base |
 | Fournisseurs IA | Anthropic (SDK officiel), Gemini / Mistral / Ollama (REST via httpx) |
 | Comptes | Mono-utilisateur par défaut, multi-utilisateurs pris en charge ; SSO OpenID Connect facultatif (`mozilla-django-oidc`) |
-| Serveur | Gunicorn + WhiteNoise, conteneur non-root |
+| Serveur | Gunicorn + WhiteNoise |
 | Qualité | `ruff`, `pytest` + `pytest-django` + couverture, SonarCloud |
 
 ```
@@ -29,8 +29,7 @@ aiproviders/      credentials chiffrés, registre des fournisseurs, adaptateurs,
 exercises/        catalogue d'exercices, import par lots, écran de chargement
 health/           données Apple HealthKit (poids, activités), import, API, page d'analyse
 core/             gabarit de base, composants, spinners, /healthz, /style-guide/
-docker/           entrypoint du conteneur
-docs/             INSTALL.md · DOCKER.md
+docs/             INSTALL.md
 src/              exercises.json — catalogue livré avec l'application
 tests/            suite pytest, en miroir des applications
 ```
@@ -685,9 +684,8 @@ make test         # pytest + couverture (coverage.xml)
 make lint         # ruff check + ruff format --check
 make format       # reformate et corrige ce qui peut l'être
 make check        # python manage.py check --deploy
-make docker-up    # pile complète (application, base SQLite persistée)
-make docker-down  # arrêt, volumes conservés
 ```
 
 `make help` liste les cibles disponibles. Détail de l'installation et de la
-configuration : `docs/INSTALL.md` ; conteneur et publication : `docs/DOCKER.md`.
+configuration : `docs/INSTALL.md`. Un déploiement conteneurisé est prévu mais
+pas encore documenté ; il sera repris proprement plus tard.

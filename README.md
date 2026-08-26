@@ -13,29 +13,33 @@ implémentée.
 | Rôle | Choix |
 |---|---|
 | Runtime | Python 3.13+ · Django 6.1 |
-| Base | SQLite, fichier persisté sur volume en conteneur |
+| Base | SQLite, fichier local (`DJANGO_DB_PATH`) |
 | Interface | Gabarits Django + HTMX 2 (vendoré) + Tailwind CSS 4 (CLI autonome, zéro Node) |
 | Fournisseurs IA | Anthropic (SDK officiel), Gemini / Mistral / Ollama (REST via httpx) |
 | Comptes | Mono-utilisateur par défaut, multi-utilisateurs pris en charge ; SSO OpenID Connect facultatif |
-| Serveur | Gunicorn + WhiteNoise, conteneur non-root |
+| Serveur | Gunicorn + WhiteNoise |
+
+Un déploiement conteneurisé est prévu mais pas encore documenté ; il sera
+repris proprement plus tard.
 
 ## Démarrage rapide
 
-Deux chemins : **Docker** (recommandé) ou installation locale pour développer.
-
 ```bash
-cp .env.example .env
-# Renseigner au minimum : DJANGO_SECRET_KEY, CREDENTIALS_ENCRYPTION_KEY,
-# DJANGO_ALLOWED_HOSTS.
+python -m venv .venv
+source .venv/bin/activate          # Windows : .venv\Scripts\activate
 
-docker compose up -d --build
-docker compose run --rm web python manage.py createsuperuser
+pip install -r requirements/dev.txt
+
+cp .env.example .env
+# Renseigner au minimum : DJANGO_SECRET_KEY, CREDENTIALS_ENCRYPTION_KEY.
+
+python manage.py migrate
+python manage.py createsuperuser
 ```
 
 L'application écoute sur <http://localhost:5907>.
 
-- Installation locale détaillée, variables de configuration : [`docs/INSTALL.md`](docs/INSTALL.md)
-- Déploiement et exploitation du conteneur : [`docs/DOCKER.md`](docs/DOCKER.md)
+- Installation détaillée, variables de configuration : [`docs/INSTALL.md`](docs/INSTALL.md)
 
 ## Commandes de développement
 

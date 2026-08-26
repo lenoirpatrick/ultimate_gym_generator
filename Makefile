@@ -1,4 +1,4 @@
-.PHONY: help install css css-watch run test lint format check migrate superuser exercises docker-build docker-up docker-down
+.PHONY: help install css css-watch run test lint format check migrate superuser exercises
 
 PYTHON ?= python
 CSS_IN  := assets/css/input.css
@@ -41,12 +41,3 @@ format: ## Reformate le code
 
 check: ## Contrôle la configuration de déploiement
 	$(PYTHON) manage.py check --deploy
-
-docker-build: ## Construit l'image
-	docker build -t plenoir/ultimate-gym-generator:latest .
-
-docker-up: ## Démarre la pile complète
-	docker compose up -d --build
-
-docker-down: ## Arrête la pile (les volumes sont conservés)
-	docker compose down

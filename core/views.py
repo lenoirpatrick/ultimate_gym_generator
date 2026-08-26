@@ -28,10 +28,9 @@ def home(request: HttpRequest) -> HttpResponse:
 
 
 def healthz(request: HttpRequest) -> JsonResponse:
-    """Sonde de santé consommée par Docker et par la CI.
+    """Sonde de santé : vérifie que le processus répond et que la base est joignable.
 
-    Vérifie que le processus répond *et* que la base est joignable : une
-    application qui rend du HTML sans base n'est pas en bonne santé.
+    Une application qui rend du HTML sans base n'est pas en bonne santé.
     """
     try:
         with connection.cursor() as cursor:
