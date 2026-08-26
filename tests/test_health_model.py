@@ -1,10 +1,10 @@
-from datetime import timedelta
+from datetime import date, timedelta
 
 import pytest
 from django.db import IntegrityError
 from django.utils import timezone
 
-from health.models import Activity, ApiKey, WeightMeasurement
+from health.models import Activity, ApiKey, DailySteps, WeightMeasurement
 
 pytestmark = pytest.mark.django_db
 
@@ -65,6 +65,17 @@ def test_deux_activites_du_meme_type_au_meme_debut_sont_refusees(user):
             started_at=started,
             ended_at=started + timedelta(minutes=20),
         )
+
+
+def test_un_total_de_pas_se_cree_et_s_affiche(user):
+    total = DailySteps.objects.create(user=user, date=date(2024, 1, 1), steps=8500)
+    assert "8500 pas" in str(total)
+
+
+def test_deux_totaux_de_pas_le_meme_jour_sont_refuses(user):
+    DailySteps.objects.create(user=user, date=date(2024, 1, 1), steps=8500)
+    with pytest.raises(IntegrityError):
+        DailySteps.objects.create(user=user, date=date(2024, 1, 1), steps=100)
 
 
 def test_une_cle_api_generee_n_expose_jamais_le_secret_en_clair(user):

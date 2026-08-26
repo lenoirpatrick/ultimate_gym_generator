@@ -5,7 +5,7 @@ from django.http import QueryDict
 from django.utils import timezone
 
 from health import filters
-from health.models import Activity
+from health.models import Activity, DailySteps
 
 pytestmark = pytest.mark.django_db
 
@@ -54,6 +54,18 @@ def test_periode_tout_ne_filtre_rien(user):
 
     params = QueryDict("periode=tout")
     assert filters.filter_activities(params, user).count() == 1
+
+
+def test_filter_daily_steps_respecte_la_periode(user):
+    today = timezone.now().date()
+    DailySteps.objects.create(user=user, date=today, steps=8000)
+    DailySteps.objects.create(user=user, date=today - timedelta(days=100), steps=9000)
+
+    params = QueryDict("periode=7")
+    result = filters.filter_daily_steps(params, user)
+
+    assert result.count() == 1
+    assert result.first().steps == 8000
 
 
 def test_has_active_filters_detecte_un_type_ou_une_periode_non_par_defaut():

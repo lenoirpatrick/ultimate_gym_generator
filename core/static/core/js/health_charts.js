@@ -80,6 +80,7 @@
         charts.weight = renderLine("chart-weight", data.weight, "Poids (kg)");
         charts.volume = renderBars("chart-volume", data.volume, "Heures");
         charts.pace = renderLine("chart-pace", data.pace, "Allure (min/km)");
+        charts.steps = renderBars("chart-steps", data.steps, "Pas");
     }
 
     document.addEventListener("DOMContentLoaded", renderCharts);

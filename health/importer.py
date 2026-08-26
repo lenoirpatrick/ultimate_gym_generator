@@ -29,6 +29,10 @@ from .models import Activity
 BODY_MASS_TYPE = "HKQuantityTypeIdentifierBodyMass"
 WEIGHT_UNIT_TO_KG = {"kg": 1.0, "kgs": 1.0, "lb": 0.45359237, "lbs": 0.45359237}
 
+#: Pas (issue #75) : exportés par petits intervalles, jamais un total par
+#: jour — agrégés en mémoire pendant le parcours, écrits une fois à la fin.
+STEP_COUNT_TYPE = "HKQuantityTypeIdentifierStepCount"
+
 #: Distance : identifiants HealthKit possibles et facteurs de conversion vers le mètre.
 DISTANCE_TYPES = (
     "HKQuantityTypeIdentifierDistanceWalkingRunning",
@@ -69,6 +73,8 @@ class ImportResult:
     weights_updated: int = 0
     activities_created: int = 0
     activities_updated: int = 0
+    daily_steps_created: int = 0
+    daily_steps_updated: int = 0
     skipped_types: set[str] = field(default_factory=set)
     #: Enregistrements antérieurs à `since` (issue #74), écartés sans erreur.
     skipped_before_since: int = 0
@@ -80,6 +86,8 @@ class ImportResult:
             + self.weights_updated
             + self.activities_created
             + self.activities_updated
+            + self.daily_steps_created
+            + self.daily_steps_updated
         )
 
 
@@ -99,6 +107,13 @@ def _record_weight_kg(attrib: dict) -> float | None:
         return None
     factor = WEIGHT_UNIT_TO_KG.get(attrib.get("unit", "kg"))
     return value * factor if factor else None
+
+
+def _record_steps(attrib: dict) -> float | None:
+    try:
+        return float(attrib["value"])
+    except (KeyError, ValueError):
+        return None
 
 
 def _workout_statistics(elem: ET.Element) -> dict[str, dict]:
@@ -164,11 +179,25 @@ def parse_export(user, file, since: date | None = None) -> ImportResult:
     déposé ne change pas, seul ce qui en est retenu diminue.
     """
     result = ImportResult()
+    steps_by_date: dict[date, float] = {}
 
     try:
         elements = SafeET.iterparse(file, events=("end",))
         for _, elem in elements:
-            if elem.tag == "Record" and elem.get("type") == BODY_MASS_TYPE:
+            if elem.tag == "Record" and elem.get("type") == STEP_COUNT_TYPE:
+                started_at = _parse_date(elem.get("startDate"))
+                if started_at is not None and since is not None and started_at.date() < since:
+                    result.skipped_before_since += 1
+                    elem.clear()
+                    continue
+
+                steps = _record_steps(elem.attrib)
+                if started_at is not None and steps is not None:
+                    day = started_at.date()
+                    steps_by_date[day] = steps_by_date.get(day, 0) + steps
+                elem.clear()
+
+            elif elem.tag == "Record" and elem.get("type") == BODY_MASS_TYPE:
                 started_at = _parse_date(elem.get("startDate"))
                 if started_at is not None and since is not None and started_at.date() < since:
                     result.skipped_before_since += 1
@@ -221,5 +250,12 @@ def parse_export(user, file, since: date | None = None) -> ImportResult:
         raise ExportParseError(
             "Le fichier n'est pas un export Apple Health valide (XML illisible ou dangereux)."
         ) from exc
+
+    for day, steps in steps_by_date.items():
+        created = ingest.upsert_daily_steps(user, day, round(steps))
+        if created:
+            result.daily_steps_created += 1
+        else:
+            result.daily_steps_updated += 1
 
     return result

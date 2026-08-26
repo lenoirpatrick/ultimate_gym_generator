@@ -6,12 +6,12 @@ seule la source diffère (fichier vs JSON). Centraliser l'upsert ici évite que
 les deux évoluent séparément et se mettent à diverger sur la clé d'unicité.
 """
 
-from datetime import datetime
+from datetime import date, datetime
 from decimal import Decimal
 
 from django.contrib.auth import get_user_model
 
-from .models import Activity, WeightMeasurement
+from .models import Activity, DailySteps, WeightMeasurement
 
 User = get_user_model()
 
@@ -24,6 +24,20 @@ def upsert_weight(
         user=user,
         recorded_at=recorded_at,
         defaults={"weight_kg": weight_kg, "source": source},
+    )
+    return created
+
+
+def upsert_daily_steps(user: User, on_date: date, steps: int) -> bool:
+    """Remplace le total de pas du jour par `steps`. Renvoie `created`.
+
+    Remplace plutôt qu'additionne : l'appelant (`health.importer`) a déjà
+    sommé tous les intervalles du jour présents dans le fichier avant
+    d'appeler cette fonction — réimporter le même export doit reproduire
+    exactement le même total, pas le doubler.
+    """
+    _, created = DailySteps.objects.update_or_create(
+        user=user, date=on_date, defaults={"steps": steps}
     )
     return created
 

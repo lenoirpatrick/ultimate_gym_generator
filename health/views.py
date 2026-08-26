@@ -15,7 +15,7 @@ from . import analytics, auth, filters
 from . import ingest as ingest_module
 from .forms import ApiKeyForm, HealthImportForm
 from .importer import ExportParseError, parse_export
-from .models import Activity, ApiKey, WeightMeasurement
+from .models import Activity, ApiKey, DailySteps, WeightMeasurement
 
 
 @login_required
@@ -26,6 +26,7 @@ def dashboard(request: HttpRequest) -> HttpResponse:
 
     type_group = filters.build_type_group(params)
     activities = filters.filter_activities(params, user)
+    daily_steps = filters.filter_daily_steps(params, user)
     _period_value, days = filters.selected_period(params)
 
     context = {
@@ -33,10 +34,11 @@ def dashboard(request: HttpRequest) -> HttpResponse:
         "period_options": filters.period_options(params),
         "filtered": filters.has_active_filters(type_group, params),
         "activities": activities[:50],
-        "kpis": analytics.build_kpis(user, activities, days),
-        "chart_data": analytics.build_chart_data(user, activities, days).as_dict(),
+        "kpis": analytics.build_kpis(user, activities, days, daily_steps),
+        "chart_data": analytics.build_chart_data(user, activities, days, daily_steps).as_dict(),
         "has_data": WeightMeasurement.objects.filter(user=user).exists()
-        or Activity.objects.filter(user=user).exists(),
+        or Activity.objects.filter(user=user).exists()
+        or DailySteps.objects.filter(user=user).exists(),
         "base_url": reverse("health:dashboard"),
     }
 

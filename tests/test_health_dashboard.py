@@ -3,7 +3,7 @@ from datetime import timedelta
 import pytest
 from django.utils import timezone
 
-from health.models import Activity, WeightMeasurement
+from health.models import Activity, DailySteps, WeightMeasurement
 
 pytestmark = pytest.mark.django_db
 
@@ -80,3 +80,26 @@ def test_une_requete_htmx_ne_rend_que_le_fragment(logged_client, user):
     response = logged_client.get("/sante/", HTTP_HX_REQUEST="true")
     assert response.status_code == 200
     assert b"<html" not in response.content
+
+
+def test_le_kpi_de_pas_moyens_apparait_avec_des_totaux_importes(logged_client, user):
+    today = timezone.now().date()
+    DailySteps.objects.create(user=user, date=today, steps=8000)
+    DailySteps.objects.create(user=user, date=today - timedelta(days=1), steps=12000)
+
+    response = logged_client.get("/sante/")
+    content = response.content.decode()
+
+    assert "Pas moyens (jour)" in content
+    assert "10 000" in content
+
+
+def test_le_filtrage_par_periode_exclut_les_pas_hors_plage(logged_client, user):
+    today = timezone.now().date()
+    DailySteps.objects.create(user=user, date=today - timedelta(days=100), steps=9000)
+
+    response = logged_client.get("/sante/", {"periode": "7"})
+    assert "aucun total importé" in response.content.decode()
+
+    response = logged_client.get("/sante/", {"periode": "tout"})
+    assert "aucun total importé" not in response.content.decode()

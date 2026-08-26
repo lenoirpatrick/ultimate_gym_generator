@@ -17,7 +17,7 @@ réinitialise les graphiques Chart.js à chaque remplacement HTMX
 
     {{ chart_data|json_script:"health-chart-data" }}
 
-    <div class="mt-6 grid gap-4 lg:grid-cols-3">
+    <div class="mt-6 grid gap-4 sm:grid-cols-2">
         <div class="ugg-card ugg-chart">
             <p class="ugg-chart__title">Poids</p>
             <canvas id="chart-weight" height="220"></canvas>
@@ -29,6 +29,10 @@ réinitialise les graphiques Chart.js à chaque remplacement HTMX
         <div class="ugg-card ugg-chart">
             <p class="ugg-chart__title">Allure de course (min/km)</p>
             <canvas id="chart-pace" height="220"></canvas>
+        </div>
+        <div class="ugg-card ugg-chart">
+            <p class="ugg-chart__title">Pas par jour</p>
+            <canvas id="chart-steps" height="220"></canvas>
         </div>
     </div>
 

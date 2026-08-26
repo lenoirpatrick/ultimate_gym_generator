@@ -62,6 +62,11 @@ requête, HTMX ou non (health.views.import_view).
                     créée{{ result.activities_created|pluralize }},
                     {{ result.activities_updated }} mise{{ result.activities_updated|pluralize }} à jour
                 </li>
+                <li>
+                    {{ result.daily_steps_created }} jour{{ result.daily_steps_created|pluralize }}
+                    de pas créé{{ result.daily_steps_created|pluralize }},
+                    {{ result.daily_steps_updated }} mis à jour
+                </li>
                 {% if result.skipped_types %}
                     <li class="text-muted">
                         Types d'activité non reconnus par l'application, importés

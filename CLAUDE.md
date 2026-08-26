@@ -170,7 +170,7 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
   jour à la frappe — via un second déclencheur HTMX sur le même formulaire
   (`keyup changed delay:400ms from:#recherche-input`), sans aucun script custom.
 
-### Import Apple Health (issues #70, #74)
+### Import Apple Health (issues #70, #74, #75)
 
 - Contrairement au catalogue d'exercices — un petit JSON versionné, ré-échantillonnable
   par tranches — un export Apple Health est un **unique fichier XML** à parcourir
@@ -202,6 +202,12 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
 - Un type d'activité HealthKit non couvert par `health.importer.WORKOUT_TYPE_MAP`
   est importé quand même, classé `Activity.ActivityType.OTHER` — traiter la donnée
   comme un coach professionnel ne consiste pas à en jeter une partie silencieusement.
+- Les pas (`HKQuantityTypeIdentifierStepCount`, issue #75) sont exportés en une
+  multitude de petits intervalles, jamais un total par jour : `parse_export` les
+  **agrège en mémoire pendant le parcours** (`steps_by_date`), puis écrit un seul
+  total par jour à la fin (`health.ingest.upsert_daily_steps`). La clé naturelle
+  de `DailySteps` est donc la date, pas l'instant — un réimport **remplace** le
+  total du jour plutôt que de l'additionner une seconde fois.
 
 ### API d'ingestion à distance (issue #71)
 
@@ -221,7 +227,7 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
 - Une entrée invalide dans un lot n'empêche pas les autres d'être appliquées : la
   réponse détaille les erreurs par entrée plutôt que de rejeter l'envoi entier.
 
-### Page d'analyse (issue #72)
+### Page d'analyse (issues #72, #75)
 
 - KPI et graphiques sur **Chart.js vendoré** (`core/static/core/js/chart.min.js`, même
   principe que HTMX : un seul fichier minifié déposé tel quel, aucun bundler). Chargé
@@ -232,10 +238,14 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
   séparé. Le bloc de résultats étant remplacé par HTMX à chaque changement de filtre
   (#73), `core/static/core/js/health_charts.js` réinitialise les graphiques sur
   `htmx:afterSettle`, en détruisant les instances précédentes avant d'en recréer.
-- Couleurs des séries : uniquement les tokens existants (`--ugg-accent` pour les trois
-  séries — poids, volume, allure). `--ugg-info`, seule couleur froide du projet, reste
-  réservé à la récupération du minuteur (voir plus haut) ; il n'a pas été réutilisé ici
-  pour ne pas rouvrir cette règle.
+- Couleurs des séries : uniquement les tokens existants (`--ugg-accent` pour les quatre
+  séries — poids, volume, allure, pas). `--ugg-info`, seule couleur froide du projet,
+  reste réservé à la récupération du minuteur (voir plus haut) ; il n'a pas été
+  réutilisé ici pour ne pas rouvrir cette règle.
+- KPI « Pas moyens (jour) » : moyenne sur les jours **effectivement importés** dans la
+  période, jamais complétée à zéro pour les jours sans total — une moyenne qui inclut
+  des zéros artificiels sous-évalue l'activité réelle plutôt que de simplement ignorer
+  les jours sans donnée.
 - Indicateur clé (KPI) : composant partagé `core/templates/core/components/stat_tile.html`
   (label, valeur en gros, tendance). La tendance se lit à la couleur (`--ugg-success`/
   `--ugg-danger`) **et** à un signe explicite (▲/▼ + delta chiffré) — jamais la seule

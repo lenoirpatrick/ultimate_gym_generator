@@ -14,7 +14,7 @@ from django.utils import timezone
 
 from core.filtering import FilterGroup, Option, selected_values
 
-from .models import Activity
+from .models import Activity, DailySteps
 
 TYPE_PARAM = "type"
 PERIOD_PARAM = "periode"
@@ -82,6 +82,22 @@ def filter_activities(params, user) -> QuerySet[Activity]:
         queryset = queryset.filter(activity_type__in=types)
 
     return queryset.order_by("-started_at")
+
+
+def filter_daily_steps(params, user) -> QuerySet[DailySteps]:
+    """Totaux de pas de `user` sur la période choisie (issue #75).
+
+    Pas de critère de type ici : un total de pas n'a pas de type d'activité,
+    seule la période s'applique.
+    """
+    queryset = DailySteps.objects.filter(user=user)
+
+    _period_value, days = selected_period(params)
+    if days is not None:
+        cutoff = (timezone.now() - timezone.timedelta(days=days)).date()
+        queryset = queryset.filter(date__gte=cutoff)
+
+    return queryset.order_by("date")
 
 
 def has_active_filters(type_group: FilterGroup, params) -> bool:

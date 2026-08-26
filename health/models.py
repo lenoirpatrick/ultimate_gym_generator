@@ -111,6 +111,35 @@ class Activity(models.Model):
         return f"{minutes}:{seconds:02d} /km"
 
 
+class DailySteps(models.Model):
+    """Total de pas d'une journée (issue #75).
+
+    Apple Health exporte les pas en une multitude de petits intervalles
+    (toutes les quelques minutes), jamais un total par jour — `health.importer`
+    les agrège avant d'écrire ici. La clé naturelle est donc la date, pas
+    l'instant : un réimport recalcule et remplace le total du jour plutôt que
+    de l'additionner une seconde fois.
+    """
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="daily_steps",
+        verbose_name="utilisateur",
+    )
+    date = models.DateField("date")
+    steps = models.PositiveIntegerField("pas")
+
+    class Meta:
+        verbose_name = "total de pas quotidien"
+        verbose_name_plural = "totaux de pas quotidiens"
+        ordering = ("-date",)
+        constraints = [models.UniqueConstraint(fields=["user", "date"], name="unique_daily_steps")]
+
+    def __str__(self) -> str:
+        return f"{self.steps} pas — {self.date:%d/%m/%Y}"
+
+
 class ApiKey(models.Model):
     """Clé d'accès à l'API d'ingestion (#71), propre à un utilisateur.
 

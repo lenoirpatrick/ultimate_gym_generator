@@ -4,7 +4,7 @@ import pytest
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import override_settings
 
-from health.models import Activity, WeightMeasurement
+from health.models import Activity, DailySteps, WeightMeasurement
 
 pytestmark = pytest.mark.django_db
 
@@ -25,6 +25,7 @@ def test_importer_un_fichier_valide_met_a_jour_les_compteurs(logged_client, user
     assert "Import terminé" in response.content.decode()
     assert WeightMeasurement.objects.filter(user=user).count() == 2
     assert Activity.objects.filter(user=user).count() == 2
+    assert DailySteps.objects.filter(user=user).count() == 2
 
 
 def test_une_extension_incorrecte_est_rejetee(logged_client):

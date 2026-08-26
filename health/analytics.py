@@ -6,11 +6,11 @@ liste affichée partagent le même filtrage, jamais deux logiques séparées.
 from dataclasses import dataclass, field
 from datetime import timedelta
 
-from django.db.models import Count, DurationField, ExpressionWrapper, F, QuerySet, Sum
+from django.db.models import Avg, Count, DurationField, ExpressionWrapper, F, QuerySet, Sum
 from django.db.models.functions import TruncWeek
 from django.utils import timezone
 
-from .models import Activity, WeightMeasurement
+from .models import Activity, DailySteps, WeightMeasurement
 
 _DURATION = ExpressionWrapper(F("ended_at") - F("started_at"), output_field=DurationField())
 
@@ -31,12 +31,15 @@ class ChartData:
     volume_values: list[float] = field(default_factory=list)
     pace_labels: list[str] = field(default_factory=list)
     pace_values: list[float] = field(default_factory=list)
+    steps_labels: list[str] = field(default_factory=list)
+    steps_values: list[int] = field(default_factory=list)
 
     def as_dict(self) -> dict:
         return {
             "weight": {"labels": self.weight_labels, "values": self.weight_values},
             "volume": {"labels": self.volume_labels, "values": self.volume_values},
             "pace": {"labels": self.pace_labels, "values": self.pace_values},
+            "steps": {"labels": self.steps_labels, "values": self.steps_values},
         }
 
 
@@ -68,7 +71,9 @@ def _weight_trend(user, latest: WeightMeasurement, days: int | None) -> tuple[st
     return ("up" if delta > 0 else "down"), f"{delta:+.1f} kg sur la période"
 
 
-def build_kpis(user, activities: QuerySet[Activity], days: int | None) -> list[Kpi]:
+def build_kpis(
+    user, activities: QuerySet[Activity], days: int | None, daily_steps: QuerySet[DailySteps]
+) -> list[Kpi]:
     kpis = []
 
     latest_weight = WeightMeasurement.objects.filter(user=user).order_by("-recorded_at").first()
@@ -112,10 +117,26 @@ def build_kpis(user, activities: QuerySet[Activity], days: int | None) -> list[K
     else:
         kpis.append(Kpi(label="Allure moyenne (course)", value="—", trend_label="aucune course"))
 
+    steps_aggregates = daily_steps.aggregate(average=Avg("steps"), count=Count("id"))
+    steps_days = steps_aggregates["count"]
+    if steps_days:
+        average_steps = f"{round(steps_aggregates['average']):,}".replace(",", " ")
+        kpis.append(
+            Kpi(
+                label="Pas moyens (jour)",
+                value=average_steps,
+                trend_label=f"sur {steps_days} jour{'s' if steps_days > 1 else ''}",
+            )
+        )
+    else:
+        kpis.append(Kpi(label="Pas moyens (jour)", value="—", trend_label="aucun total importé"))
+
     return kpis
 
 
-def build_chart_data(user, activities: QuerySet[Activity], days: int | None) -> ChartData:
+def build_chart_data(
+    user, activities: QuerySet[Activity], days: int | None, daily_steps: QuerySet[DailySteps]
+) -> ChartData:
     data = ChartData()
 
     weights_qs = WeightMeasurement.objects.filter(user=user).order_by("recorded_at")
@@ -145,5 +166,9 @@ def build_chart_data(user, activities: QuerySet[Activity], days: int | None) -> 
             continue
         data.pace_labels.append(run.started_at.strftime("%d/%m"))
         data.pace_values.append(round(pace / 60, 2))
+
+    for entry in daily_steps:
+        data.steps_labels.append(entry.date.strftime("%d/%m"))
+        data.steps_values.append(entry.steps)
 
     return data
