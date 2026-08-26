@@ -17,24 +17,39 @@ réinitialise les graphiques Chart.js à chaque remplacement HTMX
 
     {{ chart_data|json_script:"health-chart-data" }}
 
-    <div class="mt-6 grid gap-4 sm:grid-cols-2">
-        <div class="ugg-card ugg-chart">
-            <p class="ugg-chart__title">Poids</p>
-            <canvas id="chart-weight" height="220"></canvas>
+    {% if charts.has_any %}
+        {% comment %}
+        Un graphique sans série sur la période/le filtre courant ne s'affiche
+        pas (issue #84) — calculé côté serveur (health.analytics.ChartData),
+        jamais laissé en carte vide.
+        {% endcomment %}
+        <div class="mt-6 grid gap-4 sm:grid-cols-2">
+            {% if charts.has_weight %}
+                <div class="ugg-card ugg-chart">
+                    <p class="ugg-chart__title">Poids</p>
+                    <canvas id="chart-weight" height="220"></canvas>
+                </div>
+            {% endif %}
+            {% if charts.has_volume %}
+                <div class="ugg-card ugg-chart">
+                    <p class="ugg-chart__title">Volume d'activité (h / semaine)</p>
+                    <canvas id="chart-volume" height="220"></canvas>
+                </div>
+            {% endif %}
+            {% if charts.has_pace %}
+                <div class="ugg-card ugg-chart">
+                    <p class="ugg-chart__title">Allure de course (min/km)</p>
+                    <canvas id="chart-pace" height="220"></canvas>
+                </div>
+            {% endif %}
+            {% if charts.has_steps %}
+                <div class="ugg-card ugg-chart">
+                    <p class="ugg-chart__title">Pas par jour</p>
+                    <canvas id="chart-steps" height="220"></canvas>
+                </div>
+            {% endif %}
         </div>
-        <div class="ugg-card ugg-chart">
-            <p class="ugg-chart__title">Volume d'activité (h / semaine)</p>
-            <canvas id="chart-volume" height="220"></canvas>
-        </div>
-        <div class="ugg-card ugg-chart">
-            <p class="ugg-chart__title">Allure de course (min/km)</p>
-            <canvas id="chart-pace" height="220"></canvas>
-        </div>
-        <div class="ugg-card ugg-chart">
-            <p class="ugg-chart__title">Pas par jour</p>
-            <canvas id="chart-steps" height="220"></canvas>
-        </div>
-    </div>
+    {% endif %}
 
     <div class="mt-8 flex flex-wrap items-baseline justify-between gap-3">
         <p class="ugg-eyebrow">
@@ -60,6 +75,9 @@ réinitialise les graphiques Chart.js à chaque remplacement HTMX
                         {% endif %}
                         {% if activity.pace_label %}
                             <span class="ugg-tag ugg-tag--accent">{{ activity.pace_label }}</span>
+                        {% endif %}
+                        {% if activity.calories_label %}
+                            <span class="ugg-tag">{{ activity.calories_label }}</span>
                         {% endif %}
                     </div>
                 </div>

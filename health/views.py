@@ -28,6 +28,7 @@ def dashboard(request: HttpRequest) -> HttpResponse:
     activities = filters.filter_activities(params, user)
     daily_steps = filters.filter_daily_steps(params, user)
     _period_value, days = filters.selected_period(params)
+    chart_data = analytics.build_chart_data(user, activities, days, daily_steps)
 
     context = {
         "type_group": type_group,
@@ -35,7 +36,11 @@ def dashboard(request: HttpRequest) -> HttpResponse:
         "filtered": filters.has_active_filters(type_group, params),
         "activities": activities[:50],
         "kpis": analytics.build_kpis(user, activities, days, daily_steps),
-        "chart_data": analytics.build_chart_data(user, activities, days, daily_steps).as_dict(),
+        # Objet pour masquer les graphiques sans série (issue #84) ; dict pour
+        # le JSON lu par health_charts.js — deux formes du même calcul,
+        # jamais deux logiques séparées.
+        "charts": chart_data,
+        "chart_data": chart_data.as_dict(),
         "has_data": WeightMeasurement.objects.filter(user=user).exists()
         or Activity.objects.filter(user=user).exists()
         or DailySteps.objects.filter(user=user).exists(),

@@ -40,6 +40,29 @@ class ChartData:
             "steps": {"labels": self.steps_labels, "values": self.steps_values},
         }
 
+    # Un graphique sans donnée sur la période/le filtre courant ne s'affiche
+    # pas (issue #84) : calculé ici, pas en JS après coup — le gabarit ne
+    # fait qu'obéir.
+    @property
+    def has_weight(self) -> bool:
+        return bool(self.weight_labels)
+
+    @property
+    def has_volume(self) -> bool:
+        return bool(self.volume_labels)
+
+    @property
+    def has_pace(self) -> bool:
+        return bool(self.pace_labels)
+
+    @property
+    def has_steps(self) -> bool:
+        return bool(self.steps_labels)
+
+    @property
+    def has_any(self) -> bool:
+        return self.has_weight or self.has_volume or self.has_pace or self.has_steps
+
 
 def _format_duration(total_seconds: int | None) -> str:
     if not total_seconds:
@@ -91,6 +114,7 @@ def build_kpis(
         count=Count("id"),
         total_duration=Sum("duration_seconds"),
         total_distance=Sum("distance_meters"),
+        total_calories=Sum("active_energy_kcal"),
     )
     kpis.append(
         Kpi(
@@ -102,6 +126,12 @@ def build_kpis(
 
     distance_km = (aggregates["total_distance"] or 0) / 1000
     kpis.append(Kpi(label="Distance parcourue", value=f"{distance_km:.1f} km"))
+
+    if aggregates["total_calories"]:
+        total_calories = f"{round(aggregates['total_calories']):,}".replace(",", " ")
+        kpis.append(Kpi(label="Calories actives", value=f"{total_calories} kcal"))
+    else:
+        kpis.append(Kpi(label="Calories actives", value="—", trend_label="aucune donnée"))
 
     runs = list(
         activities.filter(

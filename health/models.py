@@ -107,6 +107,12 @@ class Activity(models.Model):
         return f"{self.distance_meters / 1000:.1f} km"
 
     @property
+    def calories_label(self) -> str | None:
+        if not self.active_energy_kcal:
+            return None
+        return f"{round(self.active_energy_kcal)} kcal"
+
+    @property
     def pace_seconds_per_km(self) -> float | None:
         """Allure moyenne, pertinente seulement pour une activité avec distance."""
         if not self.distance_meters:

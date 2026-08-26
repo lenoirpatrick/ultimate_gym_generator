@@ -103,3 +103,49 @@ def test_le_filtrage_par_periode_exclut_les_pas_hors_plage(logged_client, user):
 
     response = logged_client.get("/sante/", {"periode": "tout"})
     assert "aucun total importé" not in response.content.decode()
+
+
+def test_les_calories_apparaissent_sur_la_carte_et_en_kpi(logged_client, user):
+    now = timezone.now()
+    Activity.objects.create(
+        user=user,
+        activity_type=Activity.ActivityType.RUNNING,
+        started_at=now,
+        ended_at=now + timedelta(minutes=30),
+        active_energy_kcal=320,
+    )
+
+    response = logged_client.get("/sante/")
+    content = response.content.decode()
+
+    assert "320 kcal" in content
+    assert "Calories actives" in content
+
+
+def test_un_graphique_sans_serie_ne_s_affiche_pas(logged_client, user):
+    # Seuls les pas ont une donnée sur la période : poids, volume et allure
+    # ne doivent montrer aucune carte (issue #84).
+    DailySteps.objects.create(user=user, date=timezone.now().date(), steps=8000)
+
+    response = logged_client.get("/sante/")
+    content = response.content.decode()
+
+    assert "Pas par jour" in content
+    assert "Poids</p>" not in content
+    assert "Volume d'activité" not in content
+    assert "Allure de course" not in content
+
+
+def test_aucun_graphique_n_est_encadre_si_rien_n_a_de_donnee_sur_la_periode(logged_client, user):
+    # Une mesure existe (has_data=True, pas d'état vide) mais hors de la
+    # période filtrée : aucun des quatre graphiques n'a de série à montrer.
+    WeightMeasurement.objects.create(
+        user=user, recorded_at=timezone.now() - timedelta(days=100), weight_kg="80.0"
+    )
+
+    response = logged_client.get("/sante/", {"periode": "7"})
+    content = response.content.decode()
+
+    assert "Aucune donnée importée" not in content
+    assert "Pas par jour" not in content
+    assert "Poids</p>" not in content

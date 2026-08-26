@@ -262,7 +262,7 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
 - Une entrée invalide dans un lot n'empêche pas les autres d'être appliquées : la
   réponse détaille les erreurs par entrée plutôt que de rejeter l'envoi entier.
 
-### Page d'analyse (issues #72, #75)
+### Page d'analyse (issues #72, #75, #83, #84)
 
 - KPI et graphiques sur **Chart.js vendoré** (`core/static/core/js/chart.min.js`, même
   principe que HTMX : un seul fichier minifié déposé tel quel, aucun bundler). Chargé
@@ -293,9 +293,17 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
   repliable partagé avec le catalogue, voir « Filtres de catalogue »). KPI, graphiques
   et liste d'activités affichée partagent le même filtrage (`health.filters`) : jamais
   deux logiques de restriction séparées qui pourraient diverger.
-- Entrée de navigation « Analyse » ajoutée à `core/nav.py` `PRIMARY` — consultée
-  régulièrement, au même titre que Séances/Exercices/Favoris, pas un réglage ponctuel
-  derrière Configuration.
+- Entrée de navigation « Analyse » dans le groupe **Apple Santé**
+  (`core/nav.py`, voir « Navigation principale ») — consultée régulièrement,
+  pas un réglage ponctuel derrière Configuration.
+- Les calories (`Activity.active_energy_kcal`, capturées dès #70) apparaissent
+  sur chaque carte d'activité (`.ugg-tag`, issue #83) et en KPI agrégé
+  « Calories actives » sur la période.
+- Un graphique **sans série** sur la période/le filtre courant ne s'affiche
+  pas (issue #84) — calculé côté serveur (`health.analytics.ChartData.has_*`),
+  jamais laissé en carte vide : `health.views.dashboard` passe l'objet
+  `ChartData` au gabarit pour ces conditions, distinct du dict JSON
+  (`.as_dict()`) lu par `health_charts.js` — deux formes du même calcul.
 - Tous les états traités : aucune donnée importée (`empty_state.html`, lien vers
   l'import), période/types filtrés sans résultat, chargement (spinner `hx-indicator`).
 
