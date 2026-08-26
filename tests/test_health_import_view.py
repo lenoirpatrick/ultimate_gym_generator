@@ -42,3 +42,14 @@ def test_un_fichier_trop_volumineux_est_rejete(logged_client):
 
     assert response.status_code == 200
     assert "taille maximale" in response.content.decode()
+
+
+def test_since_borne_l_import_et_l_affiche(logged_client, user):
+    upload = SimpleUploadedFile("export.xml", FIXTURE.read_bytes(), content_type="text/xml")
+    response = logged_client.post("/sante/import/", {"file": upload, "since": "2024-01-05"})
+    content = response.content.decode()
+
+    assert response.status_code == 200
+    assert "antérieur" in content
+    assert WeightMeasurement.objects.filter(user=user).count() == 1
+    assert Activity.objects.filter(user=user).count() == 0

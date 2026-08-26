@@ -59,7 +59,9 @@ def import_view(request: HttpRequest) -> HttpResponse:
         form = HealthImportForm(request.POST, request.FILES)
         if form.is_valid():
             try:
-                result = parse_export(request.user, form.cleaned_data["file"])
+                result = parse_export(
+                    request.user, form.cleaned_data["file"], since=form.cleaned_data["since"]
+                )
             except ExportParseError as exc:
                 error = str(exc)
         context = {"form": form, "result": result, "error": error}

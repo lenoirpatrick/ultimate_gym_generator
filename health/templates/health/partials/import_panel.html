@@ -22,6 +22,17 @@ requête, HTMX ou non (health.views.import_view).
             {% endif %}
         </div>
 
+        <div class="ugg-field mt-4">
+            <label class="ugg-field__label" for="{{ form.since.id_for_label }}">
+                {{ form.since.label }}
+            </label>
+            <div class="ugg-field__control">{{ form.since }}</div>
+            <p class="mt-1 text-sm text-muted">{{ form.since.help_text }}</p>
+            {% if form.since.errors %}
+                <p class="ugg-field__error">{{ form.since.errors|join:" " }}</p>
+            {% endif %}
+        </div>
+
         <div class="mt-4 flex flex-wrap items-center gap-3">
             <button type="submit" class="ugg-btn ugg-btn--primary">Importer</button>
             {% comment %}
@@ -55,6 +66,12 @@ requête, HTMX ou non (health.views.import_view).
                     <li class="text-muted">
                         Types d'activité non reconnus par l'application, importés
                         comme « Autre » : {{ result.skipped_types|join:", " }}
+                    </li>
+                {% endif %}
+                {% if result.skipped_before_since %}
+                    <li class="text-muted">
+                        {{ result.skipped_before_since }} enregistrement{{ result.skipped_before_since|pluralize }}
+                        antérieur{{ result.skipped_before_since|pluralize }} à la date choisie, ignoré{{ result.skipped_before_since|pluralize }}
                     </li>
                 {% endif %}
             </ul>

@@ -171,14 +171,23 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
   jour à la frappe — via un second déclencheur HTMX sur le même formulaire
   (`keyup changed delay:400ms from:#recherche-input`), sans aucun script custom.
 
-### Import Apple Health (issue #70)
+### Import Apple Health (issues #70, #74)
 
 - Contrairement au catalogue d'exercices — un petit JSON versionné, ré-échantillonnable
   par tranches — un export Apple Health est un **unique fichier XML** à parcourir
   séquentiellement, potentiellement volumineux : le re-parcourir par tranches à chaque
   appel HTMX coûterait un balayage complet à chaque tranche (O(n²)). L'import se fait
   donc en **une seule requête synchrone** (`health.importer.parse_export`), bornée par
-  `APPLE_HEALTH_IMPORT_MAX_BYTES`.
+  `APPLE_HEALTH_IMPORT_MAX_BYTES` (4 Go par défaut — plusieurs années d'historique
+  HealthKit dépassent vite 2 Go, et continuent de croître à chaque nouvel export ;
+  à relever encore via l'environnement si le fichier déposé dépasse quand même ce
+  plafond, aucune autre limite côté application, issue #74).
+- Le formulaire d'import propose un champ **« Importer depuis » facultatif**
+  (`HealthImportForm.since`) : les enregistrements antérieurs sont ignorés
+  (comptés dans `ImportResult.skipped_before_since`, affiché dans le résumé). Un
+  seul champ date couvre à la fois « depuis une date précise » et « depuis une
+  année » (1ᵉʳ janvier de l'année visée) plutôt que deux champs redondants — la
+  taille du fichier déposé ne change pas, seul ce qui en est retenu diminue.
 - La durée totale n'étant pas connue à l'avance, l'indicateur correct reste le **spinner
   sport** (`hx-indicator`, patron des conseils IA de séance), jamais une barre de
   progression — cohérente avec la règle des « Barres de progression » ci-dessus.

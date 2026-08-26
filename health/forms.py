@@ -4,6 +4,17 @@ from django.conf import settings
 
 class HealthImportForm(forms.Form):
     file = forms.FileField(label="Export Apple Health (export.xml)")
+    #: Borne l'import à partir de cette date (issue #74) — laisser vide pour
+    #: tout importer. Un seul champ couvre les deux cas demandés (date précise
+    #: ou année entière) : sélectionner le 1er janvier d'une année revient à
+    #: choisir cette année, sans dupliquer le champ.
+    since = forms.DateField(
+        label="Importer depuis (optionnel)",
+        required=False,
+        widget=forms.DateInput(attrs={"type": "date"}),
+        help_text="Laisser vide pour tout importer. Pour une année entière, "
+        "choisir le 1er janvier de cette année.",
+    )
 
     def clean_file(self):
         uploaded = self.cleaned_data["file"]

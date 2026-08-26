@@ -1,3 +1,4 @@
+from datetime import date
 from io import BytesIO
 from pathlib import Path
 
@@ -64,3 +65,19 @@ def test_reimporter_le_meme_fichier_ne_duplique_rien(user):
 def test_un_fichier_xml_invalide_leve_une_erreur_explicite(user):
     with pytest.raises(ExportParseError):
         parse_export(user, BytesIO(b"ceci n'est pas du xml"))
+
+
+def test_since_ecarte_les_enregistrements_anterieurs(user):
+    # Fixture : poids le 01/01 et le 08/01, activités le 02/01 et le 03/01.
+    result = parse_export(user, BytesIO(_fixture_bytes()), since=date(2024, 1, 5))
+
+    assert result.weights_created == 1
+    assert result.activities_created == 0
+    assert result.skipped_before_since == 3
+    assert WeightMeasurement.objects.filter(user=user).count() == 1
+    assert Activity.objects.filter(user=user).count() == 0
+
+
+def test_since_none_n_ecarte_rien(user):
+    result = parse_export(user, BytesIO(_fixture_bytes()), since=None)
+    assert result.skipped_before_since == 0

@@ -230,10 +230,17 @@ EXERCISES_IMAGES_SOURCE = env.str(
 #
 # Un export Apple Health est un unique fichier XML, parcouru en une seule
 # requête synchrone (issue #70) : ce plafond borne la durée de cette requête
-# et protège le volume de stockage d'un envoi accidentel.
+# et protège le volume de stockage d'un envoi accidentel. 4 Go par défaut —
+# plusieurs années d'historique HealthKit dépassent facilement 2 Go une fois
+# les mesures de fréquence cardiaque et de pas incluses, et continuent de
+# croître à chaque nouvel export (issue #74) ; ajuster encore via la variable
+# d'environnement si le fichier déposé dépasse quand même ce plafond, sans
+# recompiler l'application.
 # --------------------------------------------------------------------------- #
 
-APPLE_HEALTH_IMPORT_MAX_BYTES = env.int("APPLE_HEALTH_IMPORT_MAX_BYTES", default=500 * 1024 * 1024)
+APPLE_HEALTH_IMPORT_MAX_BYTES = env.int(
+    "APPLE_HEALTH_IMPORT_MAX_BYTES", default=4 * 1024 * 1024 * 1024
+)
 
 # --------------------------------------------------------------------------- #
 # Journalisation

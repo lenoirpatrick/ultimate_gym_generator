@@ -17,7 +17,7 @@ pour ne pas garder tout le fichier en mémoire.
 
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import date, datetime
 
 import defusedxml.ElementTree as SafeET
 from defusedxml.common import DefusedXmlException
@@ -70,6 +70,8 @@ class ImportResult:
     activities_created: int = 0
     activities_updated: int = 0
     skipped_types: set[str] = field(default_factory=set)
+    #: Enregistrements antérieurs à `since` (issue #74), écartés sans erreur.
+    skipped_before_since: int = 0
 
     @property
     def total(self) -> int:
@@ -152,8 +154,15 @@ def _workout_average_heart_rate(stats: dict[str, dict]) -> int | None:
         return None
 
 
-def parse_export(user, file) -> ImportResult:
-    """Importe un export Apple Health pour `user`. Lève `ExportParseError` si illisible."""
+def parse_export(user, file, since: date | None = None) -> ImportResult:
+    """Importe un export Apple Health pour `user`. Lève `ExportParseError` si illisible.
+
+    `since` (issue #74) borne l'import aux enregistrements à partir de cette
+    date — utile pour un export volumineux (plusieurs années d'historique) où
+    seule une période récente intéresse l'utilisateur, sans avoir à relever le
+    plafond `APPLE_HEALTH_IMPORT_MAX_BYTES` pour autant : la taille du fichier
+    déposé ne change pas, seul ce qui en est retenu diminue.
+    """
     result = ImportResult()
 
     try:
@@ -161,6 +170,11 @@ def parse_export(user, file) -> ImportResult:
         for _, elem in elements:
             if elem.tag == "Record" and elem.get("type") == BODY_MASS_TYPE:
                 started_at = _parse_date(elem.get("startDate"))
+                if started_at is not None and since is not None and started_at.date() < since:
+                    result.skipped_before_since += 1
+                    elem.clear()
+                    continue
+
                 weight_kg = _record_weight_kg(elem.attrib)
                 if started_at is not None and weight_kg is not None:
                     created = ingest.upsert_weight(
@@ -174,6 +188,11 @@ def parse_export(user, file) -> ImportResult:
 
             elif elem.tag == "Workout":
                 started_at = _parse_date(elem.get("startDate"))
+                if started_at is not None and since is not None and started_at.date() < since:
+                    result.skipped_before_since += 1
+                    elem.clear()
+                    continue
+
                 ended_at = _parse_date(elem.get("endDate"))
                 raw_type = elem.get("workoutActivityType", "")
                 activity_type = WORKOUT_TYPE_MAP.get(raw_type)
