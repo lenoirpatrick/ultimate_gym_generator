@@ -58,54 +58,73 @@ def test_le_gabarit_couvre_l_encoche_et_colore_la_barre_du_navigateur(client):
 
 
 # --------------------------------------------------------------------------- #
-# Navigation principale (issue #23)
+# Navigation principale (issues #23, #76)
 # --------------------------------------------------------------------------- #
 
 
 def entetes_de_menu(content: str) -> list[str]:
-    """Intitulés des groupes rendus dans le tiroir, dans l'ordre."""
+    """Intitulés des groupes/sous-groupes rendus sur la page, dans l'ordre."""
     return re.findall(r'<p class="ugg-nav__heading">\s*([^<]+?)\s*</p>', content)
 
 
-def test_un_utilisateur_ordinaire_ne_voit_aucun_groupe_de_configuration(logged_client):
-    """Compte a rejoint Navigation (issue #38) ; Admin est réservé au personnel — il ne
-    reste donc plus aucun groupe de configuration pour un compte ordinaire."""
+def test_les_trois_groupes_sont_toujours_presents(logged_client):
+    """UGG, Apple Santé et Compte sont visibles quel que soit le compte —
+    seul le sous-groupe Configuration, sous Compte, dépend du personnel."""
     content = logged_client.get(reverse("core:home")).content.decode()
 
-    assert entetes_de_menu(content) == ["Navigation"]
+    assert entetes_de_menu(content) == ["UGG", "Apple Santé", "Compte"]
+    assert reverse("workouts:list") in content
+    assert reverse("health:dashboard") in content
+    assert reverse("accounts:profile") in content
 
 
-def test_le_groupe_admin_n_apparait_que_pour_le_personnel(staff_client):
+def test_un_utilisateur_ordinaire_ne_voit_aucun_sous_groupe_configuration(logged_client):
+    content = logged_client.get(reverse("core:home")).content.decode()
+
+    assert "Configuration" not in entetes_de_menu(content)
+    assert reverse("accounts:user_list") not in content
+
+
+def test_le_sous_groupe_configuration_n_apparait_que_pour_le_personnel(staff_client):
     content = staff_client.get(reverse("core:home")).content.decode()
 
-    assert entetes_de_menu(content) == ["Navigation", "Admin"]
+    # Rendu deux fois (menu déroulant de la barre + tiroir), comme le reste
+    # du menu — voir core/nav.py.
+    assert entetes_de_menu(content).count("Configuration") == 2
     assert reverse("aiproviders:list") in content
     assert reverse("accounts:user_list") in content
+    assert reverse("exercises:reload") in content
 
 
-def test_le_compte_personnel_est_accessible_sans_passer_par_la_configuration(logged_client):
-    """Le lien vers le profil est promu dans Navigation (issue #38) : plus besoin
-    d'ouvrir Configuration pour l'atteindre, ni en barre ni dans le tiroir."""
+def test_le_compte_personnel_est_un_lien_direct_du_groupe_compte(logged_client):
+    """Mon compte est un lien du groupe Compte, pas sous Configuration."""
     content = logged_client.get(reverse("core:home")).content.decode()
 
     assert content.count(reverse("accounts:profile")) == 2
 
 
-def test_un_groupe_vide_n_est_pas_titre(logged_client):
-    """Un intitulé « Admin » sans rien dessous ferait croire à un droit manquant."""
+def test_un_sous_groupe_vide_n_est_pas_titre(logged_client):
+    """Un intitulé « Configuration » sans rien dessous ferait croire à un droit manquant."""
     content = logged_client.get(reverse("core:home")).content.decode()
 
-    assert "Admin" not in entetes_de_menu(content)
-    assert reverse("accounts:user_list") not in content
+    assert "Configuration" not in entetes_de_menu(content)
 
 
-def test_les_entrees_quotidiennes_sont_rendues_en_barre_et_dans_le_tiroir(logged_client):
+def test_les_entrees_sont_rendues_en_barre_et_dans_le_tiroir(logged_client):
     """Une seule description, deux rendus : voir core/nav.py."""
     content = logged_client.get(reverse("core:home")).content.decode()
 
     assert content.count(reverse("workouts:list")) == 2
-    assert "ugg-nav__group--bar" in content
-    assert "ugg-nav__group--drawer" in content
+    assert "ugg-nav--dropdown" in content
+    assert "ugg-nav--drawer" in content
+
+
+def test_le_groupe_apple_sante_porte_son_icone(logged_client):
+    """Issue #76 : un repère visuel dédié, pas seulement le libellé."""
+    content = logged_client.get(reverse("core:home")).content.decode()
+
+    assert "Apple Santé" in content
+    assert "M12 21s-7.5-4.6-10-9.1" in content
 
 
 def test_l_ecran_courant_est_marque(logged_client):

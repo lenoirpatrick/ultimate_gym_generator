@@ -93,24 +93,43 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
   corps, `min-width: 0` sur les conteneurs susceptibles d'être serrés (`.ugg-card`,
   `.ugg-set`, groupes de navigation).
 
-### Navigation principale
+### Navigation principale (issue #76)
 
-- Deux niveaux, séparés par une seule question : **s'en sert-on à chaque visite, ou
-  le règle-t-on une fois ?** Les entrées quotidiennes (séances, exercices, favoris,
-  **compte personnel** — consulté trop souvent pour se cacher derrière un menu, issue
-  #38) restent en clair dans la barre ; tout ce qui se configure une fois passe derrière
-  un menu **Configuration**, groupé par responsabilité (aujourd'hui, un seul groupe :
-  « Admin », réservé au personnel — un groupe « Utilisateur » n'a plus lieu d'être
-  depuis que le compte a rejoint la barre).
-- Sous `40rem`, la barre disparaît et **tout** rejoint le même tiroir, dont le bouton
-  s'intitule alors « Menu ». Une rangée de boutons alignés ne tient pas sur un téléphone.
-- Les entrées sont décrites **une seule fois**, dans `core/nav.py` — jamais réécrites
-  dans un gabarit. Barre et tiroir rendent la même structure via
-  `core/templates/core/partials/nav_group.html`.
-- Un groupe vidé de ses entrées n'est pas rendu : un intitulé « Admin » sans rien
-  dessous laisse croire à un droit manquant plutôt qu'à une section sans objet.
-- Ouverture par `<details>`, sans JavaScript : le panneau se referme à la navigation
-  et à `Échap`, pas au clic extérieur — limite assumée.
+- Trois groupes, par **domaine** plutôt que par fréquence d'usage : **UGG**
+  (l'entraînement — séances, exercices, favoris), **Apple Santé** (données
+  importées d'Apple Health — analyse, import ; identifiée par une icône
+  cœur-pulsation dédiée, jamais le logo Apple lui-même : une marque déposée ne
+  se reproduit pas) et **Compte** (identité, réglages, déconnexion). Remplace
+  l'ancien partage à deux niveaux « quotidien vs configuré une fois » : avec
+  trois domaines de poids comparable, grouper par sujet se lit mieux que
+  grouper par fréquence.
+- **Configuration** (IA, Référentiel, Comptes — réservé au personnel) est un
+  **sous-groupe de Compte**, pas un niveau de menu séparé : une section
+  repérée par son propre intitulé à l'intérieur du panneau Compte, jamais un
+  second `<details>` imbriqué dans le premier — inutile de complexifier
+  l'ouverture pour un menu qui n'a jamais plus de trois niveaux.
+- **Barre (≥ 40rem)** : un **menu déroulant par groupe** — trois boutons
+  `<details>` indépendants (UGG ▾ / Apple Santé ▾ / Compte ▾), chacun ouvrant
+  son propre panneau. **Sous `40rem`**, les trois disparaissent au profit d'un
+  tiroir unique (bouton « Menu »), qui liste les trois groupes l'un sous
+  l'autre — une largeur de téléphone ne tient pas trois boutons de menu côte
+  à côte.
+- Les entrées sont décrites **une seule fois**, dans `core/nav.py`
+  (`NavGroup`/`NavLink`, dataclasses immuables) — jamais réécrites dans un
+  gabarit. Barre et tiroir rendent la même structure :
+  `core/templates/core/partials/nav_dropdown.html` (l'enveloppe `<details>`
+  de la barre) inclut `nav_group.html` (contenu : intitulé, liens,
+  sous-groupe, liens de fin), lui-même repris tel quel dans le tiroir. La
+  déconnexion (`NavLink.is_logout`) est la seule entrée qui n'est pas une
+  navigation GET — `nav_link.html` la rend comme un formulaire POST plutôt
+  qu'un lien.
+- Un groupe — ou un sous-groupe — vidé de ses entrées n'est pas rendu :
+  `core.nav.menu_for(user)` filtre récursivement selon `is_staff` et retire
+  toute section devenue vide (`NavGroup.is_empty`) ; un intitulé
+  « Configuration » sans rien dessous laisserait croire à un droit manquant
+  plutôt qu'à une section sans objet pour ce compte.
+- Ouverture par `<details>`, sans JavaScript : le panneau se referme à la
+  navigation et à `Échap`, pas au clic extérieur — limite assumée.
 - L'écran courant porte `aria-current="page"` et un liseré d'accent, jamais une
   simple différence de couleur.
 

@@ -191,12 +191,6 @@
     height: 1.25rem;
 }
 
-/* Le même bouton ne dit pas la même chose selon ce qu'il contient : « Menu »
-   tant qu'il porte toute la navigation, « Configuration » quand les entrées
-   quotidiennes sont déjà en barre. */
-.ugg-nav__icon--wide,
-.ugg-nav__label--wide { display: none; }
-
 .ugg-nav__panel {
     position: absolute;
     top: 100%;
@@ -232,6 +226,18 @@
     min-width: 0;
 }
 
+/* Le formulaire de déconnexion vit dans la même grille que les liens : sans
+   ça, il ajouterait une boîte englobante visible entre deux liens. */
+.ugg-nav__group form { display: contents; }
+
+/* Sous-groupe (Configuration sous Compte, issue #76) : décalé et bordé à
+   gauche pour se lire comme une section imbriquée, jamais un second groupe
+   au même niveau que Mon compte/Déconnexion. */
+.ugg-nav__group--sub {
+    padding-left: var(--ugg-space-3);
+    border-left: 2px solid var(--ugg-border);
+}
+
 .ugg-nav__heading {
     font-size: 0.75rem;
     font-weight: 700;
@@ -264,24 +270,14 @@
     font-weight: 700;
 }
 
-/* Barre : les entrées s'alignent et n'apparaissent qu'à partir de 40rem. */
-.ugg-nav__group--bar {
-    display: none;
-    grid-auto-flow: column;
-}
+/* Un menu déroulant par groupe dans la barre (UGG, Apple Santé, Compte —
+   issue #76) : une largeur de téléphone ne tient pas trois boutons de menu
+   côte à côte, donc masqués sous 40rem au profit du tiroir unique. */
+.ugg-nav--dropdown { display: none; }
 
 @media (min-width: 40rem) {
-    .ugg-nav__icon--compact,
-    .ugg-nav__label--compact,
-    .ugg-nav__group--drawer { display: none; }
-
-    .ugg-nav__icon--wide { display: block; }
-    .ugg-nav__label--wide { display: inline; }
-    .ugg-nav__group--bar { display: grid; }
-
-    .ugg-nav__group--bar .ugg-nav__link[aria-current="page"] {
-        box-shadow: inset 0 -3px 0 var(--ugg-accent);
-    }
+    .ugg-nav--drawer { display: none; }
+    .ugg-nav--dropdown { display: block; }
 }
 
 /* =========================================================================

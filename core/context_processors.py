@@ -20,8 +20,7 @@ def site(request: HttpRequest) -> dict[str, object]:
         "self_registration_enabled": settings.ALLOW_SELF_REGISTRATION,
         # Menu principal : une seule description, rendue en barre et dans le
         # tiroir. Voir core/nav.py.
-        "primary_nav": nav.PRIMARY,
-        "config_nav": nav.config_groups(user),
+        "menu": nav.menu_for(user),
         # Nom de la vue courante, pour marquer l'entrée active (`aria-current`).
         "current_view": resolved.view_name if resolved else "",
     }

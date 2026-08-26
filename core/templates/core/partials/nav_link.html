@@ -1,0 +1,17 @@
+{% comment %}
+Une entrée de menu : lien normal, ou formulaire POST pour la déconnexion
+(`link.is_logout`) — la seule entrée qui n'est pas une navigation GET.
+Attend `link` (core.nav.NavLink) et `current_view`.
+{% endcomment %}
+{% if link.is_logout %}
+    <form method="post" action="{% url 'accounts:logout' %}">
+        {% csrf_token %}
+        <button type="submit" class="ugg-nav__link">{{ link.label }}</button>
+    </form>
+{% else %}
+    <a href="{% url link.view %}"
+       class="ugg-nav__link"
+       {% if link.view == current_view %}aria-current="page"{% endif %}>
+        {{ link.label }}
+    </a>
+{% endif %}
