@@ -1,9 +1,10 @@
 # Installation
 
-Deux chemins : **Docker** (recommandé, tout est fourni) ou **installation
-locale** pour développer.
+Installation locale — pour développer comme pour faire tourner l'application.
+Un déploiement conteneurisé est prévu mais pas encore documenté ici ; il sera
+repris proprement plus tard.
 
-L'application écoute sur le port **5907** (« sport » en leet) dans les deux cas.
+L'application écoute sur le port **5907** (« sport » en leet).
 
 ---
 
@@ -33,8 +34,8 @@ qui documente chaque variable.
 | `DJANGO_ADMIN_URL` | `admin/` | Déplaçable pour réduire la surface d'attaque |
 | `DJANGO_CSRF_TRUSTED_ORIGINS` | vide | Requis derrière un reverse proxy HTTPS |
 | `DJANGO_TIME_ZONE` | `Europe/Paris` | |
-| `GUNICORN_WORKERS` | `3` | Processus applicatifs (conteneur) |
-| `DJANGO_DB_PATH` | fichier du projet (local) · `/app/ugg_data/db.sqlite3` (image) | Chemin de la base SQLite (voir § 2) |
+| `DJANGO_DB_PATH` | fichier du projet | Chemin de la base SQLite ; à définir explicitement en production (voir § 2) |
+| `APPLE_HEALTH_IMPORT_MAX_BYTES` | `4294967296` (4 Go) | Taille maximale d'un export Apple Health importé ; à relever encore au besoin (issues #70, #74) |
 
 ---
 
@@ -42,32 +43,16 @@ qui documente chaque variable.
 
 SQLite, uniquement — aucun serveur à installer ni à administrer.
 
-- En local, le fichier `db.sqlite3` est créé à la racine du projet.
-- En conteneur, `DJANGO_DB_PATH` pointe par défaut vers
-  `/app/ugg_data/db.sqlite3` (baké dans l'image), monté par le
-  `docker-compose.yml` fourni sur `./ugg_data` côté hôte (bind mount) : la
-  base survit à toute reconstruction de l'image. `config.settings.prod`
-  refuse de démarrer si la variable est explicitement vidée, pour ne jamais
-  retomber silencieusement sur un chemin non persistant.
-- En installation locale (hors conteneur), laisser `DJANGO_DB_PATH` vide dans
-  `.env` : le repli dans le projet convient au développement.
+- En développement, laisser `DJANGO_DB_PATH` vide dans `.env` : le fichier
+  `db.sqlite3` est créé à la racine du projet.
+- En production, `DJANGO_DB_PATH` doit pointer explicitement vers un
+  emplacement persistant. `config.settings.prod` refuse de démarrer si la
+  variable est explicitement vidée, pour ne jamais retomber silencieusement
+  sur un chemin non persistant.
 
 ---
 
-## 3. Installation par conteneur
-
-Voir [DOCKER.md](DOCKER.md) pour la procédure complète, la construction de
-l'image et la publication sur Docker Hub. En résumé :
-
-```bash
-cp .env.example .env      # puis renseigner les variables obligatoires
-docker compose up -d --build
-docker compose run --rm web python manage.py createsuperuser
-```
-
----
-
-## 4. Installation locale (développement)
+## 3. Installation locale
 
 Prérequis : Python 3.13 ou 3.14.
 
@@ -100,16 +85,13 @@ make check       # python manage.py check --deploy
 
 ---
 
-## 5. Après l'installation
+## 4. Après l'installation
 
 ### Premier compte
 
 À la toute première ouverture, l'application redirige vers `/bienvenue/` : aucun
 utilisateur n'existe encore, et cet écran crée le compte initial, qui reçoit les
 droits d'administration. Il disparaît définitivement une fois le compte créé.
-
-En conteneur, `docker compose run --rm web python manage.py createsuperuser`
-produit le même résultat en ligne de commande.
 
 ### Catalogue d'exercices
 
@@ -122,7 +104,6 @@ installation sans navigateur — la commande est idempotente :
 
 ```bash
 make exercises                                  # ou : python manage.py load_exercises
-docker compose run --rm web python manage.py load_exercises
 ```
 
 Ajouter `--force` pour réimporter un catalogue déjà chargé, après avoir
@@ -156,7 +137,7 @@ réaffichées : seul un masque de la forme `••••••••f3a9` appara
 
 ---
 
-## 6. Comptes utilisateurs
+## 5. Comptes utilisateurs
 
 L'installation est **mono-utilisateur par défaut**, et prend en charge autant de
 comptes que nécessaire. Chaque compte porte un identifiant, un mot de passe, une
@@ -181,15 +162,15 @@ administrateur.
 ouvre `/inscription/` et affiche le lien sur la page de connexion. Les comptes
 ainsi créés sont ordinaires, jamais administrateurs.
 
-**Avatars.** Stockés dans `MEDIA_ROOT` (`/app/media` en conteneur, monté sur le
-volume `media_data`). Plafond par défaut : 2 Mo, ajustable via
-`DJANGO_MAX_AVATAR_BYTES`. Django sert `/media/` lui-même, ce qui convient à une
-installation auto-hébergée ; derrière un reverse proxy, faire servir ce chemin
-directement par le proxy.
+**Avatars.** Stockés dans `MEDIA_ROOT` (`media/` à la racine du projet par
+défaut, ajustable via `DJANGO_MEDIA_ROOT`). Plafond par défaut : 2 Mo,
+ajustable via `DJANGO_MAX_AVATAR_BYTES`. Django sert `/media/` lui-même, ce
+qui convient à une installation auto-hébergée ; derrière un reverse proxy,
+faire servir ce chemin directement par le proxy.
 
 ---
 
-## 7. Connexion par SSO (OpenID Connect)
+## 6. Connexion par SSO (OpenID Connect)
 
 Facultatif et désactivé par défaut : tant que `OIDC_ENABLED` vaut `False`, aucune
 route ni aucun bouton supplémentaire n'existe.
@@ -199,7 +180,7 @@ route ni aucun bouton supplémentaire n'existe.
 > secret* créés dans Google Cloud Console pour toute application tierce. La
 > procédure ci-dessous est le chemin le plus court pour y arriver.
 
-### 7.1 Réglages communs
+### 6.1 Réglages communs
 
 | Variable | Rôle |
 |---|---|
@@ -228,7 +209,7 @@ le réglage sûr lorsque le fournisseur n'est pas dédié à cette application �
 avec Google, par exemple, `True` autoriserait n'importe quel compte Google du
 monde à entrer.
 
-### 7.2 Google
+### 6.2 Google
 
 1. Ouvrir [Google Cloud Console](https://console.cloud.google.com/) et créer un
    projet (ou en réutiliser un).
@@ -257,7 +238,7 @@ OIDC_CREATE_USER=False
 6. Redémarrer l'application. Le bouton « Se connecter avec Google » apparaît sur
    la page de connexion.
 
-### 7.3 Fournisseur générique (Keycloak, Authentik, Azure AD, Okta…)
+### 6.3 Fournisseur générique (Keycloak, Authentik, Azure AD, Okta…)
 
 Tout fournisseur OpenID Connect convient. Ses URL se lisent dans son document de
 découverte, généralement à
@@ -281,13 +262,13 @@ OIDC_CREATE_USER=True
 Le fournisseur étant ici dédié à l'organisation, `OIDC_CREATE_USER=True` est
 raisonnable : toute personne qu'il authentifie a vocation à entrer.
 
-### 7.4 Ce que le SSO renseigne, et ce qu'il ne touche pas
+### 6.4 Ce que le SSO renseigne, et ce qu'il ne touche pas
 
 Le prénom, le nom et l'adresse e-mail proviennent du fournisseur et sont
 rafraîchis à chaque connexion. Le sexe, la taille, le poids et l'avatar restent
 la propriété de l'utilisateur : une reconnexion SSO ne les écrase jamais.
 
-### 7.5 Diagnostic
+### 6.5 Diagnostic
 
 | Symptôme | Piste |
 |---|---|
@@ -299,13 +280,13 @@ la propriété de l'utilisateur : une reconnexion SSO ne les écrase jamais.
 
 ---
 
-## 8. Mise à jour
+## 7. Mise à jour
 
 ```bash
-docker compose pull        # ou : git pull && docker compose build
-docker compose up -d
+git pull
+pip install -r requirements/dev.txt
+python manage.py migrate
+make css
 ```
 
-Les migrations sont appliquées automatiquement au démarrage du conteneur. Si
-une migration échoue, le conteneur s'arrête au lieu de servir une application
-incohérente — consulter `docker compose logs web`.
+Redémarrer le serveur applicatif ensuite.

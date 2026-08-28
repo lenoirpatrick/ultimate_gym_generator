@@ -12,13 +12,13 @@ génération de programmes n'est pas encore implémentée.
 | Rôle | Choix |
 |---|---|
 | Runtime | Python 3.13+ · Django 6.1 |
-| Base | SQLite, fichier persisté sur volume en conteneur (`DJANGO_DB_PATH`) |
+| Base | SQLite, fichier persisté (`DJANGO_DB_PATH`) |
 | Configuration | `django-environ`, tout par variables d'environnement |
 | Interface | Gabarits Django + HTMX 2 (vendoré) + Tailwind CSS 4 (CLI autonome, zéro Node) |
 | Chiffrement | Fernet (`cryptography`) pour les clés d'API en base |
 | Fournisseurs IA | Anthropic (SDK officiel), Gemini / Mistral / Ollama (REST via httpx) |
 | Comptes | Mono-utilisateur par défaut, multi-utilisateurs pris en charge ; SSO OpenID Connect facultatif (`mozilla-django-oidc`) |
-| Serveur | Gunicorn + WhiteNoise, conteneur non-root |
+| Serveur | Gunicorn + WhiteNoise |
 | Qualité | `ruff`, `pytest` + `pytest-django` + couverture, SonarCloud |
 
 ```
@@ -27,9 +27,9 @@ config/settings/  base · dev · test · prod
 accounts/         utilisateur (avatar, mesures), authentification, SSO, gestion des comptes
 aiproviders/      credentials chiffrés, registre des fournisseurs, adaptateurs, /settings/ai/
 exercises/        catalogue d'exercices, import par lots, écran de chargement
+health/           données Apple HealthKit (poids, activités), import, API, page d'analyse
 core/             gabarit de base, composants, spinners, /healthz, /style-guide/
-docker/           entrypoint du conteneur
-docs/             INSTALL.md · DOCKER.md
+docs/             INSTALL.md
 src/              exercises.json — catalogue livré avec l'application
 tests/            suite pytest, en miroir des applications
 ```
@@ -93,24 +93,43 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
   corps, `min-width: 0` sur les conteneurs susceptibles d'être serrés (`.ugg-card`,
   `.ugg-set`, groupes de navigation).
 
-### Navigation principale
+### Navigation principale (issue #76)
 
-- Deux niveaux, séparés par une seule question : **s'en sert-on à chaque visite, ou
-  le règle-t-on une fois ?** Les entrées quotidiennes (séances, exercices, favoris,
-  **compte personnel** — consulté trop souvent pour se cacher derrière un menu, issue
-  #38) restent en clair dans la barre ; tout ce qui se configure une fois passe derrière
-  un menu **Configuration**, groupé par responsabilité (aujourd'hui, un seul groupe :
-  « Admin », réservé au personnel — un groupe « Utilisateur » n'a plus lieu d'être
-  depuis que le compte a rejoint la barre).
-- Sous `40rem`, la barre disparaît et **tout** rejoint le même tiroir, dont le bouton
-  s'intitule alors « Menu ». Une rangée de boutons alignés ne tient pas sur un téléphone.
-- Les entrées sont décrites **une seule fois**, dans `core/nav.py` — jamais réécrites
-  dans un gabarit. Barre et tiroir rendent la même structure via
-  `core/templates/core/partials/nav_group.html`.
-- Un groupe vidé de ses entrées n'est pas rendu : un intitulé « Admin » sans rien
-  dessous laisse croire à un droit manquant plutôt qu'à une section sans objet.
-- Ouverture par `<details>`, sans JavaScript : le panneau se referme à la navigation
-  et à `Échap`, pas au clic extérieur — limite assumée.
+- Trois groupes, par **domaine** plutôt que par fréquence d'usage : **UGG**
+  (l'entraînement — séances, exercices, favoris), **Apple Santé** (données
+  importées d'Apple Health — analyse, import ; identifiée par une icône
+  cœur-pulsation dédiée, jamais le logo Apple lui-même : une marque déposée ne
+  se reproduit pas) et **Compte** (identité, réglages, déconnexion). Remplace
+  l'ancien partage à deux niveaux « quotidien vs configuré une fois » : avec
+  trois domaines de poids comparable, grouper par sujet se lit mieux que
+  grouper par fréquence.
+- **Configuration** (IA, Référentiel, Comptes — réservé au personnel) est un
+  **sous-groupe de Compte**, pas un niveau de menu séparé : une section
+  repérée par son propre intitulé à l'intérieur du panneau Compte, jamais un
+  second `<details>` imbriqué dans le premier — inutile de complexifier
+  l'ouverture pour un menu qui n'a jamais plus de trois niveaux.
+- **Barre (≥ 40rem)** : un **menu déroulant par groupe** — trois boutons
+  `<details>` indépendants (UGG ▾ / Apple Santé ▾ / Compte ▾), chacun ouvrant
+  son propre panneau. **Sous `40rem`**, les trois disparaissent au profit d'un
+  tiroir unique (bouton « Menu »), qui liste les trois groupes l'un sous
+  l'autre — une largeur de téléphone ne tient pas trois boutons de menu côte
+  à côte.
+- Les entrées sont décrites **une seule fois**, dans `core/nav.py`
+  (`NavGroup`/`NavLink`, dataclasses immuables) — jamais réécrites dans un
+  gabarit. Barre et tiroir rendent la même structure :
+  `core/templates/core/partials/nav_dropdown.html` (l'enveloppe `<details>`
+  de la barre) inclut `nav_group.html` (contenu : intitulé, liens,
+  sous-groupe, liens de fin), lui-même repris tel quel dans le tiroir. La
+  déconnexion (`NavLink.is_logout`) est la seule entrée qui n'est pas une
+  navigation GET — `nav_link.html` la rend comme un formulaire POST plutôt
+  qu'un lien.
+- Un groupe — ou un sous-groupe — vidé de ses entrées n'est pas rendu :
+  `core.nav.menu_for(user)` filtre récursivement selon `is_staff` et retire
+  toute section devenue vide (`NavGroup.is_empty`) ; un intitulé
+  « Configuration » sans rien dessous laisserait croire à un droit manquant
+  plutôt qu'à une section sans objet pour ce compte.
+- Ouverture par `<details>`, sans JavaScript : le panneau se referme à la
+  navigation et à `Échap`, pas au clic extérieur — limite assumée.
 - L'écran courant porte `aria-current="page"` et un liseré d'accent, jamais une
   simple différence de couleur.
 
@@ -142,8 +161,11 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
 ### Filtres de catalogue
 
 - Un critère de filtrage est un panneau **repliable natif** (`<details>`), jamais un
-  `<select multiple>` — impraticable au pouce. Composant :
-  `exercises/templates/exercises/partials/filter_group.html`.
+  `<select multiple>` — impraticable au pouce. Composant partagé :
+  `core/templates/core/components/filter_group.html` (extrait d'`exercises` vers
+  `core` quand `health` en a eu besoin à son tour, issue #73 — les dataclasses
+  `Option`/`FilterGroup` et `selected_values()` vivent maintenant dans
+  `core/filtering.py`, réutilisées par `exercises.filters` et `health.filters`).
 - Replié par défaut, **déplié dès qu'une de ses cases est cochée**, et le nombre de
   sélections reste affiché sur l'onglet fermé : un filtre actif ne doit jamais pouvoir
   s'oublier.
@@ -166,6 +188,215 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
   critères fermés, exactement comme l'un d'entre eux. Elle est **dynamique** — mise à
   jour à la frappe — via un second déclencheur HTMX sur le même formulaire
   (`keyup changed delay:400ms from:#recherche-input`), sans aucun script custom.
+
+### Import Apple Health (issues #70, #74, #75, #78, #79)
+
+- Contrairement au catalogue d'exercices — un petit JSON versionné, ré-échantillonnable
+  par tranches — un export Apple Health est un **unique fichier XML** à parcourir
+  séquentiellement, potentiellement volumineux : le re-parcourir par tranches à chaque
+  appel HTMX coûterait un balayage complet à chaque tranche (O(n²)). L'import se fait
+  donc en **une seule requête synchrone** (`health.importer.parse_export`), bornée par
+  `APPLE_HEALTH_IMPORT_MAX_BYTES` (4 Go par défaut — plusieurs années d'historique
+  HealthKit dépassent vite 2 Go, et continuent de croître à chaque nouvel export ;
+  à relever encore via l'environnement si le fichier déposé dépasse quand même ce
+  plafond, aucune autre limite côté application, issue #74).
+- Le formulaire d'import propose un champ **« Importer depuis » facultatif**
+  (`HealthImportForm.since`) : les enregistrements antérieurs sont ignorés
+  (comptés dans `ImportResult.skipped_before_since`, affiché dans le résumé). Un
+  seul champ date couvre à la fois « depuis une date précise » et « depuis une
+  année » (1ᵉʳ janvier de l'année visée) plutôt que deux champs redondants — la
+  taille du fichier déposé ne change pas, seul ce qui en est retenu diminue.
+- La durée totale n'étant pas connue à l'avance, l'indicateur correct reste le **spinner
+  sport** (`hx-indicator`, patron des conseils IA de séance), jamais une barre de
+  progression — cohérente avec la règle des « Barres de progression » ci-dessus.
+- Le fichier est lu avec `defusedxml` plutôt que `xml.etree` directement : un fichier
+  déposé par l'utilisateur reste une entrée non fiable, à l'abri des attaques XML
+  classiques (entités externes, expansion d'entités).
+- Idempotent par construction : `WeightMeasurement`/`Activity` portent une contrainte
+  d'unicité sur leur clé naturelle (utilisateur + instant de mesure, ou utilisateur +
+  type + début d'activité — un export Apple Health classique ne porte aucun identifiant
+  stable par enregistrement). Un réimport met donc à jour plutôt que dupliquer. La même
+  fonction d'upsert (`health.ingest`) sert l'import fichier et l'API d'ingestion
+  (issue #71), pour que les deux ne divergent jamais sur cette clé.
+- Un type d'activité HealthKit non couvert par `health.importer.WORKOUT_TYPE_MAP`
+  est importé quand même, classé `Activity.ActivityType.OTHER` — traiter la donnée
+  comme un coach professionnel ne consiste pas à en jeter une partie silencieusement.
+- Les pas (`HKQuantityTypeIdentifierStepCount`, issue #75) sont exportés en une
+  multitude de petits intervalles, jamais un total par jour : `parse_export` les
+  **agrège en mémoire pendant le parcours** (`steps_by_date`), puis écrit un seul
+  total par jour à la fin (`health.ingest.upsert_daily_steps`). La clé naturelle
+  de `DailySteps` est donc la date, pas l'instant — un réimport **remplace** le
+  total du jour plutôt que de l'additionner une seconde fois.
+- Les pas ne se somment **jamais directement par jour** (issue #78) : iPhone et
+  Apple Watch enregistrent souvent les mêmes pas en double sur des intervalles
+  qui se recouvrent, quand les deux sont portés/à proximité. `parse_export`
+  agrège d'abord par **(source, jour)**, et retient pour chaque jour le
+  **maximum atteint par une seule source** — l'hypothèse la plus proche de ce
+  que fait l'app Santé elle-même, plutôt que la somme de mesures redondantes.
+- La durée d'une activité (`Activity.duration_seconds`) est un **champ stocké**,
+  pas calculé depuis `ended_at - started_at` (issue #79) : cet écart horaire
+  inclut les pauses (feu rouge, calibrage GPS…) et peut représenter près du
+  double du temps d'effort réel qu'affiche l'app Santé. `health.importer` lit
+  l'attribut `duration`/`durationUnit` de chaque `<Workout>` quand il existe ;
+  à défaut (export sans l'attribut, activité créée via l'API #71 sans
+  `duration_seconds` explicite), `Activity.save()` se replie lui-même sur
+  l'écart horaire — repli centralisé au niveau du modèle, jamais dupliqué chez
+  chaque appelant. Allure et volume d'activité (page d'analyse) s'appuient
+  tous les deux sur ce champ, jamais sur l'écart horaire brut.
+
+### API d'ingestion à distance (issue #71)
+
+- `POST /sante/api/ingestion/` accepte les mêmes données que l'import fichier (poids,
+  activités), pour un raccourci iPhone ou une application tierce qui envoie directement
+  ses mesures. Authentifié par **clé API par utilisateur** (`health.ApiKey`), **hachée
+  à sens unique** (`make_password`, comme un mot de passe) plutôt que chiffrée — à la
+  différence des credentials IA d'`aiproviders`, cette clé n'a jamais besoin d'être
+  relue en clair, seulement vérifiée. Elle n'est donc affichée **qu'une fois**, à sa
+  création (`/sante/cles-api/`), pas de nouvelle entrée dans la navigation globale — un
+  réglage secondaire, au même titre que le matériel de l'utilisateur, atteint depuis la
+  page d'analyse plutôt que depuis la barre.
+- Hors session par nature (`@csrf_exempt`, pas de `@login_required` : l'authentification
+  est manuelle via `health.auth.authenticate_request`) et exempté de
+  `FirstRunMiddleware` (`accounts/middleware.py`) — un point d'entrée machine-à-machine
+  ne doit jamais être redirigé vers l'écran d'amorçage.
+- Une entrée invalide dans un lot n'empêche pas les autres d'être appliquées : la
+  réponse détaille les erreurs par entrée plutôt que de rejeter l'envoi entier.
+
+### Page d'analyse (issues #72, #75, #80, #81, #83, #84)
+
+- KPI et graphiques sur **Chart.js vendoré** (`core/static/core/js/chart.min.js`, même
+  principe que HTMX : un seul fichier minifié déposé tel quel, aucun bundler). Chargé
+  uniquement sur cette page (`{% block extra_scripts %}` de `core/base.html`), pas
+  globalement.
+- Les données voyagent en JSON via `json_script` (`health/partials/dashboard_results.html`,
+  même technique que la timeline du minuteur de séance) plutôt que par un appel réseau
+  séparé. Le bloc de résultats étant remplacé par HTMX à chaque changement de filtre
+  (#73), `core/static/core/js/health_charts.js` réinitialise les graphiques sur
+  `htmx:afterSettle`, en détruisant les instances précédentes avant d'en recréer.
+- Couleurs des séries : uniquement les tokens existants (`--ugg-accent` pour les quatre
+  séries — poids, volume, allure, pas). `--ugg-info`, seule couleur froide du projet,
+  reste réservé à la récupération du minuteur (voir plus haut) ; il n'a pas été
+  réutilisé ici pour ne pas rouvrir cette règle.
+- KPI « Pas moyens (jour) » : moyenne sur les jours **effectivement importés** dans la
+  période, jamais complétée à zéro pour les jours sans total — une moyenne qui inclut
+  des zéros artificiels sous-évalue l'activité réelle plutôt que de simplement ignorer
+  les jours sans donnée.
+- Indicateur clé (KPI) : composant partagé `core/templates/core/components/stat_tile.html`
+  (label, valeur en gros, tendance). La tendance se lit à la couleur (`--ugg-success`/
+  `--ugg-danger`) **et** à un signe explicite (▲/▼ + delta chiffré) — jamais la seule
+  couleur, et le sens « bon/mauvais » n'est pas universel (perdre du poids peut être
+  l'objectif ou non) : la convention prise ici est `--ugg-danger` pour une hausse de
+  poids, propre à cette page.
+- Filtres : période (choix fermé 7j/30j/90j/tout) en **contrôle segmenté**
+  (`.ugg-segmented`, règle déjà en vigueur pour tout choix fermé) — jamais un
+  `<details>`, réservé aux critères à choix multiples comme le type d'activité (panneau
+  repliable partagé avec le catalogue, voir « Filtres de catalogue »). KPI, graphiques
+  et liste d'activités affichée partagent le même filtrage (`health.filters`) : jamais
+  deux logiques de restriction séparées qui pourraient diverger.
+- Entrée de navigation « Analyse » dans le groupe **Apple Santé**
+  (`core/nav.py`, voir « Navigation principale ») — consultée régulièrement,
+  pas un réglage ponctuel derrière Configuration.
+- Les calories (`Activity.active_energy_kcal`, capturées dès #70) apparaissent
+  sur chaque carte d'activité (`.ugg-tag`, issue #83) et en KPI agrégé
+  « Calories actives » sur la période.
+- Un graphique **sans série** sur la période/le filtre courant ne s'affiche
+  pas (issue #84) — calculé côté serveur (`health.analytics.ChartData.has_*`),
+  jamais laissé en carte vide : `health.views.dashboard` passe l'objet
+  `ChartData` au gabarit pour ces conditions, distinct du dict JSON
+  (`.as_dict()`) lu par `health_charts.js` — deux formes du même calcul.
+- Tous les états traités : aucune donnée importée (`empty_state.html`, lien vers
+  l'import), période/types filtrés sans résultat, chargement (spinner `hx-indicator`).
+- Chaque graphique dont une carte s'affiche propose un bouton **« Agrandir »**
+  (`.ugg-btn--ghost`, issue #80) qui ouvre le même graphique en grand dans une
+  `.ugg-lightbox` (`:target`, CSS pur — même bascule que les photos d'exercice) :
+  seul le contenu diffère, un panneau (`.ugg-lightbox__panel`) plutôt qu'une
+  image, dimensionné en unités fluides (`min(92vw, 64rem)` / `min(80vh, 34rem)`)
+  pour tenir sur mobile comme en grand écran sans règle responsive dédiée.
+  L'aperçu (petite carte) reste une image statique ; l'agrandissement instancie
+  une **seconde** instance Chart.js distincte (canvas `chart-{clé}-large`),
+  créée à l'ouverture seulement — un canvas cache derrière `display:none` a une
+  taille nulle, Chart.js ne peut pas y dessiner avant que `:target` ne l'affiche
+  (`core/static/core/js/health_charts.js`, sur l'évènement `hashchange` que
+  produit le clic sur l'ancre, **et** un appel explicite au chargement de la
+  page — un lien partagé ou un rechargement pendant qu'un graphique est déjà
+  ouvert n'émet aucun `hashchange`, l'omettre laissait le panneau vide).
+- Navigation dans le graphique agrandi via **chartjs-plugin-zoom** vendoré
+  (`core/static/core/js/chartjs-plugin-zoom.min.js`, même principe que
+  `chart.min.js` : un seul fichier déposé tel quel, aucun bundler) : molette
+  et pincement zooment sur l'axe des temps (`mode: "x"`), glisser déplace la
+  plage visible. Fonctionne sans Hammer.js (dépendance facultative du plugin,
+  non vendorée : seul le pincement tactile s'en passerait, dégradation
+  silencieuse). Un bouton **« Réinitialiser le zoom »** (`chart.resetZoom()`)
+  ramène à la plage d'origine. Jamais activé sur l'aperçu — seule
+  l'instance de la lightbox reçoit les options `plugins.zoom`.
+
+### Suppression, édition et recherche d'activités (issue #81)
+
+- Une activité importée peut être **supprimée** (`.ugg-btn--danger`, `hx-confirm`)
+  ou voir son **type corrigé** (`<select>` dans son propre `.ugg-field__control`,
+  `hx-trigger="change"`) directement depuis sa carte — jamais un simple marquage,
+  la donnée source (export Apple Health, ou l'API #71) restant elle-même incorrecte.
+  Les deux actions (`health.views.activity_delete`/`activity_edit_type`) réutilisent
+  `hx-include="#filtre-analyse"` (id posé sur le `<form>` de filtre) pour faire
+  voyager période/types/recherche courants dans leur propre requête, et rendent le
+  même fragment `dashboard_results.html` que le filtrage : la vue reste celle sur
+  laquelle l'utilisateur travaillait, jamais réinitialisée à l'action.
+- Comme les modèles Apple Health n'ont pas d'identifiant stable, l'idempotence de
+  l'import repose sur une **clé naturelle** (`user + instant` pour un poids,
+  `user + type + début` pour une activité, `health.ingest`). Sans mécanisme
+  dédié, une entrée supprimée — ou dont le type est corrigé — reviendrait donc
+  telle quelle au prochain réimport ou au prochain appel de l'API #71. Un modèle
+  `ExcludedImport` (`user`, `kind`, `natural_key`) enregistre ces clés, consultées
+  par `health.exclusions` **avant** chaque écriture dans `health.ingest.upsert_weight`/
+  `upsert_activity` — un seul point de passage, commun au fichier et à l'API. La
+  clé se normalise toujours en UTC (`exclusions._instant`, `.astimezone(UTC)`) :
+  un export porte l'heure locale au moment de la mesure, la base la relit toujours
+  normalisée — sans cette conversion, la même seconde produirait deux clés
+  différentes selon la provenance et l'exclusion ne matcherait jamais.
+- `upsert_weight`/`upsert_activity` renvoient désormais un **tri-état** :
+  `True` (créé) / `False` (mis à jour) / `None` (exclu, rien écrit) — tout appelant
+  doit distinguer les trois, jamais traiter le retour comme un simple booléen.
+  `ImportResult` (import fichier) et la réponse JSON de l'API #71 comptent les
+  exclusions séparément (`weights_excluded`/`activities_excluded`), affichées à
+  l'utilisateur (`import_panel.html`) pour qu'un réimport n'ait pas l'air d'avoir
+  « perdu » des lignes sans explication.
+- Corriger le type **déplace** l'activité vers une nouvelle clé naturelle (le type
+  en fait partie) : `activity_edit_type` exclut l'**ancienne** clé (calculée avant
+  la modification) avant de sauvegarder le nouveau type — sans quoi un réimport
+  recréerait la version fautive à côté de la version corrigée.
+- La **recherche texte** (`.ugg-search`, champ `q`, même patron dynamique que le
+  catalogue d'exercices — `hx-trigger="change, keyup changed delay:400ms from:#…"`)
+  se cumule (ET) avec période et types : elle porte sur la source de l'activité
+  (`source__icontains`) et sur le libellé traduit du type (résolu côté Python,
+  le type étant stocké sous son code HealthKit, pas son libellé affiché).
+
+### Rappel d'exercice associé à une activité (issue #82)
+
+- Un type d'activité HealthKit n'est rapproché d'une fiche du catalogue
+  (`health.exercise_link.annotate_linked_exercises`) que lorsque la
+  correspondance est **univoque** : course, marche, vélo, aviron, vélo
+  elliptique. `strength_training`/`other` recouvrent chacun des dizaines
+  d'exercices possibles — aucun choix unique n'y serait fiable — et
+  `swimming`/`hiking`/`yoga` n'ont simplement aucun équivalent dans le
+  catalogue livré (free-exercise-db) : dans ces cas, rien ne s'affiche
+  plutôt qu'un rapprochement hasardeux.
+- Le titre de la carte (le type d'activité, ex. « Vélo ») reste lui-même le
+  déclencheur du rappel replié — même patron que le nom d'exercice dans le
+  déroulé de séance (`.ugg-disclosure.ugg-disclosure--plain`, issue #30) —
+  et le partiel commun `exercises/partials/description.html` (consignes,
+  galerie) est réutilisé tel quel, jamais dupliqué. Le nom de la fiche
+  rapprochée est affiché en toutes lettres au-dessus (« Fiche rapprochée :
+  Bicycling ») : le rapprochement n'est pas toujours évident au seul
+  intitulé du type.
+- `description.html` accepte désormais un `dom_id` facultatif (replié sur
+  `exercise.pk` pour ses appelants existants, catalogue et déroulé de
+  séance, comportement inchangé) : plusieurs activités du même type
+  partagent la même fiche, donc plusieurs rappels de la même fiche peuvent
+  apparaître sur une seule page d'analyse. Sans id distinct par activité
+  (ici `activity.pk`), les deux rappels dupliqueraient le même id — la
+  vignette photo de l'un aurait alors agrandi les deux lightbox à la fois
+  (`:target` matche tout élément portant l'id ciblé, pas seulement le
+  premier).
 
 ### Blocs de séance
 
@@ -544,6 +775,26 @@ Tout nouveau composant partagé y est ajouté en même temps qu'il est créé.
 - Modifier l'existant plutôt que de créer un doublon à côté.
 - Proposer une amélioration UX repérée en passant : la mentionner, ne pas l'implémenter sans accord.
 
+### Traiter une ou plusieurs issues GitHub
+
+Sur une demande du type « traite l'issue N » / « traite les issues N à M » :
+
+1. **Lire l'issue** (`gh issue view`) avant toute chose — ne jamais deviner son contenu.
+2. **Découper en sous-issues** si elle recouvre plusieurs changements indépendants
+   (comme la story #68, ou #77) — une sous-issue par changement livrable et testable
+   séparément, jamais une story fourre-tout. Une issue déjà atomique (un bug, un
+   changement cohérent) ne se découpe pas artificiellement.
+3. **Implémenter chaque sous-tâche dans un commit atomique** qui la référence deux
+   fois (titre `(#N)`, corps `Refs #N`) — voir *Commits et suivi des issues*.
+4. **Vérifier avant de commiter** : lint (`make lint`), suite de tests
+   (`make test`), et pour tout changement visuel ou de flux, une vérification
+   manuelle au navigateur (pas seulement les tests).
+5. **Commenter l'issue traitée** avec le périmètre livré, les décisions prises et ce
+   qui reste ouvert — sans la fermer : elle se ferme au merge, via `Closes #N` dans
+   un commit une fois la branche fusionnée dans `main`.
+6. **Ne jamais pousser sur le dépôt distant sans demande explicite** — les commits
+   restent locaux tant que ce n'est pas demandé.
+
 ---
 
 ## Conventions techniques
@@ -597,9 +848,8 @@ make test         # pytest + couverture (coverage.xml)
 make lint         # ruff check + ruff format --check
 make format       # reformate et corrige ce qui peut l'être
 make check        # python manage.py check --deploy
-make docker-up    # pile complète (application, base SQLite persistée)
-make docker-down  # arrêt, volumes conservés
 ```
 
 `make help` liste les cibles disponibles. Détail de l'installation et de la
-configuration : `docs/INSTALL.md` ; conteneur et publication : `docs/DOCKER.md`.
+configuration : `docs/INSTALL.md`. Un déploiement conteneurisé est prévu mais
+pas encore documenté ; il sera repris proprement plus tard.

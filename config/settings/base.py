@@ -53,6 +53,7 @@ INSTALLED_APPS = [
     "aiproviders",
     "core",
     "exercises",
+    "health",
     "workouts",
 ]
 
@@ -93,12 +94,12 @@ TEMPLATES = [
 # --------------------------------------------------------------------------- #
 # Base de données
 #
-# SQLite uniquement. En local, le fichier vit dans le projet ; en conteneur,
-# DJANGO_DB_PATH doit pointer vers un volume persistant — le Dockerfile en
-# fournit un défaut prêt à l'emploi (/app/ugg_data/db.sqlite3, voir la
-# déclaration VOLUME) repris explicitement par docker-compose.yml.
-# `config.settings.prod` refuse de démarrer si la variable est explicitement
-# vidée, pour ne jamais retomber silencieusement sur un chemin non persistant.
+# SQLite uniquement. En local, le fichier vit dans le projet ; en production,
+# DJANGO_DB_PATH doit pointer vers un emplacement persistant (volume monté,
+# disque dédié…) — le déploiement conteneurisé qui fournissait un défaut prêt
+# à l'emploi sera repris proprement plus tard. `config.settings.prod` refuse
+# de démarrer si la variable est explicitement vidée, pour ne jamais retomber
+# silencieusement sur un chemin non persistant.
 # --------------------------------------------------------------------------- #
 
 #: Chemin explicite du fichier SQLite. Vide en développement local (repli
@@ -222,6 +223,23 @@ EXERCISES_SOURCE = env.str("DJANGO_EXERCISES_SOURCE", default=str(BASE_DIR / "sr
 #: contenant ses photos — voir `exercises.catalog.sync_images` (issue #29).
 EXERCISES_IMAGES_SOURCE = env.str(
     "DJANGO_EXERCISES_IMAGES_SOURCE", default=str(BASE_DIR / "src/exercises")
+)
+
+# --------------------------------------------------------------------------- #
+# Données de santé (Apple HealthKit)
+#
+# Un export Apple Health est un unique fichier XML, parcouru en une seule
+# requête synchrone (issue #70) : ce plafond borne la durée de cette requête
+# et protège le volume de stockage d'un envoi accidentel. 4 Go par défaut —
+# plusieurs années d'historique HealthKit dépassent facilement 2 Go une fois
+# les mesures de fréquence cardiaque et de pas incluses, et continuent de
+# croître à chaque nouvel export (issue #74) ; ajuster encore via la variable
+# d'environnement si le fichier déposé dépasse quand même ce plafond, sans
+# recompiler l'application.
+# --------------------------------------------------------------------------- #
+
+APPLE_HEALTH_IMPORT_MAX_BYTES = env.int(
+    "APPLE_HEALTH_IMPORT_MAX_BYTES", default=4 * 1024 * 1024 * 1024
 )
 
 # --------------------------------------------------------------------------- #

@@ -1,0 +1,83 @@
+{% extends "core/base.html" %}
+{% load static %}
+
+{% block title %}Analyse — {{ site_name }}{% endblock %}
+
+{% block content %}
+    <p class="ugg-eyebrow">Santé</p>
+    <h1 class="ugg-title mt-2 text-3xl">Analyse</h1>
+    <p class="mt-3 max-w-2xl text-muted">
+        Poids, activités et temps de course, à partir des données HealthKit
+        importées. <a href="{% url 'health:import' %}">Importer un export</a>
+        · <a href="{% url 'health:api_keys' %}">Clés API</a>
+    </p>
+
+    {% if has_data %}
+        {% comment %}
+        Un seul formulaire pour tous les critères : chaque changement relance
+        l'analyse et réécrit l'adresse, comme le catalogue d'exercices. Les
+        actions de suppression/édition (issue #81) l'incluent via
+        `hx-include="#filtre-analyse"` pour rester sur la même vue filtrée.
+        {% endcomment %}
+        <form id="filtre-analyse"
+              class="mt-8"
+              method="get"
+              action="{{ base_url }}"
+              hx-get="{{ base_url }}"
+              hx-trigger="change, keyup changed delay:400ms from:#recherche-activites"
+              hx-target="#resultats-sante"
+              hx-push-url="true"
+              hx-indicator="#analyse-en-cours">
+
+            <div class="ugg-search">
+                <svg class="ugg-search__icon" viewBox="0 0 24 24" aria-hidden="true"
+                     fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                    <circle cx="10.5" cy="10.5" r="6.5" />
+                    <path d="M20 20l-4.8-4.8" />
+                </svg>
+                <input type="search"
+                       id="recherche-activites"
+                       name="q"
+                       value="{{ search_query }}"
+                       placeholder="Rechercher une activité (type, source)…"
+                       aria-label="Rechercher une activité">
+            </div>
+
+            <fieldset class="ugg-field mt-4">
+                <legend class="ugg-field__label">Période</legend>
+                <div class="ugg-segmented mt-2">
+                    {% for option in period_options %}
+                        <label>
+                            <input type="radio" name="periode" value="{{ option.value }}"
+                                   {% if option.selected %}checked{% endif %}>
+                            <span>{{ option.label }}</span>
+                        </label>
+                    {% endfor %}
+                </div>
+            </fieldset>
+
+            <div class="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {% include "core/components/filter_group.html" with group=type_group %}
+            </div>
+
+            <div class="mt-4 flex flex-wrap items-center gap-3">
+                <noscript>
+                    <button type="submit" class="ugg-btn ugg-btn--primary">Filtrer</button>
+                </noscript>
+                <span id="analyse-en-cours" class="ugg-indicator">
+                    {% include "core/components/spinner.html" with variant="runner" size="md" label="Mise à jour de l'analyse" visible_label=True %}
+                </span>
+            </div>
+        </form>
+    {% endif %}
+
+    <div id="resultats-sante" class="mt-8" aria-live="polite">
+        {% include "health/partials/dashboard_results.html" %}
+    </div>
+{% endblock %}
+
+{% block extra_scripts %}
+    <script src="{% static 'core/js/chart.min.js' %}" defer></script>
+    <script src="{% static 'core/js/chartjs-plugin-zoom.min.js' %}" defer></script>
+    <script src="{% static 'core/js/health_charts.js' %}" defer></script>
+{% endblock %}

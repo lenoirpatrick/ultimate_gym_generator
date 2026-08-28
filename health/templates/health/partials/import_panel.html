@@ -1,0 +1,96 @@
+{% comment %}
+Formulaire d'import + résultat, en bascule auto-remplaçante (hx-swap="outerHTML")
+— même patron que le bouton favori : la vue rend cette inclusion à chaque
+requête, HTMX ou non (health.views.import_view).
+{% endcomment %}
+<div id="import-panel">
+    <form method="post"
+          enctype="multipart/form-data"
+          hx-post="{% url 'health:import' %}"
+          hx-target="#import-panel"
+          hx-swap="outerHTML"
+          hx-indicator="#import-en-cours">
+        {% csrf_token %}
+
+        <div class="ugg-field">
+            <label class="ugg-field__label" for="{{ form.file.id_for_label }}">
+                {{ form.file.label }}
+            </label>
+            <div class="ugg-field__control">{{ form.file }}</div>
+            {% if form.file.errors %}
+                <p class="ugg-field__error">{{ form.file.errors|join:" " }}</p>
+            {% endif %}
+        </div>
+
+        <div class="ugg-field mt-4">
+            <label class="ugg-field__label" for="{{ form.since.id_for_label }}">
+                {{ form.since.label }}
+            </label>
+            <div class="ugg-field__control">{{ form.since }}</div>
+            <p class="mt-1 text-sm text-muted">{{ form.since.help_text }}</p>
+            {% if form.since.errors %}
+                <p class="ugg-field__error">{{ form.since.errors|join:" " }}</p>
+            {% endif %}
+        </div>
+
+        <div class="mt-4 flex flex-wrap items-center gap-3">
+            <button type="submit" class="ugg-btn ugg-btn--primary">Importer</button>
+            {% comment %}
+            L'import est synchrone (voir health.importer) : le spinner reste
+            affiché tant que la réponse n'est pas revenue, sans pourcentage —
+            la durée totale n'est pas connue à l'avance.
+            {% endcomment %}
+            <span id="import-en-cours" class="ugg-indicator">
+                {% include "core/components/spinner.html" with variant="dumbbell" size="md" label="Import en cours" visible_label=True %}
+            </span>
+        </div>
+    </form>
+
+    {% if error %}
+        <p class="ugg-alert ugg-alert--error mt-6">{{ error }}</p>
+    {% elif result %}
+        <div class="ugg-card mt-6 p-4">
+            <p class="ugg-title text-base">Import terminé</p>
+            <ul class="mt-3 grid gap-1 text-sm">
+                <li>
+                    {{ result.weights_created }} mesure{{ result.weights_created|pluralize }}
+                    de poids créée{{ result.weights_created|pluralize }},
+                    {{ result.weights_updated }} mise{{ result.weights_updated|pluralize }} à jour
+                </li>
+                <li>
+                    {{ result.activities_created }} activité{{ result.activities_created|pluralize }}
+                    créée{{ result.activities_created|pluralize }},
+                    {{ result.activities_updated }} mise{{ result.activities_updated|pluralize }} à jour
+                </li>
+                <li>
+                    {{ result.daily_steps_created }} jour{{ result.daily_steps_created|pluralize }}
+                    de pas créé{{ result.daily_steps_created|pluralize }},
+                    {{ result.daily_steps_updated }} mis à jour
+                </li>
+                {% if result.skipped_types %}
+                    <li class="text-muted">
+                        Types d'activité non reconnus par l'application, importés
+                        comme « Autre » : {{ result.skipped_types|join:", " }}
+                    </li>
+                {% endif %}
+                {% if result.skipped_before_since %}
+                    <li class="text-muted">
+                        {{ result.skipped_before_since }} enregistrement{{ result.skipped_before_since|pluralize }}
+                        antérieur{{ result.skipped_before_since|pluralize }} à la date choisie, ignoré{{ result.skipped_before_since|pluralize }}
+                    </li>
+                {% endif %}
+                {% with total_excluded=result.weights_excluded|add:result.activities_excluded %}
+                    {% if total_excluded %}
+                        <li class="text-muted">
+                            {{ total_excluded }} entrée{{ total_excluded|pluralize }} supprimée{{ total_excluded|pluralize }}
+                            ou modifiée{{ total_excluded|pluralize }} manuellement, non réimportée{{ total_excluded|pluralize }}
+                        </li>
+                    {% endif %}
+                {% endwith %}
+            </ul>
+            <a href="{% url 'health:dashboard' %}" class="ugg-btn ugg-btn--primary mt-4">
+                Voir l'analyse
+            </a>
+        </div>
+    {% endif %}
+</div>

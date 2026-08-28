@@ -1,0 +1,25 @@
+{% comment %}
+Un groupe du menu, en menu déroulant indépendant de la barre (≥ 40rem,
+issue #76) — `<details>` natif, comme le tiroir mobile : pas de JavaScript
+pour l'ouverture/fermeture. Masqué sous 40rem au profit du tiroir unique
+(`.ugg-nav--drawer` dans base.html), qui réutilise le même
+`core/partials/nav_group.html`.
+
+Attend `group` (core.nav.NavGroup) et `current_view`.
+{% endcomment %}
+<details class="ugg-nav ugg-nav--dropdown">
+    <summary class="ugg-nav__toggle">
+        {% if group.icon == "apple-health" %}
+            <svg class="ugg-nav__icon" viewBox="0 0 24 24" aria-hidden="true"
+                 fill="none" stroke="currentColor" stroke-width="2"
+                 stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 21s-7.5-4.6-10-9.1C.6 8.7 2 5 5.6 5c2 0 3.4 1.1 4.4 2.6C11 6.1 12.4 5 14.4 5 18 5 19.4 8.7 22 11.9 19.5 16.4 12 21 12 21z" />
+                <path d="M4 12h3l1.5-3 2 6 1.5-3H20" />
+            </svg>
+        {% endif %}
+        <span>{{ group.label }}</span>
+    </summary>
+    <div class="ugg-nav__panel">
+        {% include "core/partials/nav_group.html" with group=group headless=True %}
+    </div>
+</details>

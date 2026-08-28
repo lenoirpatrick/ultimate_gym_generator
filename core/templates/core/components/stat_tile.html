@@ -1,0 +1,15 @@
+{% comment %}
+Indicateur clé (KPI) : libellé, valeur en gros, tendance optionnelle.
+Usage : {% include "core/components/stat_tile.html" with kpi=kpi %}
+`kpi` porte `label` / `value` / `trend` ("up"/"down"/None) / `trend_label`.
+{% endcomment %}
+<div class="ugg-card ugg-stat">
+    <p class="ugg-stat__label">{{ kpi.label }}</p>
+    <p class="ugg-stat__value">{{ kpi.value }}</p>
+    {% if kpi.trend_label %}
+        <p class="ugg-stat__trend{% if kpi.trend == 'up' %} ugg-stat__trend--up{% elif kpi.trend == 'down' %} ugg-stat__trend--down{% endif %}">
+            {% if kpi.trend == 'up' %}▲{% elif kpi.trend == 'down' %}▼{% endif %}
+            {{ kpi.trend_label }}
+        </p>
+    {% endif %}
+</div>

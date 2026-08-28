@@ -8,7 +8,7 @@ visible sur l'onglet fermé, pour qu'on n'oublie jamais un filtre actif.
 <details class="ugg-filter"{% if group.selected_count %} open{% endif %}>
     <summary class="ugg-filter__summary">
         <span>{{ group.legend }}</span>
-        {% include "exercises/partials/filter_badge.html" with group=group oob=False %}
+        {% include "core/components/filter_badge.html" with group=group oob=False %}
     </summary>
 
     <fieldset class="ugg-filter__options">

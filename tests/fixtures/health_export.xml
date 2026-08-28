@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<HealthData locale="fr_FR">
+    <Record type="HKQuantityTypeIdentifierBodyMass" sourceName="Santé" sourceVersion="17.0"
+            unit="kg" creationDate="2024-01-01 08:00:05 +0100"
+            startDate="2024-01-01 08:00:00 +0100" endDate="2024-01-01 08:00:00 +0100"
+            value="82.3"/>
+    <Record type="HKQuantityTypeIdentifierBodyMass" sourceName="Santé" sourceVersion="17.0"
+            unit="lb" creationDate="2024-01-08 08:00:05 +0100"
+            startDate="2024-01-08 08:00:00 +0100" endDate="2024-01-08 08:00:00 +0100"
+            value="180"/>
+    <Record type="HKQuantityTypeIdentifierStepCount" sourceName="iPhone" sourceVersion="17.0"
+            unit="count" creationDate="2024-01-01 09:00:00 +0100"
+            startDate="2024-01-01 08:30:00 +0100" endDate="2024-01-01 09:00:00 +0100"
+            value="1200"/>
+    <Record type="HKQuantityTypeIdentifierStepCount" sourceName="iPhone" sourceVersion="17.0"
+            unit="count" creationDate="2024-01-01 12:15:00 +0100"
+            startDate="2024-01-01 12:00:00 +0100" endDate="2024-01-01 12:15:00 +0100"
+            value="800"/>
+    <Record type="HKQuantityTypeIdentifierStepCount" sourceName="iPhone" sourceVersion="17.0"
+            unit="count" creationDate="2024-01-02 09:00:00 +0100"
+            startDate="2024-01-02 08:45:00 +0100" endDate="2024-01-02 09:00:00 +0100"
+            value="3000"/>
+    <Workout workoutActivityType="HKWorkoutActivityTypeRunning" duration="32.5" durationUnit="min"
+             totalDistance="5.2" totalDistanceUnit="km"
+             totalEnergyBurned="320" totalEnergyBurnedUnit="kcal"
+             sourceName="Apple Watch" sourceVersion="10.1"
+             creationDate="2024-01-02 07:35:00 +0100"
+             startDate="2024-01-02 07:00:00 +0100" endDate="2024-01-02 07:32:30 +0100">
+        <WorkoutStatistics type="HKQuantityTypeIdentifierHeartRate" startDate="2024-01-02 07:00:00 +0100"
+                            endDate="2024-01-02 07:32:30 +0100" average="148" unit="count/min"/>
+    </Workout>
+    <Workout workoutActivityType="HKWorkoutActivityTypeCurling" duration="45" durationUnit="min"
+             sourceName="Apple Watch" sourceVersion="10.1"
+             creationDate="2024-01-03 18:50:00 +0100"
+             startDate="2024-01-03 18:00:00 +0100" endDate="2024-01-03 18:45:00 +0100">
+        <WorkoutStatistics type="HKQuantityTypeIdentifierActiveEnergyBurned" startDate="2024-01-03 18:00:00 +0100"
+                            endDate="2024-01-03 18:45:00 +0100" sum="410" unit="kJ"/>
+    </Workout>
+</HealthData>

@@ -1,0 +1,148 @@
+{% comment %}
+Résultats de l'analyse : KPI, graphiques, activités. Bloc remplacé à chaque
+changement de filtre — voir health.views.dashboard. `chart_data` voyage en
+JSON (`json_script`) pour `core/static/core/js/health_charts.js`, qui
+réinitialise les graphiques Chart.js à chaque remplacement HTMX
+(`htmx:afterSettle`).
+{% endcomment %}
+{% if not has_data %}
+    {% url 'health:import' as import_url %}
+    {% include "core/components/empty_state.html" with title="Aucune donnée importée" body="Importe un export Apple Health pour voir apparaître tes indicateurs et graphiques." action_url=import_url action_label="Importer un export" %}
+{% else %}
+    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {% for kpi in kpis %}
+            {% include "core/components/stat_tile.html" with kpi=kpi %}
+        {% endfor %}
+    </div>
+
+    {{ chart_data|json_script:"health-chart-data" }}
+
+    {% if charts.has_any %}
+        {% comment %}
+        Un graphique sans série sur la période/le filtre courant ne s'affiche
+        pas (issue #84) — calculé côté serveur (health.analytics.ChartData),
+        jamais laissé en carte vide.
+        {% endcomment %}
+        <div class="mt-6 grid gap-4 sm:grid-cols-2">
+            {% if charts.has_weight %}
+                <div class="ugg-card ugg-chart">
+                    <div class="flex items-center justify-between gap-2">
+                        <p class="ugg-chart__title">Poids</p>
+                        <a href="#graphique-weight" class="ugg-btn ugg-btn--ghost" aria-label="Agrandir le graphique Poids">Agrandir</a>
+                    </div>
+                    <canvas id="chart-weight" height="220"></canvas>
+                </div>
+                {% include "health/partials/chart_lightbox.html" with chart_key="weight" title="Poids" %}
+            {% endif %}
+            {% if charts.has_volume %}
+                <div class="ugg-card ugg-chart">
+                    <div class="flex items-center justify-between gap-2">
+                        <p class="ugg-chart__title">Volume d'activité (h / semaine)</p>
+                        <a href="#graphique-volume" class="ugg-btn ugg-btn--ghost" aria-label="Agrandir le graphique Volume d'activité">Agrandir</a>
+                    </div>
+                    <canvas id="chart-volume" height="220"></canvas>
+                </div>
+                {% include "health/partials/chart_lightbox.html" with chart_key="volume" title="Volume d'activité (h / semaine)" %}
+            {% endif %}
+            {% if charts.has_pace %}
+                <div class="ugg-card ugg-chart">
+                    <div class="flex items-center justify-between gap-2">
+                        <p class="ugg-chart__title">Allure de course (min/km)</p>
+                        <a href="#graphique-pace" class="ugg-btn ugg-btn--ghost" aria-label="Agrandir le graphique Allure de course">Agrandir</a>
+                    </div>
+                    <canvas id="chart-pace" height="220"></canvas>
+                </div>
+                {% include "health/partials/chart_lightbox.html" with chart_key="pace" title="Allure de course (min/km)" %}
+            {% endif %}
+            {% if charts.has_steps %}
+                <div class="ugg-card ugg-chart">
+                    <div class="flex items-center justify-between gap-2">
+                        <p class="ugg-chart__title">Pas par jour</p>
+                        <a href="#graphique-steps" class="ugg-btn ugg-btn--ghost" aria-label="Agrandir le graphique Pas par jour">Agrandir</a>
+                    </div>
+                    <canvas id="chart-steps" height="220"></canvas>
+                </div>
+                {% include "health/partials/chart_lightbox.html" with chart_key="steps" title="Pas par jour" %}
+            {% endif %}
+        </div>
+    {% endif %}
+
+    <div class="mt-8 flex flex-wrap items-baseline justify-between gap-3">
+        <p class="ugg-eyebrow">
+            {{ activities|length }} activité{{ activities|length|pluralize }} affichée{{ activities|length|pluralize }}
+        </p>
+        {% if filtered %}
+            <a href="{{ base_url }}" class="text-sm">Tout effacer</a>
+        {% endif %}
+    </div>
+
+    {% if activities %}
+        <div class="mt-4 grid gap-3">
+            {% for activity in activities %}
+                <div class="ugg-card flex flex-wrap items-center justify-between gap-3 p-4">
+                    <div class="min-w-0">
+                        {% if activity.linked_exercise %}
+                            {# Fiche du catalogue rapprochée de ce type d'activité (issue #82) : le titre lui-même déplie le rappel, même patron que le nom d'exercice en séance. #}
+                            <details class="ugg-disclosure ugg-disclosure--plain">
+                                <summary><span class="ugg-title text-base">{{ activity.get_activity_type_display }}</span></summary>
+                                {% comment %}
+                                Le rapprochement n'est pas toujours évident au
+                                seul intitulé (« Vélo » → « Bicycling ») :
+                                nommé explicitement, pas seulement déduit du
+                                contenu ci-dessous.
+                                {% endcomment %}
+                                <p class="mt-2 text-sm text-muted">Fiche rapprochée : {{ activity.linked_exercise.name }}</p>
+                                {% include "exercises/partials/description.html" with exercise=activity.linked_exercise can_translate=can_translate dom_id=activity.pk %}
+                            </details>
+                        {% else %}
+                            <p class="ugg-title text-base">{{ activity.get_activity_type_display }}</p>
+                        {% endif %}
+                        <p class="mt-1 text-sm text-muted">{{ activity.started_at|date:"d/m/Y H:i" }}</p>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-2">
+                        <span class="ugg-tag">{{ activity.duration_label }}</span>
+                        {% if activity.distance_km_label %}
+                            <span class="ugg-tag">{{ activity.distance_km_label }}</span>
+                        {% endif %}
+                        {% if activity.pace_label %}
+                            <span class="ugg-tag ugg-tag--accent">{{ activity.pace_label }}</span>
+                        {% endif %}
+                        {% if activity.calories_label %}
+                            <span class="ugg-tag">{{ activity.calories_label }}</span>
+                        {% endif %}
+                    </div>
+                    {% comment %}
+                    Modifier le type déplace l'activité vers une nouvelle clé
+                    naturelle : l'ancienne est exclue du réimport côté serveur
+                    (health.views.activity_edit_type, issue #81), pas ici.
+                    {% endcomment %}
+                    <div class="flex w-full flex-wrap items-center gap-2 sm:w-auto">
+                        <div class="ugg-field__control">
+                            <select aria-label="Modifier le type de « {{ activity.get_activity_type_display }} »"
+                                    hx-post="{% url 'health:activity_edit_type' activity.pk %}"
+                                    hx-include="#filtre-analyse"
+                                    hx-target="#resultats-sante"
+                                    hx-trigger="change"
+                                    name="activity_type">
+                                {% for value, label in activity_type_choices %}
+                                    <option value="{{ value }}"{% if value == activity.activity_type %} selected{% endif %}>
+                                        {{ label }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <button class="ugg-btn ugg-btn--danger"
+                                hx-post="{% url 'health:activity_delete' activity.pk %}"
+                                hx-include="#filtre-analyse"
+                                hx-target="#resultats-sante"
+                                hx-confirm="Supprimer cette activité ? Elle ne sera plus jamais réimportée.">
+                            Supprimer
+                        </button>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        {% include "core/components/empty_state.html" with title="Aucune activité sur cette période" body="Élargis la période ou décoche un type d'activité." action_url=base_url action_label="Tout effacer" %}
+    {% endif %}
+{% endif %}

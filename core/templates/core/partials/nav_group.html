@@ -1,19 +1,33 @@
 {% comment %}
-Un groupe d'entrées du menu. Sert la barre comme le tiroir : les liens sont
-décrits une seule fois, dans core/nav.py.
+Contenu d'un groupe de navigation : intitulé, liens, sous-groupe (un seul
+niveau, ex. Configuration sous Compte), liens de fin (ex. Déconnexion). Rendu
+à l'identique dans un menu déroulant de la barre (desktop) et dans le tiroir
+unique (mobile) — seul ce qui l'enveloppe diffère.
 
 Attend `group` (core.nav.NavGroup) et `current_view`. `headless` supprime
-l'intitulé — la barre n'a pas besoin de titrer trois liens alignés.
+l'intitulé du groupe lui-même (déjà porté par le bouton du menu déroulant qui
+l'enveloppe côté barre).
 {% endcomment %}
-<div class="ugg-nav__group{% if extra_class %} {{ extra_class }}{% endif %}">
+<div class="ugg-nav__group">
     {% if not headless %}
         <p class="ugg-nav__heading">{{ group.label }}</p>
     {% endif %}
     {% for link in group.links %}
-        <a href="{% url link.view %}"
-           class="ugg-nav__link"
-           {% if link.view == current_view %}aria-current="page"{% endif %}>
-            {{ link.label }}
-        </a>
+        {% include "core/partials/nav_link.html" with link=link %}
     {% endfor %}
 </div>
+{% for subgroup in group.subgroups %}
+    <div class="ugg-nav__group ugg-nav__group--sub">
+        <p class="ugg-nav__heading">{{ subgroup.label }}</p>
+        {% for link in subgroup.links %}
+            {% include "core/partials/nav_link.html" with link=link %}
+        {% endfor %}
+    </div>
+{% endfor %}
+{% if group.trailing_links %}
+    <div class="ugg-nav__group">
+        {% for link in group.trailing_links %}
+            {% include "core/partials/nav_link.html" with link=link %}
+        {% endfor %}
+    </div>
+{% endif %}

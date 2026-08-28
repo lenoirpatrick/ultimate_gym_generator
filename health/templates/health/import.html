@@ -1,0 +1,18 @@
+{% extends "core/base.html" %}
+
+{% block title %}Importer un export Apple Health — {{ site_name }}{% endblock %}
+
+{% block content %}
+    <p class="ugg-eyebrow">Santé</p>
+    <h1 class="ugg-title mt-2 text-3xl">Importer un export Apple Health</h1>
+    <p class="mt-3 max-w-2xl text-muted">
+        Depuis l'app Santé de l'iPhone : profil → Exporter toutes les données
+        santé → dézippe l'archive et dépose <code>export.xml</code> ci-dessous.
+        Rejouer un import ne crée jamais de doublon : les mesures déjà connues
+        sont mises à jour.
+    </p>
+
+    <div class="mt-8 max-w-lg">
+        {% include "health/partials/import_panel.html" %}
+    </div>
+{% endblock %}

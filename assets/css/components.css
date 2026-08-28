@@ -191,12 +191,6 @@
     height: 1.25rem;
 }
 
-/* Le même bouton ne dit pas la même chose selon ce qu'il contient : « Menu »
-   tant qu'il porte toute la navigation, « Configuration » quand les entrées
-   quotidiennes sont déjà en barre. */
-.ugg-nav__icon--wide,
-.ugg-nav__label--wide { display: none; }
-
 .ugg-nav__panel {
     position: absolute;
     top: 100%;
@@ -232,6 +226,18 @@
     min-width: 0;
 }
 
+/* Le formulaire de déconnexion vit dans la même grille que les liens : sans
+   ça, il ajouterait une boîte englobante visible entre deux liens. */
+.ugg-nav__group form { display: contents; }
+
+/* Sous-groupe (Configuration sous Compte, issue #76) : décalé et bordé à
+   gauche pour se lire comme une section imbriquée, jamais un second groupe
+   au même niveau que Mon compte/Déconnexion. */
+.ugg-nav__group--sub {
+    padding-left: var(--ugg-space-3);
+    border-left: 2px solid var(--ugg-border);
+}
+
 .ugg-nav__heading {
     font-size: 0.75rem;
     font-weight: 700;
@@ -264,24 +270,14 @@
     font-weight: 700;
 }
 
-/* Barre : les entrées s'alignent et n'apparaissent qu'à partir de 40rem. */
-.ugg-nav__group--bar {
-    display: none;
-    grid-auto-flow: column;
-}
+/* Un menu déroulant par groupe dans la barre (UGG, Apple Santé, Compte —
+   issue #76) : une largeur de téléphone ne tient pas trois boutons de menu
+   côte à côte, donc masqués sous 40rem au profit du tiroir unique. */
+.ugg-nav--dropdown { display: none; }
 
 @media (min-width: 40rem) {
-    .ugg-nav__icon--compact,
-    .ugg-nav__label--compact,
-    .ugg-nav__group--drawer { display: none; }
-
-    .ugg-nav__icon--wide { display: block; }
-    .ugg-nav__label--wide { display: inline; }
-    .ugg-nav__group--bar { display: grid; }
-
-    .ugg-nav__group--bar .ugg-nav__link[aria-current="page"] {
-        box-shadow: inset 0 -3px 0 var(--ugg-accent);
-    }
+    .ugg-nav--drawer { display: none; }
+    .ugg-nav--dropdown { display: block; }
 }
 
 /* =========================================================================
@@ -1636,4 +1632,90 @@
 .ugg-equipment-row:has(select[name$="-equipment"] option[value="foam roll"]:checked) .ugg-equipment__icon--foam-roll,
 .ugg-equipment-row:has(select[name$="-equipment"] option[value="other"]:checked) .ugg-equipment__icon--other {
     display: block;
+}
+
+/* =========================================================================
+   PAGE D'ANALYSE (issue #72) — indicateurs clés et graphiques
+   ========================================================================= */
+
+/* Indicateur clé (KPI) : label discret, valeur en accent affichage, tendance
+   couleur ET signe explicite (+/−) — jamais la seule couleur pour porter le
+   sens, comme ailleurs dans le projet. */
+.ugg-stat {
+    padding: var(--ugg-space-4) var(--ugg-space-6);
+    min-width: 0;
+}
+
+.ugg-stat__label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: var(--ugg-tracking-label);
+    text-transform: uppercase;
+    color: var(--ugg-text-muted);
+}
+
+.ugg-stat__value {
+    margin-top: var(--ugg-space-2);
+    font-family: var(--ugg-font-display);
+    font-size: 1.75rem;
+    font-weight: 800;
+    letter-spacing: var(--ugg-tracking-display);
+    color: var(--ugg-text);
+}
+
+.ugg-stat__trend {
+    margin-top: var(--ugg-space-1);
+    font-size: 0.8125rem;
+    color: var(--ugg-text-muted);
+}
+
+.ugg-stat__trend--up { color: var(--ugg-danger); }
+.ugg-stat__trend--down { color: var(--ugg-success); }
+
+/* Le sens n'est pas universellement bon/mauvais (perdre du poids peut être
+   l'objectif ou non) : la couleur suit la convention prise sur ce projet pour
+   la seule série concernée (poids qui monte = ugg-danger) plutôt qu'un
+   jugement générique — voir CLAUDE.md, Règles graphiques. */
+
+/* Un graphique Chart.js occupe une carte comme le reste du projet ; la
+   hauteur est fixée sur le <canvas> lui-même (attribut `height`, requis par
+   Chart.js) pour éviter le redimensionnement continu que provoquerait un
+   pourcentage. */
+.ugg-chart {
+    padding: var(--ugg-space-4) var(--ugg-space-6);
+}
+
+.ugg-chart__title {
+    font-family: var(--ugg-font-display);
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--ugg-text);
+}
+
+.ugg-chart canvas {
+    max-width: 100%;
+}
+
+/* Agrandissement d'un graphique (issue #80) : même bascule `.ugg-lightbox`
+   que les photos d'exercice (`:target`, CSS pur), mais un panneau plutôt
+   qu'une image — la taille se veut fluide (vw/vh) pour tenir sur mobile
+   comme sur grand écran sans règle responsive dédiée. L'instance Chart.js
+   à l'intérieur (chartjs-plugin-zoom vendoré) est distincte de l'aperçu, et
+   n'est créée qu'à l'ouverture — voir health_charts.js. */
+.ugg-lightbox__panel {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: var(--ugg-space-3);
+    width: min(92vw, 64rem);
+    height: min(80vh, 34rem);
+    padding: var(--ugg-space-6);
+    background: var(--ugg-surface-raised);
+    border-radius: var(--ugg-radius-lg);
+    box-shadow: var(--ugg-shadow-card);
+}
+
+.ugg-lightbox__panel canvas {
+    flex: 1;
+    min-height: 0;
 }

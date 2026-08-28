@@ -111,28 +111,3 @@ jobs:
         uses: SonarSource/sonarqube-scan-action@v6
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-
-  docker:
-    name: Construction de l'image
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: docker/setup-buildx-action@v3
-
-      - name: Construire l'image (sans publication)
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          push: false
-          load: true
-          tags: ultimate-gym-generator:ci
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-      - name: Vérifier que le conteneur démarre
-        run: |
-          docker run --rm ultimate-gym-generator:ci \
-            python -c "import django; print('Django', django.get_version())"
-          # L'utilisateur doit être non-root.
-          test "$(docker image inspect ultimate-gym-generator:ci --format '{{.Config.User}}')" = "gym"

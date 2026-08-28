@@ -9,7 +9,7 @@ Bloc remplacé à chaque changement de critère — voir exercises.views.exercis
     refermerait le panneau que l'utilisateur vient d'ouvrir.
     {% endcomment %}
     {% for group in groups %}
-        {% include "exercises/partials/filter_badge.html" with group=group oob=True %}
+        {% include "core/components/filter_badge.html" with group=group oob=True %}
     {% endfor %}
 {% endif %}
 <div class="flex flex-wrap items-baseline justify-between gap-3">
