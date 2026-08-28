@@ -10,13 +10,14 @@ from health.models import Activity, DailySteps
 pytestmark = pytest.mark.django_db
 
 
-def _activity(user, activity_type, days_ago=0):
+def _activity(user, activity_type, days_ago=0, source=""):
     now = timezone.now()
     return Activity.objects.create(
         user=user,
         activity_type=activity_type,
         started_at=now - timedelta(days=days_ago),
         ended_at=now - timedelta(days=days_ago) + timedelta(minutes=20),
+        source=source,
     )
 
 
@@ -75,3 +76,48 @@ def test_has_active_filters_detecte_un_type_ou_une_periode_non_par_defaut():
 
     chosen_group = filters.build_type_group(QueryDict("type=running"))
     assert filters.has_active_filters(chosen_group, QueryDict("type=running")) is True
+
+
+def test_la_recherche_filtre_sur_la_source(user):
+    _activity(user, Activity.ActivityType.RUNNING, source="Montre Garmin")
+    _activity(user, Activity.ActivityType.CYCLING, source="iPhone")
+
+    params = QueryDict("q=garmin")
+    result = filters.filter_activities(params, user)
+
+    assert result.count() == 1
+    assert result.first().source == "Montre Garmin"
+
+
+def test_la_recherche_filtre_sur_le_libelle_traduit_du_type(user):
+    _activity(user, Activity.ActivityType.RUNNING)
+    _activity(user, Activity.ActivityType.CYCLING)
+
+    params = QueryDict("q=course")
+    result = filters.filter_activities(params, user)
+
+    assert result.count() == 1
+    assert result.first().activity_type == Activity.ActivityType.RUNNING
+
+
+def test_la_recherche_se_cumule_avec_les_autres_criteres(user):
+    _activity(user, Activity.ActivityType.RUNNING, days_ago=1, source="Garmin")
+    _activity(user, Activity.ActivityType.RUNNING, days_ago=100, source="Garmin")
+
+    params = QueryDict("q=garmin&periode=7")
+    result = filters.filter_activities(params, user)
+
+    assert result.count() == 1
+
+
+def test_une_recherche_vide_ou_blanche_ne_filtre_rien(user):
+    _activity(user, Activity.ActivityType.RUNNING)
+    _activity(user, Activity.ActivityType.CYCLING)
+
+    assert filters.filter_activities(QueryDict("q="), user).count() == 2
+    assert filters.filter_activities(QueryDict("q=%20%20"), user).count() == 2
+
+
+def test_has_active_filters_detecte_une_recherche():
+    empty_group = filters.build_type_group(QueryDict())
+    assert filters.has_active_filters(empty_group, QueryDict("q=garmin")) is True

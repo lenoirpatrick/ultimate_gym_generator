@@ -50,14 +50,14 @@ def test_le_filtrage_par_type_restreint_les_activites_affichees(logged_client, u
         ended_at=now + timedelta(hours=1),
     )
 
-    # Requête HTMX : seul le fragment de résultats revient, sans le
-    # formulaire de filtre (qui, lui, liste toujours tous les types en
-    # option — comparer sur la page entière serait un faux négatif).
+    # Comparaison sur le titre de chaque carte (`<p>...</p>`), pas sur le nom
+    # brut du type : le sélecteur d'édition de type de chaque carte restante
+    # liste, lui, toujours tous les types en option (issue #81).
     response = logged_client.get("/sante/", {"type": "running"}, HTTP_HX_REQUEST="true")
     content = response.content.decode()
 
-    assert "Course à pied" in content
-    assert "Vélo" not in content
+    assert ">Course à pied</p>" in content
+    assert ">Vélo</p>" not in content
 
 
 def test_le_filtrage_par_periode_exclut_les_activites_hors_plage(logged_client, user):
@@ -134,6 +134,30 @@ def test_un_graphique_sans_serie_ne_s_affiche_pas(logged_client, user):
     assert "Poids</p>" not in content
     assert "Volume d'activité" not in content
     assert "Allure de course" not in content
+
+
+def test_la_recherche_restreint_les_activites_affichees(logged_client, user):
+    now = timezone.now()
+    Activity.objects.create(
+        user=user,
+        activity_type=Activity.ActivityType.RUNNING,
+        started_at=now,
+        ended_at=now + timedelta(minutes=30),
+        source="Montre Garmin",
+    )
+    Activity.objects.create(
+        user=user,
+        activity_type=Activity.ActivityType.CYCLING,
+        started_at=now,
+        ended_at=now + timedelta(hours=1),
+        source="iPhone",
+    )
+
+    response = logged_client.get("/sante/", {"q": "garmin"}, HTTP_HX_REQUEST="true")
+    content = response.content.decode()
+
+    assert ">Course à pied</p>" in content
+    assert ">Vélo</p>" not in content
 
 
 def test_aucun_graphique_n_est_encadre_si_rien_n_a_de_donnee_sur_la_periode(logged_client, user):

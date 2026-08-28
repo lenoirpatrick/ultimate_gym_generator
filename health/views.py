@@ -11,30 +11,31 @@ from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 
-from . import analytics, auth, filters
+from . import analytics, auth, exclusions, filters
 from . import ingest as ingest_module
-from .forms import ApiKeyForm, HealthImportForm
+from .forms import ActivityTypeForm, ApiKeyForm, HealthImportForm
 from .importer import ExportParseError, parse_export
 from .models import Activity, ApiKey, DailySteps, WeightMeasurement
 
 
-@login_required
-def dashboard(request: HttpRequest) -> HttpResponse:
-    """Page d'analyse : KPI, graphiques et activités, filtrables (#72, #73)."""
-    params = request.GET
-    user = request.user
-
+def _dashboard_context(user, params) -> dict:
+    """Contexte des résultats de l'analyse (#72, #73), pour la page comme pour
+    les actions qui la modifient depuis place (suppression/édition, #81) —
+    une seule construction, jamais recalculée différemment selon l'appelant.
+    """
     type_group = filters.build_type_group(params)
     activities = filters.filter_activities(params, user)
     daily_steps = filters.filter_daily_steps(params, user)
     _period_value, days = filters.selected_period(params)
     chart_data = analytics.build_chart_data(user, activities, days, daily_steps)
 
-    context = {
+    return {
         "type_group": type_group,
         "period_options": filters.period_options(params),
+        "search_query": filters.search_query(params),
         "filtered": filters.has_active_filters(type_group, params),
         "activities": activities[:50],
+        "activity_type_choices": Activity.ActivityType.choices,
         "kpis": analytics.build_kpis(user, activities, days, daily_steps),
         # Objet pour masquer les graphiques sans série (issue #84) ; dict pour
         # le JSON lu par health_charts.js — deux formes du même calcul,
@@ -47,9 +48,52 @@ def dashboard(request: HttpRequest) -> HttpResponse:
         "base_url": reverse("health:dashboard"),
     }
 
+
+@login_required
+def dashboard(request: HttpRequest) -> HttpResponse:
+    """Page d'analyse : KPI, graphiques et activités, filtrables (#72, #73)."""
+    context = _dashboard_context(request.user, request.GET)
+
     if request.headers.get("HX-Request"):
         return render(request, "health/partials/dashboard_results.html", context)
     return render(request, "health/dashboard.html", context)
+
+
+@login_required
+@require_POST
+def activity_delete(request: HttpRequest, pk: int) -> HttpResponse:
+    """Supprime une activité et l'exclut définitivement du réimport (issue #81).
+
+    Les critères courants (période, type, recherche) voyagent dans le corps
+    de la requête via `hx-include` sur le formulaire de filtre — la vue rend
+    donc la même vue filtrée qu'avant la suppression, pas la liste entière.
+    """
+    activity = get_object_or_404(Activity, pk=pk, user=request.user)
+    exclusions.exclude_activity(request.user, activity.activity_type, activity.started_at)
+    activity.delete()
+
+    context = _dashboard_context(request.user, request.POST)
+    return render(request, "health/partials/dashboard_results.html", context)
+
+
+@login_required
+@require_POST
+def activity_edit_type(request: HttpRequest, pk: int) -> HttpResponse:
+    """Modifie le type d'une activité (issue #81).
+
+    Le type fait partie de la clé naturelle d'upsert : le changer déplace
+    l'activité vers une nouvelle clé. Sans exclure l'**ancienne**, un
+    réimport la recréerait telle quelle à côté de la version corrigée.
+    """
+    activity = get_object_or_404(Activity, pk=pk, user=request.user)
+    form = ActivityTypeForm(request.POST)
+    if form.is_valid():
+        exclusions.exclude_activity(request.user, activity.activity_type, activity.started_at)
+        activity.activity_type = form.cleaned_data["activity_type"]
+        activity.save(update_fields=["activity_type"])
+
+    context = _dashboard_context(request.user, request.POST)
+    return render(request, "health/partials/dashboard_results.html", context)
 
 
 @login_required
@@ -131,8 +175,8 @@ def ingest(request: HttpRequest) -> JsonResponse:
     except (json.JSONDecodeError, UnicodeDecodeError):
         return JsonResponse({"detail": "Corps de requête JSON invalide."}, status=400)
 
-    weights_created = weights_updated = 0
-    activities_created = activities_updated = 0
+    weights_created = weights_updated = weights_excluded = 0
+    activities_created = activities_updated = activities_excluded = 0
     errors: list[str] = []
 
     for index, entry in enumerate(payload.get("weights", [])):
@@ -141,8 +185,12 @@ def ingest(request: HttpRequest) -> JsonResponse:
             created = ingest_module.upsert_weight(
                 user, recorded_at, entry["weight_kg"], source=entry.get("source", "")
             )
-            weights_created += created
-            weights_updated += not created
+            if created is None:
+                weights_excluded += 1
+            elif created:
+                weights_created += 1
+            else:
+                weights_updated += 1
         except (KeyError, ValueError, TypeError) as exc:
             errors.append(f"weights[{index}] : {exc}")
 
@@ -162,8 +210,12 @@ def ingest(request: HttpRequest) -> JsonResponse:
                 average_heart_rate=entry.get("average_heart_rate"),
                 source=entry.get("source", ""),
             )
-            activities_created += created
-            activities_updated += not created
+            if created is None:
+                activities_excluded += 1
+            elif created:
+                activities_created += 1
+            else:
+                activities_updated += 1
         except (KeyError, ValueError, TypeError) as exc:
             errors.append(f"activities[{index}] : {exc}")
 
@@ -177,8 +229,10 @@ def ingest(request: HttpRequest) -> JsonResponse:
         {
             "weights_created": weights_created,
             "weights_updated": weights_updated,
+            "weights_excluded": weights_excluded,
             "activities_created": activities_created,
             "activities_updated": activities_updated,
+            "activities_excluded": activities_excluded,
             "errors": errors,
         },
         status=status,

@@ -262,7 +262,7 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
 - Une entrée invalide dans un lot n'empêche pas les autres d'être appliquées : la
   réponse détaille les erreurs par entrée plutôt que de rejeter l'envoi entier.
 
-### Page d'analyse (issues #72, #75, #83, #84)
+### Page d'analyse (issues #72, #75, #81, #83, #84)
 
 - KPI et graphiques sur **Chart.js vendoré** (`core/static/core/js/chart.min.js`, même
   principe que HTMX : un seul fichier minifié déposé tel quel, aucun bundler). Chargé
@@ -306,6 +306,46 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
   (`.as_dict()`) lu par `health_charts.js` — deux formes du même calcul.
 - Tous les états traités : aucune donnée importée (`empty_state.html`, lien vers
   l'import), période/types filtrés sans résultat, chargement (spinner `hx-indicator`).
+
+### Suppression, édition et recherche d'activités (issue #81)
+
+- Une activité importée peut être **supprimée** (`.ugg-btn--danger`, `hx-confirm`)
+  ou voir son **type corrigé** (`<select>` dans son propre `.ugg-field__control`,
+  `hx-trigger="change"`) directement depuis sa carte — jamais un simple marquage,
+  la donnée source (export Apple Health, ou l'API #71) restant elle-même incorrecte.
+  Les deux actions (`health.views.activity_delete`/`activity_edit_type`) réutilisent
+  `hx-include="#filtre-analyse"` (id posé sur le `<form>` de filtre) pour faire
+  voyager période/types/recherche courants dans leur propre requête, et rendent le
+  même fragment `dashboard_results.html` que le filtrage : la vue reste celle sur
+  laquelle l'utilisateur travaillait, jamais réinitialisée à l'action.
+- Comme les modèles Apple Health n'ont pas d'identifiant stable, l'idempotence de
+  l'import repose sur une **clé naturelle** (`user + instant` pour un poids,
+  `user + type + début` pour une activité, `health.ingest`). Sans mécanisme
+  dédié, une entrée supprimée — ou dont le type est corrigé — reviendrait donc
+  telle quelle au prochain réimport ou au prochain appel de l'API #71. Un modèle
+  `ExcludedImport` (`user`, `kind`, `natural_key`) enregistre ces clés, consultées
+  par `health.exclusions` **avant** chaque écriture dans `health.ingest.upsert_weight`/
+  `upsert_activity` — un seul point de passage, commun au fichier et à l'API. La
+  clé se normalise toujours en UTC (`exclusions._instant`, `.astimezone(UTC)`) :
+  un export porte l'heure locale au moment de la mesure, la base la relit toujours
+  normalisée — sans cette conversion, la même seconde produirait deux clés
+  différentes selon la provenance et l'exclusion ne matcherait jamais.
+- `upsert_weight`/`upsert_activity` renvoient désormais un **tri-état** :
+  `True` (créé) / `False` (mis à jour) / `None` (exclu, rien écrit) — tout appelant
+  doit distinguer les trois, jamais traiter le retour comme un simple booléen.
+  `ImportResult` (import fichier) et la réponse JSON de l'API #71 comptent les
+  exclusions séparément (`weights_excluded`/`activities_excluded`), affichées à
+  l'utilisateur (`import_panel.html`) pour qu'un réimport n'ait pas l'air d'avoir
+  « perdu » des lignes sans explication.
+- Corriger le type **déplace** l'activité vers une nouvelle clé naturelle (le type
+  en fait partie) : `activity_edit_type` exclut l'**ancienne** clé (calculée avant
+  la modification) avant de sauvegarder le nouveau type — sans quoi un réimport
+  recréerait la version fautive à côté de la version corrigée.
+- La **recherche texte** (`.ugg-search`, champ `q`, même patron dynamique que le
+  catalogue d'exercices — `hx-trigger="change, keyup changed delay:400ms from:#…"`)
+  se cumule (ET) avec période et types : elle porte sur la source de l'activité
+  (`source__icontains`) et sur le libellé traduit du type (résolu côté Python,
+  le type étant stocké sous son code HealthKit, pas son libellé affiché).
 
 ### Blocs de séance
 

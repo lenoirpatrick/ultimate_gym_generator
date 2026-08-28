@@ -68,7 +68,7 @@ réinitialise les graphiques Chart.js à chaque remplacement HTMX
                         <p class="ugg-title text-base">{{ activity.get_activity_type_display }}</p>
                         <p class="mt-1 text-sm text-muted">{{ activity.started_at|date:"d/m/Y H:i" }}</p>
                     </div>
-                    <div class="flex flex-wrap gap-2">
+                    <div class="flex flex-wrap items-center gap-2">
                         <span class="ugg-tag">{{ activity.duration_label }}</span>
                         {% if activity.distance_km_label %}
                             <span class="ugg-tag">{{ activity.distance_km_label }}</span>
@@ -79,6 +79,34 @@ réinitialise les graphiques Chart.js à chaque remplacement HTMX
                         {% if activity.calories_label %}
                             <span class="ugg-tag">{{ activity.calories_label }}</span>
                         {% endif %}
+                    </div>
+                    {% comment %}
+                    Modifier le type déplace l'activité vers une nouvelle clé
+                    naturelle : l'ancienne est exclue du réimport côté serveur
+                    (health.views.activity_edit_type, issue #81), pas ici.
+                    {% endcomment %}
+                    <div class="flex w-full flex-wrap items-center gap-2 sm:w-auto">
+                        <div class="ugg-field__control">
+                            <select aria-label="Modifier le type de « {{ activity.get_activity_type_display }} »"
+                                    hx-post="{% url 'health:activity_edit_type' activity.pk %}"
+                                    hx-include="#filtre-analyse"
+                                    hx-target="#resultats-sante"
+                                    hx-trigger="change"
+                                    name="activity_type">
+                                {% for value, label in activity_type_choices %}
+                                    <option value="{{ value }}"{% if value == activity.activity_type %} selected{% endif %}>
+                                        {{ label }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <button class="ugg-btn ugg-btn--danger"
+                                hx-post="{% url 'health:activity_delete' activity.pk %}"
+                                hx-include="#filtre-analyse"
+                                hx-target="#resultats-sante"
+                                hx-confirm="Supprimer cette activité ? Elle ne sera plus jamais réimportée.">
+                            Supprimer
+                        </button>
                     </div>
                 </div>
             {% endfor %}

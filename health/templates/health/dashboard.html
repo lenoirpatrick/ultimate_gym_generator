@@ -14,19 +14,36 @@
 
     {% if has_data %}
         {% comment %}
-        Un seul formulaire pour les deux critères : chaque changement relance
-        l'analyse et réécrit l'adresse, comme le catalogue d'exercices.
+        Un seul formulaire pour tous les critères : chaque changement relance
+        l'analyse et réécrit l'adresse, comme le catalogue d'exercices. Les
+        actions de suppression/édition (issue #81) l'incluent via
+        `hx-include="#filtre-analyse"` pour rester sur la même vue filtrée.
         {% endcomment %}
-        <form class="mt-8"
+        <form id="filtre-analyse"
+              class="mt-8"
               method="get"
               action="{{ base_url }}"
               hx-get="{{ base_url }}"
-              hx-trigger="change"
+              hx-trigger="change, keyup changed delay:400ms from:#recherche-activites"
               hx-target="#resultats-sante"
               hx-push-url="true"
               hx-indicator="#analyse-en-cours">
 
-            <fieldset class="ugg-field">
+            <div class="ugg-search">
+                <svg class="ugg-search__icon" viewBox="0 0 24 24" aria-hidden="true"
+                     fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                    <circle cx="10.5" cy="10.5" r="6.5" />
+                    <path d="M20 20l-4.8-4.8" />
+                </svg>
+                <input type="search"
+                       id="recherche-activites"
+                       name="q"
+                       value="{{ search_query }}"
+                       placeholder="Rechercher une activité (type, source)…"
+                       aria-label="Rechercher une activité">
+            </div>
+
+            <fieldset class="ugg-field mt-4">
                 <legend class="ugg-field__label">Période</legend>
                 <div class="ugg-segmented mt-2">
                     {% for option in period_options %}

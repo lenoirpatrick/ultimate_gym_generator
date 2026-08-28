@@ -144,6 +144,33 @@ def test_reimporter_remplace_le_total_de_pas_sans_le_doubler(user):
     assert DailySteps.objects.filter(user=user).count() == 2
 
 
+def test_reimporter_apres_suppression_manuelle_ne_recree_rien(user):
+    # Issue #81 : une entrée supprimée depuis la page d'analyse ne doit jamais
+    # revenir au réimport du même export — même chemin (`parse_export`) que
+    # l'utilisateur emprunterait en pratique, pas seulement `ingest.upsert_*`.
+    parse_export(user, BytesIO(_fixture_bytes()))
+    deleted_weight = WeightMeasurement.objects.filter(user=user).order_by("recorded_at").first()
+    deleted_activity = Activity.objects.filter(user=user).order_by("started_at").first()
+
+    from health import exclusions
+
+    exclusions.exclude_weight(user, deleted_weight.recorded_at)
+    exclusions.exclude_activity(user, deleted_activity.activity_type, deleted_activity.started_at)
+    deleted_weight.delete()
+    deleted_activity.delete()
+
+    result = parse_export(user, BytesIO(_fixture_bytes()))
+
+    assert result.weights_excluded == 1
+    assert result.weights_created == 0
+    assert result.weights_updated == 1
+    assert result.activities_excluded == 1
+    assert result.activities_created == 0
+    assert result.activities_updated == 1
+    assert WeightMeasurement.objects.filter(user=user).count() == 1
+    assert Activity.objects.filter(user=user).count() == 1
+
+
 def test_les_pas_ne_se_doublent_pas_entre_iphone_et_watch(user):
     # Issue #78 : iPhone et Watch rapportent souvent les mêmes pas en double
     # sur des intervalles qui se recouvrent. Le total du jour retenu est le

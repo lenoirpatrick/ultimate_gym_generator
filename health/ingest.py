@@ -11,6 +11,7 @@ from decimal import Decimal
 
 from django.contrib.auth import get_user_model
 
+from . import exclusions
 from .models import Activity, DailySteps, WeightMeasurement
 
 User = get_user_model()
@@ -18,8 +19,15 @@ User = get_user_model()
 
 def upsert_weight(
     user: User, recorded_at: datetime, weight_kg: Decimal | float, source: str = ""
-) -> bool:
-    """Crée ou met à jour la mesure de poids à cet instant. Renvoie `created`."""
+) -> bool | None:
+    """Crée ou met à jour la mesure de poids à cet instant.
+
+    Renvoie `created`, ou `None` si cet instant a été supprimé manuellement
+    (issue #81) — l'entrée n'est alors pas recréée.
+    """
+    if exclusions.is_weight_excluded(user, recorded_at):
+        return None
+
     _, created = WeightMeasurement.objects.update_or_create(
         user=user,
         recorded_at=recorded_at,
@@ -53,8 +61,11 @@ def upsert_activity(
     active_energy_kcal: float | None = None,
     average_heart_rate: int | None = None,
     source: str = "",
-) -> bool:
-    """Crée ou met à jour l'activité qui a débuté à cet instant. Renvoie `created`.
+) -> bool | None:
+    """Crée ou met à jour l'activité qui a débuté à cet instant.
+
+    Renvoie `created`, ou `None` si cette clé (type + début) a été supprimée
+    ou éditée manuellement (issue #81) — l'entrée n'est alors pas recréée.
 
     `duration_seconds` est la durée active HealthKit (issue #79), distincte de
     `ended_at - started_at` qui inclut les pauses. Laissé à `None`, le modèle
@@ -62,6 +73,9 @@ def upsert_activity(
     approximation disponible quand la source ne connaît pas la durée active
     (export sans l'attribut, ou données API #71 qui ne le transmettent pas).
     """
+    if exclusions.is_activity_excluded(user, activity_type, started_at):
+        return None
+
     _, created = Activity.objects.update_or_create(
         user=user,
         activity_type=activity_type,

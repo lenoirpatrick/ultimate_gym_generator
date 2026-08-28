@@ -81,6 +81,9 @@ class ImportResult:
     skipped_types: set[str] = field(default_factory=set)
     #: Enregistrements antérieurs à `since` (issue #74), écartés sans erreur.
     skipped_before_since: int = 0
+    #: Supprimés ou édités manuellement (issue #81), jamais recréés.
+    weights_excluded: int = 0
+    activities_excluded: int = 0
 
     @property
     def total(self) -> int:
@@ -239,7 +242,9 @@ def parse_export(user, file, since: date | None = None) -> ImportResult:
                     created = ingest.upsert_weight(
                         user, started_at, round(weight_kg, 2), source=elem.get("sourceName", "")
                     )
-                    if created:
+                    if created is None:
+                        result.weights_excluded += 1
+                    elif created:
                         result.weights_created += 1
                     else:
                         result.weights_updated += 1
@@ -272,7 +277,9 @@ def parse_export(user, file, since: date | None = None) -> ImportResult:
                         average_heart_rate=_workout_average_heart_rate(stats),
                         source=elem.get("sourceName", ""),
                     )
-                    if created:
+                    if created is None:
+                        result.activities_excluded += 1
+                    elif created:
                         result.activities_created += 1
                     else:
                         result.activities_updated += 1

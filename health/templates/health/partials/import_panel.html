@@ -79,6 +79,14 @@ requête, HTMX ou non (health.views.import_view).
                         antérieur{{ result.skipped_before_since|pluralize }} à la date choisie, ignoré{{ result.skipped_before_since|pluralize }}
                     </li>
                 {% endif %}
+                {% with total_excluded=result.weights_excluded|add:result.activities_excluded %}
+                    {% if total_excluded %}
+                        <li class="text-muted">
+                            {{ total_excluded }} entrée{{ total_excluded|pluralize }} supprimée{{ total_excluded|pluralize }}
+                            ou modifiée{{ total_excluded|pluralize }} manuellement, non réimportée{{ total_excluded|pluralize }}
+                        </li>
+                    {% endif %}
+                {% endwith %}
             </ul>
             <a href="{% url 'health:dashboard' %}" class="ugg-btn ugg-btn--primary mt-4">
                 Voir l'analyse

@@ -157,6 +157,43 @@ class DailySteps(models.Model):
         return f"{self.steps} pas — {self.date:%d/%m/%Y}"
 
 
+class ExcludedImport(models.Model):
+    """Instant qu'un réimport, ou l'API d'ingestion, ne doit plus jamais recréer.
+
+    Alimentée par la suppression d'une entrée, ou par le changement manuel du
+    type d'une activité (sa clé naturelle change alors : l'ancienne clé est
+    exclue pour que le réimport ne recrée pas la version d'origine à côté de
+    celle éditée — voir `health.exclusions`, issue #81).
+    """
+
+    class Kind(models.TextChoices):
+        WEIGHT = "weight", "Poids"
+        ACTIVITY = "activity", "Activité"
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="excluded_imports",
+        verbose_name="utilisateur",
+    )
+    kind = models.CharField("catégorie", max_length=8, choices=Kind.choices)
+    #: Même forme que la clé naturelle d'upsert (`health.exclusions`), pas un
+    #: identifiant HealthKit — l'export n'en fournit aucun de stable.
+    natural_key = models.CharField("clé naturelle", max_length=255, db_index=True)
+
+    class Meta:
+        verbose_name = "exclusion d'import"
+        verbose_name_plural = "exclusions d'import"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user", "kind", "natural_key"], name="unique_excluded_import"
+            )
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.get_kind_display()} exclue — {self.natural_key}"
+
+
 class ApiKey(models.Model):
     """Clé d'accès à l'API d'ingestion (#71), propre à un utilisateur.
 

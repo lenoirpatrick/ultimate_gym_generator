@@ -9,7 +9,7 @@ Deux critères, cumulés en ET, chacun avec sa propre sémantique :
 
 from dataclasses import dataclass
 
-from django.db.models import QuerySet
+from django.db.models import Q, QuerySet
 from django.utils import timezone
 
 from core.filtering import FilterGroup, Option, selected_values
@@ -18,6 +18,9 @@ from .models import Activity, DailySteps
 
 TYPE_PARAM = "type"
 PERIOD_PARAM = "periode"
+#: Recherche texte libre, sur le type affiché et la source (issue #81). Se
+#: cumule (ET) avec les autres critères, comme dans le catalogue d'exercices.
+SEARCH_PARAM = "q"
 
 #: (valeur, libellé, nombre de jours — `None` pour « tout »)
 PERIOD_CHOICES: tuple[tuple[str, str, int | None], ...] = (
@@ -68,6 +71,11 @@ def build_type_group(params) -> FilterGroup:
     )
 
 
+def search_query(params) -> str:
+    """Texte recherché, débarrassé des espaces superflus."""
+    return params.get(SEARCH_PARAM, "").strip()
+
+
 def filter_activities(params, user) -> QuerySet[Activity]:
     """Activités de `user` restreintes aux critères cochés."""
     queryset = Activity.objects.filter(user=user)
@@ -80,6 +88,18 @@ def filter_activities(params, user) -> QuerySet[Activity]:
     types = selected_values(params, TYPE_PARAM, set(Activity.ActivityType.values))
     if types:
         queryset = queryset.filter(activity_type__in=types)
+
+    query = search_query(params)
+    if query:
+        # Le type est stocké sous sa valeur HealthKit ("running"), pas son
+        # libellé affiché ("Course à pied") : les codes dont le libellé
+        # correspond sont résolus ici plutôt que recherchés en base.
+        matching_types = [
+            value
+            for value, label in Activity.ActivityType.choices
+            if query.lower() in label.lower()
+        ]
+        queryset = queryset.filter(Q(source__icontains=query) | Q(activity_type__in=matching_types))
 
     return queryset.order_by("-started_at")
 
@@ -102,4 +122,4 @@ def filter_daily_steps(params, user) -> QuerySet[DailySteps]:
 
 def has_active_filters(type_group: FilterGroup, params) -> bool:
     value, _days = selected_period(params)
-    return bool(type_group.selected_count) or value != DEFAULT_PERIOD
+    return bool(type_group.selected_count) or value != DEFAULT_PERIOD or bool(search_query(params))

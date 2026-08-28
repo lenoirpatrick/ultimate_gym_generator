@@ -1,6 +1,8 @@
 from django import forms
 from django.conf import settings
 
+from .models import Activity
+
 
 class HealthImportForm(forms.Form):
     file = forms.FileField(label="Export Apple Health (export.xml)")
@@ -38,4 +40,17 @@ class ApiKeyForm(forms.Form):
         label="Nom de la clé",
         max_length=120,
         widget=forms.TextInput(attrs={"placeholder": "ex. iPhone — Raccourci"}),
+    )
+
+
+class ActivityTypeForm(forms.Form):
+    """Modification du type d'une activité (issue #81).
+
+    Un `<select>`, pas un contrôle segmenté : dix valeurs closes, la règle du
+    projet réserve le segmenté aux choix fermés à peu de valeurs (voir le
+    matériel de l'utilisateur, même patron).
+    """
+
+    activity_type = forms.ChoiceField(
+        label="Type d'activité", choices=Activity.ActivityType.choices
     )
