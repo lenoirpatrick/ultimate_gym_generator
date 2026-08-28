@@ -262,7 +262,7 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
 - Une entrée invalide dans un lot n'empêche pas les autres d'être appliquées : la
   réponse détaille les erreurs par entrée plutôt que de rejeter l'envoi entier.
 
-### Page d'analyse (issues #72, #75, #81, #83, #84)
+### Page d'analyse (issues #72, #75, #80, #81, #83, #84)
 
 - KPI et graphiques sur **Chart.js vendoré** (`core/static/core/js/chart.min.js`, même
   principe que HTMX : un seul fichier minifié déposé tel quel, aucun bundler). Chargé
@@ -306,6 +306,29 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
   (`.as_dict()`) lu par `health_charts.js` — deux formes du même calcul.
 - Tous les états traités : aucune donnée importée (`empty_state.html`, lien vers
   l'import), période/types filtrés sans résultat, chargement (spinner `hx-indicator`).
+- Chaque graphique dont une carte s'affiche propose un bouton **« Agrandir »**
+  (`.ugg-btn--ghost`, issue #80) qui ouvre le même graphique en grand dans une
+  `.ugg-lightbox` (`:target`, CSS pur — même bascule que les photos d'exercice) :
+  seul le contenu diffère, un panneau (`.ugg-lightbox__panel`) plutôt qu'une
+  image, dimensionné en unités fluides (`min(92vw, 64rem)` / `min(80vh, 34rem)`)
+  pour tenir sur mobile comme en grand écran sans règle responsive dédiée.
+  L'aperçu (petite carte) reste une image statique ; l'agrandissement instancie
+  une **seconde** instance Chart.js distincte (canvas `chart-{clé}-large`),
+  créée à l'ouverture seulement — un canvas cache derrière `display:none` a une
+  taille nulle, Chart.js ne peut pas y dessiner avant que `:target` ne l'affiche
+  (`core/static/core/js/health_charts.js`, sur l'évènement `hashchange` que
+  produit le clic sur l'ancre, **et** un appel explicite au chargement de la
+  page — un lien partagé ou un rechargement pendant qu'un graphique est déjà
+  ouvert n'émet aucun `hashchange`, l'omettre laissait le panneau vide).
+- Navigation dans le graphique agrandi via **chartjs-plugin-zoom** vendoré
+  (`core/static/core/js/chartjs-plugin-zoom.min.js`, même principe que
+  `chart.min.js` : un seul fichier déposé tel quel, aucun bundler) : molette
+  et pincement zooment sur l'axe des temps (`mode: "x"`), glisser déplace la
+  plage visible. Fonctionne sans Hammer.js (dépendance facultative du plugin,
+  non vendorée : seul le pincement tactile s'en passerait, dégradation
+  silencieuse). Un bouton **« Réinitialiser le zoom »** (`chart.resetZoom()`)
+  ramène à la plage d'origine. Jamais activé sur l'aperçu — seule
+  l'instance de la lightbox reçoit les options `plugins.zoom`.
 
 ### Suppression, édition et recherche d'activités (issue #81)
 

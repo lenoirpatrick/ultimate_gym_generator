@@ -1,0 +1,34 @@
+{% comment %}
+Agrandissement d'un graphique de l'analyse, avec zoom/déplacement
+(chartjs-plugin-zoom vendoré, issue #80). Même bascule `.ugg-lightbox` que
+les photos d'exercice (`:target`, CSS pur) : seul le contenu — un panneau
+plutôt qu'une image — diffère. L'instance Chart.js à l'intérieur est
+distincte de l'aperçu (core/static/core/js/health_charts.js), pour rester
+interactive en plein écran sans perturber l'aperçu ni son état de zoom.
+
+Attend `chart_key` (radical des id `chart-{{ chart_key }}`/`chart-{{ chart_key }}-large`)
+et `title`.
+{% endcomment %}
+<div class="ugg-lightbox ugg-lightbox--chart"
+     id="graphique-{{ chart_key }}"
+     role="dialog"
+     aria-modal="true"
+     aria-label="{{ title }}, graphique agrandi"
+     tabindex="-1">
+    <a href="#" class="ugg-lightbox__backdrop" tabindex="-1" aria-hidden="true"></a>
+    <div class="ugg-lightbox__panel">
+        <div class="flex items-center justify-between gap-3">
+            <p class="ugg-chart__title">{{ title }}</p>
+            <button type="button" class="ugg-btn ugg-btn--ghost" data-chart-reset-zoom="{{ chart_key }}">
+                Réinitialiser le zoom
+            </button>
+        </div>
+        <canvas id="chart-{{ chart_key }}-large"></canvas>
+    </div>
+    <a href="#" class="ugg-lightbox__close" aria-label="Fermer l'agrandissement">
+        <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <path d="M6 6l12 12M18 6L6 18" />
+        </svg>
+        <span>Fermer</span>
+    </a>
+</div>

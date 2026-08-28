@@ -26,27 +26,43 @@ réinitialise les graphiques Chart.js à chaque remplacement HTMX
         <div class="mt-6 grid gap-4 sm:grid-cols-2">
             {% if charts.has_weight %}
                 <div class="ugg-card ugg-chart">
-                    <p class="ugg-chart__title">Poids</p>
+                    <div class="flex items-center justify-between gap-2">
+                        <p class="ugg-chart__title">Poids</p>
+                        <a href="#graphique-weight" class="ugg-btn ugg-btn--ghost" aria-label="Agrandir le graphique Poids">Agrandir</a>
+                    </div>
                     <canvas id="chart-weight" height="220"></canvas>
                 </div>
+                {% include "health/partials/chart_lightbox.html" with chart_key="weight" title="Poids" %}
             {% endif %}
             {% if charts.has_volume %}
                 <div class="ugg-card ugg-chart">
-                    <p class="ugg-chart__title">Volume d'activité (h / semaine)</p>
+                    <div class="flex items-center justify-between gap-2">
+                        <p class="ugg-chart__title">Volume d'activité (h / semaine)</p>
+                        <a href="#graphique-volume" class="ugg-btn ugg-btn--ghost" aria-label="Agrandir le graphique Volume d'activité">Agrandir</a>
+                    </div>
                     <canvas id="chart-volume" height="220"></canvas>
                 </div>
+                {% include "health/partials/chart_lightbox.html" with chart_key="volume" title="Volume d'activité (h / semaine)" %}
             {% endif %}
             {% if charts.has_pace %}
                 <div class="ugg-card ugg-chart">
-                    <p class="ugg-chart__title">Allure de course (min/km)</p>
+                    <div class="flex items-center justify-between gap-2">
+                        <p class="ugg-chart__title">Allure de course (min/km)</p>
+                        <a href="#graphique-pace" class="ugg-btn ugg-btn--ghost" aria-label="Agrandir le graphique Allure de course">Agrandir</a>
+                    </div>
                     <canvas id="chart-pace" height="220"></canvas>
                 </div>
+                {% include "health/partials/chart_lightbox.html" with chart_key="pace" title="Allure de course (min/km)" %}
             {% endif %}
             {% if charts.has_steps %}
                 <div class="ugg-card ugg-chart">
-                    <p class="ugg-chart__title">Pas par jour</p>
+                    <div class="flex items-center justify-between gap-2">
+                        <p class="ugg-chart__title">Pas par jour</p>
+                        <a href="#graphique-steps" class="ugg-btn ugg-btn--ghost" aria-label="Agrandir le graphique Pas par jour">Agrandir</a>
+                    </div>
                     <canvas id="chart-steps" height="220"></canvas>
                 </div>
+                {% include "health/partials/chart_lightbox.html" with chart_key="steps" title="Pas par jour" %}
             {% endif %}
         </div>
     {% endif %}

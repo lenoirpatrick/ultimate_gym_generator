@@ -1695,3 +1695,27 @@
 .ugg-chart canvas {
     max-width: 100%;
 }
+
+/* Agrandissement d'un graphique (issue #80) : même bascule `.ugg-lightbox`
+   que les photos d'exercice (`:target`, CSS pur), mais un panneau plutôt
+   qu'une image — la taille se veut fluide (vw/vh) pour tenir sur mobile
+   comme sur grand écran sans règle responsive dédiée. L'instance Chart.js
+   à l'intérieur (chartjs-plugin-zoom vendoré) est distincte de l'aperçu, et
+   n'est créée qu'à l'ouverture — voir health_charts.js. */
+.ugg-lightbox__panel {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: var(--ugg-space-3);
+    width: min(92vw, 64rem);
+    height: min(80vh, 34rem);
+    padding: var(--ugg-space-6);
+    background: var(--ugg-surface-raised);
+    border-radius: var(--ugg-radius-lg);
+    box-shadow: var(--ugg-shadow-card);
+}
+
+.ugg-lightbox__panel canvas {
+    flex: 1;
+    min-height: 0;
+}

@@ -218,6 +218,32 @@ def test_deux_activites_du_meme_type_ont_des_rappels_aux_id_distincts(logged_cli
     assert f'id="exercise-{second.pk}-description"' in content
 
 
+def test_un_graphique_avec_serie_propose_de_l_agrandir(logged_client, user):
+    WeightMeasurement.objects.create(user=user, recorded_at=timezone.now(), weight_kg="80.0")
+
+    response = logged_client.get("/sante/")
+    content = response.content.decode()
+
+    assert 'href="#graphique-weight"' in content
+    assert 'id="graphique-weight"' in content
+    assert 'id="chart-weight-large"' in content
+    assert "Réinitialiser le zoom" in content
+
+
+def test_un_graphique_sans_serie_n_a_pas_de_lightbox(logged_client, user):
+    # Seuls les pas ont une donnée : pas de lightbox pour poids/volume/allure,
+    # cohérent avec l'absence de leur carte (issue #84).
+    DailySteps.objects.create(user=user, date=timezone.now().date(), steps=8000)
+
+    response = logged_client.get("/sante/")
+    content = response.content.decode()
+
+    assert 'id="graphique-steps"' in content
+    assert 'id="graphique-weight"' not in content
+    assert 'id="graphique-volume"' not in content
+    assert 'id="graphique-pace"' not in content
+
+
 def test_aucun_graphique_n_est_encadre_si_rien_n_a_de_donnee_sur_la_periode(logged_client, user):
     # Une mesure existe (has_data=True, pas d'état vide) mais hors de la
     # période filtrée : aucun des quatre graphiques n'a de série à montrer.
