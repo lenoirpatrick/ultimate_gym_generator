@@ -3,6 +3,7 @@ from datetime import timedelta
 import pytest
 from django.utils import timezone
 
+from exercises.models import Exercise
 from health.models import Activity, DailySteps, WeightMeasurement
 
 pytestmark = pytest.mark.django_db
@@ -158,6 +159,63 @@ def test_la_recherche_restreint_les_activites_affichees(logged_client, user):
 
     assert ">Course à pied</p>" in content
     assert ">Vélo</p>" not in content
+
+
+def test_le_rappel_d_exercice_lie_apparait_pour_un_type_reconnu(logged_client, user):
+    Exercise.objects.create(
+        slug="Running_Treadmill", name="Running, Treadmill", category="cardio", level="beginner"
+    )
+    now = timezone.now()
+    Activity.objects.create(
+        user=user,
+        activity_type=Activity.ActivityType.RUNNING,
+        started_at=now,
+        ended_at=now + timedelta(minutes=30),
+    )
+
+    response = logged_client.get("/sante/")
+    content = response.content.decode()
+
+    assert "Running, Treadmill" in content
+
+
+def test_aucun_rappel_d_exercice_pour_un_type_sans_equivalent(logged_client, user):
+    now = timezone.now()
+    Activity.objects.create(
+        user=user,
+        activity_type=Activity.ActivityType.STRENGTH_TRAINING,
+        started_at=now,
+        ended_at=now + timedelta(minutes=30),
+    )
+
+    response = logged_client.get("/sante/")
+
+    assert "ugg-disclosure" not in response.content.decode()
+
+
+def test_deux_activites_du_meme_type_ont_des_rappels_aux_id_distincts(logged_client, user):
+    # Issue #82 : sans id distinct par activité, les deux rappels
+    # partageraient le même id — la vignette photo agrandirait alors les
+    # deux à la fois (:target matche tout élément portant l'id ciblé).
+    Exercise.objects.create(slug="Bicycling", name="Bicycling", category="cardio", level="beginner")
+    now = timezone.now()
+    first = Activity.objects.create(
+        user=user,
+        activity_type=Activity.ActivityType.CYCLING,
+        started_at=now,
+        ended_at=now + timedelta(minutes=30),
+    )
+    second = Activity.objects.create(
+        user=user,
+        activity_type=Activity.ActivityType.CYCLING,
+        started_at=now - timedelta(hours=1),
+        ended_at=now - timedelta(hours=1) + timedelta(minutes=30),
+    )
+
+    content = logged_client.get("/sante/").content.decode()
+
+    assert f'id="exercise-{first.pk}-description"' in content
+    assert f'id="exercise-{second.pk}-description"' in content
 
 
 def test_aucun_graphique_n_est_encadre_si_rien_n_a_de_donnee_sur_la_periode(logged_client, user):

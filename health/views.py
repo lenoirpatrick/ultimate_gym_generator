@@ -11,8 +11,11 @@ from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 
+from aiproviders.clients import get_active_client
+
 from . import analytics, auth, exclusions, filters
 from . import ingest as ingest_module
+from .exercise_link import annotate_linked_exercises
 from .forms import ActivityTypeForm, ApiKeyForm, HealthImportForm
 from .importer import ExportParseError, parse_export
 from .models import Activity, ApiKey, DailySteps, WeightMeasurement
@@ -28,14 +31,19 @@ def _dashboard_context(user, params) -> dict:
     daily_steps = filters.filter_daily_steps(params, user)
     _period_value, days = filters.selected_period(params)
     chart_data = analytics.build_chart_data(user, activities, days, daily_steps)
+    displayed_activities = list(activities[:50])
+    annotate_linked_exercises(displayed_activities)
 
     return {
         "type_group": type_group,
         "period_options": filters.period_options(params),
         "search_query": filters.search_query(params),
         "filtered": filters.has_active_filters(type_group, params),
-        "activities": activities[:50],
+        "activities": displayed_activities,
         "activity_type_choices": Activity.ActivityType.choices,
+        # Rappel d'exercice replié par activité rapprochée (issue #82) : un
+        # seul calcul par écran, comme le bouton de traduction unitaire.
+        "can_translate": get_active_client() is not None,
         "kpis": analytics.build_kpis(user, activities, days, daily_steps),
         # Objet pour masquer les graphiques sans série (issue #84) ; dict pour
         # le JSON lu par health_charts.js — deux formes du même calcul,

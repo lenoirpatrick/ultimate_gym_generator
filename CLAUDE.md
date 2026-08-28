@@ -347,6 +347,34 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
   (`source__icontains`) et sur le libellé traduit du type (résolu côté Python,
   le type étant stocké sous son code HealthKit, pas son libellé affiché).
 
+### Rappel d'exercice associé à une activité (issue #82)
+
+- Un type d'activité HealthKit n'est rapproché d'une fiche du catalogue
+  (`health.exercise_link.annotate_linked_exercises`) que lorsque la
+  correspondance est **univoque** : course, marche, vélo, aviron, vélo
+  elliptique. `strength_training`/`other` recouvrent chacun des dizaines
+  d'exercices possibles — aucun choix unique n'y serait fiable — et
+  `swimming`/`hiking`/`yoga` n'ont simplement aucun équivalent dans le
+  catalogue livré (free-exercise-db) : dans ces cas, rien ne s'affiche
+  plutôt qu'un rapprochement hasardeux.
+- Le titre de la carte (le type d'activité, ex. « Vélo ») reste lui-même le
+  déclencheur du rappel replié — même patron que le nom d'exercice dans le
+  déroulé de séance (`.ugg-disclosure.ugg-disclosure--plain`, issue #30) —
+  et le partiel commun `exercises/partials/description.html` (consignes,
+  galerie) est réutilisé tel quel, jamais dupliqué. Le nom de la fiche
+  rapprochée est affiché en toutes lettres au-dessus (« Fiche rapprochée :
+  Bicycling ») : le rapprochement n'est pas toujours évident au seul
+  intitulé du type.
+- `description.html` accepte désormais un `dom_id` facultatif (replié sur
+  `exercise.pk` pour ses appelants existants, catalogue et déroulé de
+  séance, comportement inchangé) : plusieurs activités du même type
+  partagent la même fiche, donc plusieurs rappels de la même fiche peuvent
+  apparaître sur une seule page d'analyse. Sans id distinct par activité
+  (ici `activity.pk`), les deux rappels dupliqueraient le même id — la
+  vignette photo de l'un aurait alors agrandi les deux lightbox à la fois
+  (`:target` matche tout élément portant l'id ciblé, pas seulement le
+  premier).
+
 ### Blocs de séance
 
 - Une séance se lit **à bout de bras, entre deux séries** : le temps d'effort passe avant

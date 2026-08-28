@@ -65,7 +65,22 @@ réinitialise les graphiques Chart.js à chaque remplacement HTMX
             {% for activity in activities %}
                 <div class="ugg-card flex flex-wrap items-center justify-between gap-3 p-4">
                     <div class="min-w-0">
-                        <p class="ugg-title text-base">{{ activity.get_activity_type_display }}</p>
+                        {% if activity.linked_exercise %}
+                            {# Fiche du catalogue rapprochée de ce type d'activité (issue #82) : le titre lui-même déplie le rappel, même patron que le nom d'exercice en séance. #}
+                            <details class="ugg-disclosure ugg-disclosure--plain">
+                                <summary><span class="ugg-title text-base">{{ activity.get_activity_type_display }}</span></summary>
+                                {% comment %}
+                                Le rapprochement n'est pas toujours évident au
+                                seul intitulé (« Vélo » → « Bicycling ») :
+                                nommé explicitement, pas seulement déduit du
+                                contenu ci-dessous.
+                                {% endcomment %}
+                                <p class="mt-2 text-sm text-muted">Fiche rapprochée : {{ activity.linked_exercise.name }}</p>
+                                {% include "exercises/partials/description.html" with exercise=activity.linked_exercise can_translate=can_translate dom_id=activity.pk %}
+                            </details>
+                        {% else %}
+                            <p class="ugg-title text-base">{{ activity.get_activity_type_display }}</p>
+                        {% endif %}
                         <p class="mt-1 text-sm text-muted">{{ activity.started_at|date:"d/m/Y H:i" }}</p>
                     </div>
                     <div class="flex flex-wrap items-center gap-2">

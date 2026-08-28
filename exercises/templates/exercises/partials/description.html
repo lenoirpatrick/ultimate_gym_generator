@@ -8,16 +8,23 @@ seul le déclencheur qui l'ouvre diffère selon l'écran.
 
 Le bloc s'enveloppe dans un id stable pour pouvoir se remplacer lui-même une
 fois traduit (issue #31, hx-swap="outerHTML" depuis le bouton ci-dessous).
+Cet id se construit sur `dom_id` (facultatif, replié sur `exercise.pk`) plutôt
+que sur le seul `exercise.pk` : un même exercice peut apparaître dans
+plusieurs rappels d'une même page (plusieurs activités du même type sur la
+page d'analyse, issue #82) — sans quoi deux rappels dupliqueraient le même id,
+et le premier absorberait à tort l'agrandissement de photo du second.
 
 Attend `exercise`, `can_translate` (fournisseur IA actif ou non — calculé une
-fois par écran plutôt qu'une fois par fiche) et `translation_failed`
-(facultatif, mis par exercises.views.translate_exercise).
+fois par écran plutôt qu'une fois par fiche), `translation_failed`
+(facultatif, mis par exercises.views.translate_exercise) et `dom_id`
+(facultatif).
 {% endcomment %}
-<div id="exercise-{{ exercise.pk }}-description">
+{% with dom_id=dom_id|default:exercise.pk %}
+<div id="exercise-{{ dom_id }}-description">
     {% if exercise.image_urls %}
         <div class="ugg-exercise__gallery mt-3">
             {% for url in exercise.image_urls %}
-                <a href="#exo-{{ exercise.pk }}-photo-{{ forloop.counter0 }}"
+                <a href="#exo-{{ dom_id }}-photo-{{ forloop.counter0 }}"
                    class="ugg-exercise__thumb"
                    aria-label="Agrandir la photo {{ forloop.counter }} de {{ exercise.name }}">
                     <img src="{{ url }}" alt="" loading="lazy" class="ugg-exercise__photo">
@@ -32,7 +39,7 @@ fois par écran plutôt qu'une fois par fiche) et `translation_failed`
         {% endcomment %}
         {% for url in exercise.image_urls %}
             <div class="ugg-lightbox"
-                 id="exo-{{ exercise.pk }}-photo-{{ forloop.counter0 }}"
+                 id="exo-{{ dom_id }}-photo-{{ forloop.counter0 }}"
                  role="dialog"
                  aria-modal="true"
                  aria-label="{{ exercise.name }}, photo {{ forloop.counter }}"
@@ -58,12 +65,12 @@ fois par écran plutôt qu'une fois par fiche) et `translation_failed`
             <button type="button"
                     class="ugg-btn ugg-btn--ghost"
                     hx-post="{% url 'exercises:translate' exercise.pk %}"
-                    hx-target="#exercise-{{ exercise.pk }}-description"
+                    hx-target="#exercise-{{ dom_id }}-description"
                     hx-swap="outerHTML"
-                    hx-indicator="#exercise-{{ exercise.pk }}-traduction-en-cours">
+                    hx-indicator="#exercise-{{ dom_id }}-traduction-en-cours">
                 Traduire cette fiche en français
             </button>
-            <span id="exercise-{{ exercise.pk }}-traduction-en-cours" class="ugg-indicator">
+            <span id="exercise-{{ dom_id }}-traduction-en-cours" class="ugg-indicator">
                 {% include "core/components/spinner.html" with variant="runner" size="sm" label="Traduction en cours" %}
             </span>
         </div>
@@ -72,3 +79,4 @@ fois par écran plutôt qu'une fois par fiche) et `translation_failed`
         {% include "core/components/alert.html" with level="info" text="Traduction indisponible pour le moment. Réessaie plus tard." %}
     {% endif %}
 </div>
+{% endwith %}
