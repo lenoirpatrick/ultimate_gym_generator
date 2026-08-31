@@ -7,7 +7,7 @@ Pillow>=11.0
 # l'utilisateur reste une entrée non fiable, à l'abri des attaques XML
 # classiques (entités externes, expansion d'entités) que xml.etree ne
 # filtre pas par défaut.
-defusedxml>=0.7,<1.0
+defusedxml>=0.7.1,<1.0
 
 # SSO OpenID Connect, activé uniquement si OIDC_ENABLED=True.
 mozilla-django-oidc>=5.0,<6.0
