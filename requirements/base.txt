@@ -1,7 +1,7 @@
 Django>=6.1,<6.2
 django-environ>=0.12,<1.0
 cryptography>=44.0
-Pillow>=11.0
+Pillow>=12.3.0
 
 # Parsing sûr de l'export Apple Health (#70) : un fichier déposé par
 # l'utilisateur reste une entrée non fiable, à l'abri des attaques XML
