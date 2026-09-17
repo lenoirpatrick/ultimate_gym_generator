@@ -17,7 +17,6 @@ set -euo pipefail
 # --------------------------------------------------------------------------- #
 
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-VENV_DIR="${VENV_DIR:-$PROJECT_DIR/.venv}"
 BIND_HOST="${DJANGO_BIND_HOST:-0.0.0.0}"
 BIND_PORT="${DJANGO_PORT:-5907}"
 
@@ -26,16 +25,10 @@ cd "$PROJECT_DIR"
 echo "==> Récupération du code (git pull)"
 git pull
 
-if [ -f "$VENV_DIR/bin/activate" ]; then
-    echo "==> Activation de l'environnement virtuel ($VENV_DIR)"
-    # shellcheck disable=SC1091
-    source "$VENV_DIR/bin/activate"
-else
-    echo "!! Aucun venv trouvé dans $VENV_DIR — installation dans l'interpréteur courant."
-fi
-
 echo "==> Installation des dépendances de production"
-pip install -r requirements/base.txt
+# --break-system-packages : Raspberry Pi OS (Debian 12+) protège le Python
+# système par défaut (PEP 668) ; pas de venv ici par choix du projet.
+pip install --break-system-packages -r requirements/base.txt
 
 # DEBUG=False et ALLOWED_HOSTS obligatoire sont vérifiés au chargement de
 # config.settings.prod (ImproperlyConfigured sinon) — indispensable pour que

@@ -57,9 +57,6 @@ SQLite, uniquement — aucun serveur à installer ni à administrer.
 Prérequis : Python 3.13 ou 3.14.
 
 ```bash
-python -m venv .venv
-source .venv/bin/activate          # Windows : .venv\Scripts\activate
-
 pip install -r requirements/dev.txt
 
 cp .env.example .env
