@@ -280,6 +280,7 @@ git pull
 pip install -r requirements/dev.txt
 python manage.py migrate
 make css
+python manage.py collectstatic --noinput
 ```
 
 Redémarrer le serveur applicatif ensuite.

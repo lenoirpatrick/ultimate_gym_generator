@@ -6,7 +6,7 @@ import sys
 
 
 def main() -> None:
-    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings.dev")
+    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings.base")
     try:
         from django.core.management import execute_from_command_line
     except ImportError as exc:  # pragma: no cover - garde-fou d'installation

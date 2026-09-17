@@ -23,7 +23,7 @@ génération de programmes n'est pas encore implémentée.
 
 ```
 assets/css/       tokens.css (SOURCE DE VÉRITÉ graphique), components.css, input.css
-config/settings/  base · dev · test · prod
+config/settings/  base (seul jeu de réglages) · test
 accounts/         utilisateur (avatar, mesures), authentification, SSO, gestion des comptes
 aiproviders/      credentials chiffrés, registre des fournisseurs, adaptateurs, /settings/ai/
 exercises/        catalogue d'exercices, import par lots, écran de chargement
@@ -726,8 +726,8 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
   marché.
 - Les illustrations sont vendorées dans le dépôt (`src/exercises/<id>/*.jpg`, licence
   Unlicense) et copiées vers le stockage média (`/media/exercises/…`) au chargement,
-  jamais vers les statiques : le manifeste `collectstatic` est figé au déploiement
-  (`scripts/deploy.sh`), avant que ces fichiers n'existent.
+  jamais vers les statiques : le manifeste `collectstatic` est figé à la dernière
+  exécution de la commande, avant que ces fichiers n'existent.
 - Une fiche non traduite propose aussi un bouton **« Traduire cette fiche en français »**
   (issue #31), dans le partiel commun `exercises/partials/description.html` — visible
   depuis le catalogue comme depuis le rappel en séance. Contrairement au rechargement en
@@ -850,5 +850,5 @@ make format       # reformate et corrige ce qui peut l'être
 make check        # python manage.py check --deploy
 ```
 
-`make help` liste les cibles disponibles. Détail de l'installation et de la
-configuration : `docs/INSTALL.md`. Déploiement : `scripts/deploy.sh`.
+`make help` liste les cibles disponibles. Détail de l'installation, de la
+configuration et de la mise à jour : `docs/INSTALL.md`.

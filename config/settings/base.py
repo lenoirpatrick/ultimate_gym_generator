@@ -1,7 +1,7 @@
-"""Réglages communs à tous les environnements.
-
-Toute valeur qui change d'un déploiement à l'autre est lue dans l'environnement
-(fichier `.env`). Aucun secret n'est écrit en dur ici.
+"""Réglages de l'application — un seul jeu de réglages, pas de distinction
+dev/production : tout ce qui change d'un poste à l'autre se lit dans
+l'environnement (fichier `.env`). `config.settings.test` surcharge ce module
+pour la suite de tests. Aucun secret n'est écrit en dur ici.
 """
 
 from pathlib import Path
@@ -25,10 +25,9 @@ CSRF_TRUSTED_ORIGINS = env.list("DJANGO_CSRF_TRUSTED_ORIGINS", default=[])
 # Clé Fernet servant à chiffrer les credentials IA stockés en base. La générer avec :
 #   python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
 #
-# Facultative ici pour que les commandes hors-ligne (collectstatic pendant un
-# build d'image) n'aient pas besoin d'un secret. Toute manipulation réelle d'un
-# credential lève alors une erreur explicite, et `config.settings.prod` exige
-# sa présence au démarrage.
+# Vide par défaut pour que les commandes qui n'en ont pas besoin (migrate,
+# collectstatic…) fonctionnent sans secret déjà en place : toute manipulation
+# réelle d'un credential lève alors une erreur explicite (aiproviders.fields).
 CREDENTIALS_ENCRYPTION_KEY = env.str("CREDENTIALS_ENCRYPTION_KEY", default="")
 
 # Port d'écoute de l'application (5907 = « sport » en leet).
@@ -36,6 +35,29 @@ APP_PORT = env.int("DJANGO_PORT", default=5907)
 
 # Déplaçable pour réduire la surface d'attaque d'un déploiement exposé.
 ADMIN_URL = env.str("DJANGO_ADMIN_URL", default="admin/")
+
+# Pas de reverse proxy TLS par défaut : HTTP simple. Passer à True le jour où
+# un reverse proxy assure la terminaison TLS en amont (il doit alors
+# transmettre X-Forwarded-Proto).
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+SECURE_SSL_REDIRECT = env.bool("DJANGO_SECURE_SSL_REDIRECT", default=False)
+SECURE_HSTS_SECONDS = env.int("DJANGO_SECURE_HSTS_SECONDS", default=0)
+SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+SECURE_HSTS_PRELOAD = True
+SECURE_CONTENT_TYPE_NOSNIFF = True
+SECURE_REFERRER_POLICY = "same-origin"
+
+# Cookies marqués Secure seulement quand la connexion l'est réellement : sans
+# reverse proxy TLS devant (DJANGO_SECURE_SSL_REDIRECT=False), un navigateur
+# rejette silencieusement tout cookie Secure reçu en HTTP simple — session et
+# CSRF ne s'installent jamais, et la connexion échoue sans erreur visible.
+SESSION_COOKIE_SECURE = SECURE_SSL_REDIRECT
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = "Lax"
+CSRF_COOKIE_SECURE = SECURE_SSL_REDIRECT
+CSRF_COOKIE_SAMESITE = "Lax"
+
+X_FRAME_OPTIONS = "DENY"
 
 # --------------------------------------------------------------------------- #
 # Applications
@@ -196,8 +218,8 @@ STORAGES = {
 # --------------------------------------------------------------------------- #
 # Fichiers déposés par les utilisateurs (avatars)
 #
-# Monter ce répertoire sur un volume persistant : il n'est pas reconstruit avec
-# l'image, contrairement aux statiques.
+# Vit par défaut dans le projet (BASE_DIR/media), qui reste en place d'un
+# déploiement à l'autre via git pull. DJANGO_MEDIA_ROOT permet de le déplacer.
 # --------------------------------------------------------------------------- #
 
 MEDIA_URL = "media/"
