@@ -21,6 +21,9 @@ implémentée.
 
 ## Démarrage rapide
 
+Prérequis : Python 3.13+ et le CLI autonome de Tailwind CSS (zéro Node,
+installation détaillée dans [`docs/INSTALL.md`](docs/INSTALL.md#3-installation-locale)).
+
 ```bash
 pip install -r requirements/dev.txt
 

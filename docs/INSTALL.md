@@ -50,7 +50,17 @@ variable que pour déplacer explicitement la base ailleurs sur le serveur.
 
 ## 3. Installation locale
 
-Prérequis : Python 3.13 ou 3.14.
+Prérequis : Python 3.13 ou 3.14, et le CLI autonome de Tailwind CSS (aucun
+Node requis) :
+
+```bash
+# Linux x64 — remplacer par arm64/armv7 sur Raspberry Pi (`uname -m` :
+# aarch64 → arm64, armv7l → armv7), ou par macos-x64/macos-arm64 sur macOS.
+curl -sLO https://github.com/tailwindlabs/tailwindcss/releases/latest/download/tailwindcss-linux-x64
+chmod +x tailwindcss-linux-x64
+sudo mv tailwindcss-linux-x64 /usr/local/bin/tailwindcss
+tailwindcss --version
+```
 
 ```bash
 pip install -r requirements/dev.txt
