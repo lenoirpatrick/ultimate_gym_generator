@@ -1,8 +1,6 @@
 # Installation
 
 Installation locale — pour développer comme pour faire tourner l'application.
-Un déploiement conteneurisé est prévu mais pas encore documenté ici ; il sera
-repris proprement plus tard.
 
 L'application écoute sur le port **5907** (« sport » en leet).
 
@@ -34,7 +32,7 @@ qui documente chaque variable.
 | `DJANGO_ADMIN_URL` | `admin/` | Déplaçable pour réduire la surface d'attaque |
 | `DJANGO_CSRF_TRUSTED_ORIGINS` | vide | Requis derrière un reverse proxy HTTPS |
 | `DJANGO_TIME_ZONE` | `Europe/Paris` | |
-| `DJANGO_DB_PATH` | fichier du projet | Chemin de la base SQLite ; à définir explicitement en production (voir § 2) |
+| `DJANGO_DB_PATH` | fichier du projet | Chemin de la base SQLite ; à définir seulement pour la déplacer (voir § 2) |
 | `APPLE_HEALTH_IMPORT_MAX_BYTES` | `4294967296` (4 Go) | Taille maximale d'un export Apple Health importé ; à relever encore au besoin (issues #70, #74) |
 
 ---
@@ -43,12 +41,10 @@ qui documente chaque variable.
 
 SQLite, uniquement — aucun serveur à installer ni à administrer.
 
-- En développement, laisser `DJANGO_DB_PATH` vide dans `.env` : le fichier
-  `db.sqlite3` est créé à la racine du projet.
-- En production, `DJANGO_DB_PATH` doit pointer explicitement vers un
-  emplacement persistant. `config.settings.prod` refuse de démarrer si la
-  variable est explicitement vidée, pour ne jamais retomber silencieusement
-  sur un chemin non persistant.
+Laisser `DJANGO_DB_PATH` vide dans `.env` : le fichier `db.sqlite3` est créé
+à la racine du projet, qui reste en place d'un déploiement à l'autre
+(`git pull` ne touche jamais un fichier non versionné). Ne renseigner la
+variable que pour déplacer explicitement la base ailleurs sur le serveur.
 
 ---
 

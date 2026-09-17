@@ -19,9 +19,6 @@ implémentée.
 | Comptes | Mono-utilisateur par défaut, multi-utilisateurs pris en charge ; SSO OpenID Connect facultatif |
 | Serveur | Gunicorn + WhiteNoise |
 
-Un déploiement conteneurisé est prévu mais pas encore documenté ; il sera
-repris proprement plus tard.
-
 ## Démarrage rapide
 
 ```bash

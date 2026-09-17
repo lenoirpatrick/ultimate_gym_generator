@@ -62,7 +62,7 @@ PROVIDERS: tuple[ProviderSpec, ...] = (
         default_model="llama3.1",
         default_base_url="http://localhost:11434",
         requires_api_key=False,
-        base_url_help="Adresse du serveur Ollama. Depuis un conteneur : http://host.docker.internal:11434",
+        base_url_help="Adresse du serveur Ollama.",
     ),
 )
 

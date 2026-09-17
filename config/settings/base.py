@@ -1,8 +1,7 @@
 """Réglages communs à tous les environnements.
 
 Toute valeur qui change d'un déploiement à l'autre est lue dans l'environnement
-(fichier `.env` en local, variables d'environnement en conteneur). Aucun secret
-n'est écrit en dur ici.
+(fichier `.env`). Aucun secret n'est écrit en dur ici.
 """
 
 from pathlib import Path
@@ -94,16 +93,14 @@ TEMPLATES = [
 # --------------------------------------------------------------------------- #
 # Base de données
 #
-# SQLite uniquement. En local, le fichier vit dans le projet ; en production,
-# DJANGO_DB_PATH doit pointer vers un emplacement persistant (volume monté,
-# disque dédié…) — le déploiement conteneurisé qui fournissait un défaut prêt
-# à l'emploi sera repris proprement plus tard. `config.settings.prod` refuse
-# de démarrer si la variable est explicitement vidée, pour ne jamais retomber
-# silencieusement sur un chemin non persistant.
+# SQLite uniquement. Le fichier vit par défaut dans le projet
+# (BASE_DIR/db.sqlite3), qui reste en place d'un déploiement à l'autre
+# (git pull ne touche jamais un fichier non versionné). DJANGO_DB_PATH permet
+# de le déplacer explicitement, par exemple vers un autre disque du serveur.
 # --------------------------------------------------------------------------- #
 
-#: Chemin explicite du fichier SQLite. Vide en développement local (repli
-#: ci-dessous) ; `config.settings.prod` exige qu'il soit renseigné.
+#: Chemin explicite du fichier SQLite. Vide par défaut : repli sur
+#: BASE_DIR/db.sqlite3 ci-dessous.
 DB_PATH = env.str("DJANGO_DB_PATH", default="")
 
 DATABASES = {

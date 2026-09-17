@@ -5,8 +5,9 @@ description = "Générateur de programmes sportifs assisté par IA"
 requires-python = ">=3.13"
 
 # Les dépendances sont déclarées dans requirements/*.txt : un projet Django n'est pas
-# une bibliothèque installable, et des fichiers séparés donnent de meilleures couches
-# de cache Docker. Ce pyproject ne porte que la configuration de l'outillage.
+# une bibliothèque installable, et des fichiers séparés distinguent dépendances de
+# production et de développement. Ce pyproject ne porte que la configuration de
+# l'outillage.
 
 [tool.ruff]
 line-length = 100

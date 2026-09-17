@@ -726,8 +726,8 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
   marché.
 - Les illustrations sont vendorées dans le dépôt (`src/exercises/<id>/*.jpg`, licence
   Unlicense) et copiées vers le stockage média (`/media/exercises/…`) au chargement,
-  jamais vers les statiques : le manifeste `collectstatic` est figé au build de l'image
-  Docker, avant que ces fichiers n'existent.
+  jamais vers les statiques : le manifeste `collectstatic` est figé au déploiement
+  (`scripts/deploy.sh`), avant que ces fichiers n'existent.
 - Une fiche non traduite propose aussi un bouton **« Traduire cette fiche en français »**
   (issue #31), dans le partiel commun `exercises/partials/description.html` — visible
   depuis le catalogue comme depuis le rappel en séance. Contrairement au rechargement en
@@ -851,5 +851,4 @@ make check        # python manage.py check --deploy
 ```
 
 `make help` liste les cibles disponibles. Détail de l'installation et de la
-configuration : `docs/INSTALL.md`. Un déploiement conteneurisé est prévu mais
-pas encore documenté ; il sera repris proprement plus tard.
+configuration : `docs/INSTALL.md`. Déploiement : `scripts/deploy.sh`.

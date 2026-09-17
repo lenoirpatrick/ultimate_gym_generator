@@ -1,4 +1,3 @@
-# Les scripts exécutés dans un conteneur Linux doivent garder des fins de ligne
+# Les scripts exécutés sur le serveur (Linux) doivent garder des fins de ligne
 # LF, même clonés sous Windows — sinon le shebang casse au démarrage.
 *.sh text eol=lf
-docker/entrypoint.sh text eol=lf
