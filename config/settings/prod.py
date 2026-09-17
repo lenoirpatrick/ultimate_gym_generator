@@ -21,9 +21,11 @@ if DEBUG:
 if not ALLOWED_HOSTS:
     raise ImproperlyConfigured("DJANGO_ALLOWED_HOSTS doit être renseigné en production.")
 
-# Le terminaison TLS est généralement assurée par un reverse proxy en amont.
+# Pas de reverse proxy TLS devant cette installation : HTTP simple par défaut.
+# Passer DJANGO_SECURE_SSL_REDIRECT=True le jour où un reverse proxy assure la
+# terminaison TLS en amont (il doit alors transmettre X-Forwarded-Proto).
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
-SECURE_SSL_REDIRECT = env.bool("DJANGO_SECURE_SSL_REDIRECT", default=True)
+SECURE_SSL_REDIRECT = env.bool("DJANGO_SECURE_SSL_REDIRECT", default=False)
 SECURE_HSTS_SECONDS = env.int("DJANGO_SECURE_HSTS_SECONDS", default=31_536_000)
 SECURE_HSTS_INCLUDE_SUBDOMAINS = True
 SECURE_HSTS_PRELOAD = True
