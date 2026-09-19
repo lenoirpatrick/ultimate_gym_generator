@@ -901,6 +901,18 @@ def test_le_bouton_plein_ecran_est_present(logged_client, user):
     assert 'aria-pressed="false"' in content
 
 
+def test_le_reglage_de_volume_est_present(logged_client, user):
+    """Issue #99 : persistance et gain audio se vérifient au navigateur, pas ici."""
+    squat = Exercise.objects.get(slug="Barbell_Squat")
+    workout = build_workout(user, squat)
+
+    content = logged_client.get(reverse("workouts:detail", args=[workout.pk])).content.decode()
+
+    assert 'id="minuteur-volume"' in content
+    assert 'type="range"' in content
+    assert "Volume des bips" in content
+
+
 def test_le_deroule_chronometre_est_transmis_en_json(logged_client, user):
     squat = Exercise.objects.get(slug="Barbell_Squat")
     workout = build_workout(user, squat)

@@ -59,6 +59,12 @@ Attend `workout`, `timeline` (workouts.timer.build_timeline, sérialisée ici).
                 <button type="button" id="minuteur-stop" class="ugg-btn ugg-btn--danger">Arrêter</button>
             </div>
 
+            <div class="ugg-timer__volume">
+                <label class="ugg-timer__volume-label" for="minuteur-volume">Volume des bips</label>
+                <input type="range" id="minuteur-volume" min="0" max="100" step="5" value="80">
+                <span id="minuteur-volume-valeur" class="ugg-timer__volume-value" aria-hidden="true">80&nbsp;%</span>
+            </div>
+
             <p class="sr-only" id="minuteur-annonce" aria-live="polite"></p>
         </div>
 

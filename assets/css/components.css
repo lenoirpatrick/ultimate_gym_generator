@@ -1410,6 +1410,43 @@
     height: 1.25rem;
 }
 
+/* Curseur de volume des bips (issue #99) : premier `<input type="range">`
+   du projet — une valeur continue ne correspond à aucun composant existant
+   (`.ugg-ruler` est à crans fixes, `.ugg-segmented` à choix fermé). Aucune
+   piste/curseur personnalisés : `accent-color` suffit, cohérent avec le
+   zéro-dépendance du reste du minuteur. */
+.ugg-timer__volume {
+    display: flex;
+    align-items: center;
+    gap: var(--ugg-space-3);
+    margin-top: var(--ugg-space-4);
+}
+
+.ugg-timer__volume-label {
+    flex: none;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    letter-spacing: var(--ugg-tracking-label);
+    text-transform: uppercase;
+    color: var(--ugg-text-muted);
+}
+
+.ugg-timer__volume input[type="range"] {
+    flex: 1 1 auto;
+    min-height: var(--ugg-touch-target);
+    accent-color: var(--ugg-accent);
+    cursor: pointer;
+}
+
+.ugg-timer__volume-value {
+    flex: none;
+    min-width: 3ch;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    font-size: 0.8125rem;
+    color: var(--ugg-text-muted);
+}
+
 .ugg-timer__timeline {
     /* `flex: 1 1 auto` seul ne suffit pas à borner la hauteur d'un enfant flex
        dont le contenu dépasse l'espace disponible — sans `min-height: 0`, la

@@ -45,6 +45,8 @@
     const announceEl = document.getElementById("minuteur-annonce");
     const fullscreenBtn = document.getElementById("minuteur-plein-ecran");
     const fullscreenLabel = document.getElementById("minuteur-plein-ecran-libelle");
+    const volumeSlider = document.getElementById("minuteur-volume");
+    const volumeValueEl = document.getElementById("minuteur-volume-valeur");
     const pauseBtn = document.getElementById("minuteur-pause");
     const nextBtn = document.getElementById("minuteur-suivant");
     const stopBtn = document.getElementById("minuteur-stop");
@@ -71,6 +73,7 @@
     // préparation — permet à « Passer » d'y couper court (issue #61).
     let pendingPrepIndex = null;
     let audioCtx = null;
+    let masterGain = null;
     let currentStepEl = null;
     let photoRotationId = null;
     let photoUrls = [];
@@ -148,15 +151,58 @@
         }
     }
 
+    // Réglage de volume persisté par appareil (issue #99), pas par compte :
+    // une préférence de lecture locale n'a pas besoin de survivre à un
+    // changement d'appareil.
+    const VOLUME_STORAGE_KEY = "ugg-timer-volume";
+    const VOLUME_DEFAULT = 80;
+
+    function readStoredVolume() {
+        try {
+            const raw = window.localStorage.getItem(VOLUME_STORAGE_KEY);
+            const value = raw === null ? VOLUME_DEFAULT : Number(raw);
+            return Number.isFinite(value) ? Math.min(100, Math.max(0, value)) : VOLUME_DEFAULT;
+        } catch {
+            // Stockage indisponible (navigation privée, quota) : le réglage
+            // ne survit pas à la fermeture, sans empêcher le minuteur de
+            // fonctionner.
+            return VOLUME_DEFAULT;
+        }
+    }
+
+    function writeStoredVolume(value) {
+        try {
+            window.localStorage.setItem(VOLUME_STORAGE_KEY, String(value));
+        } catch {
+            // Ignoré : voir readStoredVolume ci-dessus.
+        }
+    }
+
+    function updateVolumeLabel(value) {
+        volumeValueEl.textContent = `${value} %`;
+    }
+
+    if (volumeSlider) {
+        const stored = readStoredVolume();
+        volumeSlider.value = String(stored);
+        updateVolumeLabel(stored);
+        volumeSlider.addEventListener("input", () => {
+            const value = Number(volumeSlider.value);
+            updateVolumeLabel(value);
+            writeStoredVolume(value);
+            if (masterGain) masterGain.gain.value = value / 100;
+        });
+    }
+
     function tone(frequency, start, duration, type, peakGain) {
         const osc = audioCtx.createOscillator();
         const gain = audioCtx.createGain();
         osc.type = type || "sine";
         osc.frequency.value = frequency;
         gain.gain.setValueAtTime(0.0001, start);
-        gain.gain.exponentialRampToValueAtTime(peakGain || 0.38, start + 0.015);
+        gain.gain.exponentialRampToValueAtTime(peakGain || 0.55, start + 0.015);
         gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
-        osc.connect(gain).connect(audioCtx.destination);
+        osc.connect(gain).connect(masterGain);
         osc.start(start);
         osc.stop(start + duration + 0.05);
     }
@@ -183,7 +229,7 @@
         } else if (name === "tick") {
             // Un bip discret par seconde sur les quatre dernières secondes
             // d'un décompte — la préparation comme un effort chronométré.
-            tone(660, now, 0.08, "sine", 0.3);
+            tone(660, now, 0.08, "sine", 0.5);
         }
     }
 
@@ -474,7 +520,12 @@
     opener.addEventListener("click", () => {
         if (!audioCtx) {
             const AudioContext = window.AudioContext || window.webkitAudioContext;
-            if (AudioContext) audioCtx = new AudioContext();
+            if (AudioContext) {
+                audioCtx = new AudioContext();
+                masterGain = audioCtx.createGain();
+                masterGain.gain.value = readStoredVolume() / 100;
+                masterGain.connect(audioCtx.destination);
+            }
         } else if (audioCtx.state === "suspended") {
             audioCtx.resume();
         }
