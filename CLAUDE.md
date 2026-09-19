@@ -580,6 +580,13 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
   (le verrou se relâche alors automatiquement, contrainte de la spec). Le web ne donne
   accès à aucun réglage de luminosité matérielle — c'est l'équivalent le plus proche,
   sur PC comme sur smartphone. Dégradation silencieuse si l'API est absente.
+- Un bouton **« Plein écran »** (issue #97) déclenche la vraie Fullscreen API
+  (`dialog.requestFullscreen()`) : la modale occupait déjà tout l'écran par CSS mais
+  laissait la chrome du navigateur visible. Même posture de dégradation silencieuse que
+  le verrou d'écran ci-dessus — le bouton se masque lui-même si l'API est absente ou
+  désactivée (iOS Safari, notamment) — et même convention d'état que la bascule favori :
+  `aria-pressed` et un libellé qui change (« Plein écran » / « Quitter le plein écran »),
+  jamais la seule icône.
 - Sur poste de bureau uniquement (`≥ 40rem`, issue #55) : les touches multimédias du
   clavier (Lecture/Pause, Piste suivante) pilotent le minuteur via la Media Session
   API (`setupMediaSession()`), branchées sur les mêmes fonctions que les boutons

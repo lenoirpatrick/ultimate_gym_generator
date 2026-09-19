@@ -890,6 +890,17 @@ def test_le_bouton_lancer_la_seance_apparait(logged_client, user):
     assert "core/js/workout_timer.js" in content
 
 
+def test_le_bouton_plein_ecran_est_present(logged_client, user):
+    """Issue #97 : dégradation gérée en JS, seule la présence du bouton est testable ici."""
+    squat = Exercise.objects.get(slug="Barbell_Squat")
+    workout = build_workout(user, squat)
+
+    content = logged_client.get(reverse("workouts:detail", args=[workout.pk])).content.decode()
+
+    assert 'id="minuteur-plein-ecran"' in content
+    assert 'aria-pressed="false"' in content
+
+
 def test_le_deroule_chronometre_est_transmis_en_json(logged_client, user):
     squat = Exercise.objects.get(slug="Barbell_Squat")
     workout = build_workout(user, squat)

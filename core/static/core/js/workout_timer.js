@@ -43,6 +43,8 @@
     const trackEl = document.getElementById("minuteur-barre");
     const fillEl = document.getElementById("minuteur-remplissage");
     const announceEl = document.getElementById("minuteur-annonce");
+    const fullscreenBtn = document.getElementById("minuteur-plein-ecran");
+    const fullscreenLabel = document.getElementById("minuteur-plein-ecran-libelle");
     const pauseBtn = document.getElementById("minuteur-pause");
     const nextBtn = document.getElementById("minuteur-suivant");
     const stopBtn = document.getElementById("minuteur-stop");
@@ -103,6 +105,48 @@
             requestWakeLock();
         }
     });
+
+    // La modale remplit déjà tout l'écran par CSS, mais laisse la chrome du
+    // navigateur visible (issue #97) — la Fullscreen API la masque aussi.
+    // Même posture que le verrou d'écran ci-dessus : dégradation silencieuse
+    // si l'API est absente ou refusée, jamais d'erreur qui casserait le minuteur.
+    async function toggleFullscreen() {
+        if (document.fullscreenElement) {
+            if (document.exitFullscreen) {
+                try {
+                    await document.exitFullscreen();
+                } catch {
+                    // Rien de plus à faire si la sortie échoue.
+                }
+            }
+            return;
+        }
+        if (dialog.requestFullscreen) {
+            try {
+                await dialog.requestFullscreen();
+            } catch {
+                // Refusé (iOS Safari, notamment) : la modale reste dans son
+                // plein écran simulé par CSS, comportement inchangé.
+            }
+        }
+    }
+
+    function updateFullscreenButton() {
+        const active = document.fullscreenElement === dialog;
+        fullscreenBtn.setAttribute("aria-pressed", String(active));
+        fullscreenLabel.textContent = active ? "Quitter le plein écran" : "Plein écran";
+    }
+
+    if (fullscreenBtn) {
+        if (document.fullscreenEnabled && dialog.requestFullscreen) {
+            fullscreenBtn.addEventListener("click", toggleFullscreen);
+            document.addEventListener("fullscreenchange", updateFullscreenButton);
+        } else {
+            // API absente ou désactivée : un bouton qui ne ferait jamais rien
+            // est pire qu'aucun bouton.
+            fullscreenBtn.hidden = true;
+        }
+    }
 
     function tone(frequency, start, duration, type, peakGain) {
         const osc = audioCtx.createOscillator();
@@ -515,5 +559,8 @@
         stopPhotoRotation();
         releaseWakeLock();
         teardownMediaSession();
+        if (document.fullscreenElement === dialog && document.exitFullscreen) {
+            document.exitFullscreen().catch(() => {});
+        }
     });
 })();

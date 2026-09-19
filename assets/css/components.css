@@ -1297,6 +1297,14 @@
     background: var(--ugg-overlay);
 }
 
+/* Plein écran réel (issue #97) : `100dvh` vise le viewport visuel du
+   navigateur, qui n'existe plus une fois sa chrome masquée par la
+   Fullscreen API — 100% de l'élément plein écran est la mesure correcte
+   dans ce mode. */
+.ugg-timer:fullscreen {
+    height: 100%;
+}
+
 /* Colonne 1 (issue #52) : infos de timer, commandes, timeline — sur mobile,
    simple enveloppe transparente qui reprend le rôle jadis tenu directement
    par `.ugg-timer` (colonne unique, l'espace flexible restant après le
@@ -1395,6 +1403,11 @@
     flex-wrap: wrap;
     gap: var(--ugg-space-3);
     margin-top: var(--ugg-space-4);
+}
+
+.ugg-timer__controls svg {
+    width: 1.25rem;
+    height: 1.25rem;
 }
 
 .ugg-timer__timeline {
