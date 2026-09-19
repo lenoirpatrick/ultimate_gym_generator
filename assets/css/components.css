@@ -1476,17 +1476,26 @@
     display: flex;
     align-items: center;
     gap: var(--ugg-space-4);
-    min-height: 30vh;
-    max-height: 38vh;
+    min-height: 34vh;
+    max-height: 44vh;
     padding: var(--ugg-space-4);
     padding-bottom: calc(var(--ugg-space-4) + var(--ugg-safe-bottom));
     border-top: 1px solid var(--ugg-border);
     background: var(--ugg-surface-raised);
+    /* Filet de sécurité (issue #98) : même un nom borné à deux lignes
+       ci-dessous laisse matériel + muscles + consignes dépasser max-height
+       dans un cas extrême — le panneau défile plutôt que de déborder sur le
+       reste de l'écran, même principe que .ugg-timer__current-instructions. */
+    overflow-y: auto;
 }
 
 .ugg-timer__current-photo {
     flex: 1 1 40%;
-    height: 100%;
+    /* max-height propre plutôt que height: 100% (issue #98) : le parent n'a
+       pas de hauteur définie (seulement un min/max-height), la photo
+       grandissait ou rétrécissait avec le texte voisin au lieu de garder une
+       taille stable. */
+    max-height: 34vh;
     max-width: 45%;
     border-radius: var(--ugg-radius-md);
     /* `contain`, pas `cover` (issue #62) : l'exercice se reconnaît à sa
@@ -1506,6 +1515,12 @@
     font-size: 1.375rem;
     font-weight: 700;
     overflow-wrap: break-word;
+    /* Deux lignes maximum (issue #98) : un nom très long dégrade en ellipse
+       plutôt que de repousser matériel/muscles/consignes hors du panneau. */
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
 }
 
 .ugg-timer__current-tags {

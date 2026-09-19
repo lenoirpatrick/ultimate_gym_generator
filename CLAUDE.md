@@ -532,7 +532,12 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
   liste complète voyage dans `data-photos` sur la ligne de la timeline (`workouts/
   partials/timer_timeline.html`), séparée par `|`, sur le même principe que
   `data-equipment`/`data-muscles` ; la vignette de la timeline, elle, reste fixe sur la
-  première photo.
+  première photo. Le nom de l'exercice y est borné à deux lignes (`-webkit-line-clamp`,
+  issue #98) et le panneau lui-même défile en dernier recours (`overflow-y: auto`) : un
+  nom long ne doit jamais repousser matériel, muscles ou consignes hors de l'écran. La
+  photo est bornée par un `max-height` propre plutôt que `height: 100%` du panneau, qui
+  n'a pas de hauteur définie — sans quoi elle grandissait ou rétrécissait avec le texte
+  voisin au lieu de garder une taille stable.
 - Cinq secondes de **préparation**, décomptées avant le premier pas, pour le temps de se
   mettre en place — pas encore comptées dans l'avancement de la séance. Le même sas
   reprend après chaque récupération entre tours/blocs, avant de relancer l'effort
