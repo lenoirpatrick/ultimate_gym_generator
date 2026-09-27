@@ -326,15 +326,34 @@ def test_l_historique_liste_les_seances(logged_client, user):
     assert reverse("workouts:detail", args=[workout.pk]) in content
 
 
-def test_la_carte_de_seance_s_empile_sous_40rem(logged_client, user):
-    """Titre/date, indicateurs et bouton favori tiennent chacun leur propre
-    ligne pleine largeur en dessous de 40rem — une seule ligne au-delà
-    (issue #35 suite)."""
+def test_la_carte_de_seance_a_deux_parties(logged_client, user):
+    """Issue #107 : titre/date/favori/durée d'abord, muscles/matériel ensuite —
+    le favori ne doit jamais se retrouver loin du titre, quelle que soit la
+    largeur d'écran (plus de bascule `sm:`, contrairement à l'issue #35 suite)."""
     composer(logged_client)
 
     content = logged_client.get(reverse("workouts:list")).content.decode()
 
-    assert "flex flex-col gap-3 p-4 sm:flex-row" in content
+    assert "ugg-card grid gap-3 p-4" in content
+    # Le favori est rendu dans le premier bloc (titre/date), pas dans le
+    # second (muscles/matériel) : il précède la liste des muscles/« Tout le
+    # corps » dans le document.
+    assert content.index("aria-pressed") < content.index("Tout le corps")
+
+
+def test_la_carte_de_seance_liste_le_materiel_utilise(logged_client, user):
+    """Issue #107 : le matériel réellement utilisé, pas seulement les muscles."""
+    composer(logged_client)
+
+    workout = Workout.objects.get(user=user)
+    used = {
+        item.exercise.get_equipment_display() or "Poids du corps" for item in workout.items.all()
+    }
+
+    content = logged_client.get(reverse("workouts:list")).content.decode()
+
+    for label in used:
+        assert label in content
 
 
 def test_la_seance_d_un_autre_utilisateur_est_introuvable(logged_client, staff_client, user):

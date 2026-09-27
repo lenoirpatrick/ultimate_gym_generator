@@ -14,6 +14,22 @@ from .forms import WorkoutForm
 from .models import Workout, WorkoutExercise
 
 
+def _annotate_equipment(workouts: list[Workout]) -> None:
+    """Pose `workout.equipment_labels` : le matériel réellement utilisé (issue #107).
+
+    Une seule requête pour tout l'historique plutôt qu'une par séance — même
+    mécanique que `_annotate_favorites` ci-dessous, attribut posé à la volée
+    sur des instances déjà chargées.
+    """
+    items = WorkoutExercise.objects.filter(workout__in=workouts).select_related("exercise")
+    labels_by_workout: dict[int, set[str]] = {workout.pk: set() for workout in workouts}
+    for item in items:
+        label = item.exercise.get_equipment_display() or "Poids du corps"
+        labels_by_workout[item.workout_id].add(label)
+    for workout in workouts:
+        workout.equipment_labels = sorted(labels_by_workout[workout.pk])
+
+
 @login_required
 def workout_list(request: HttpRequest) -> HttpResponse:
     """Séances passées de l'utilisateur, la plus récente en tête.
@@ -23,9 +39,12 @@ def workout_list(request: HttpRequest) -> HttpResponse:
     """
     favorites_only = request.GET.get("favoris") == "1"
 
-    workouts = Workout.objects.filter(user=request.user).prefetch_related("muscles")
+    workouts_qs = Workout.objects.filter(user=request.user).prefetch_related("muscles")
     if favorites_only:
-        workouts = workouts.filter(is_favorite=True)
+        workouts_qs = workouts_qs.filter(is_favorite=True)
+
+    workouts = list(workouts_qs)
+    _annotate_equipment(workouts)
 
     context = {"workouts": workouts, "favorites_only": favorites_only}
 

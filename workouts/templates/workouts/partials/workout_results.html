@@ -2,36 +2,41 @@
 Grille des séances. Bloc remplacé à chaque changement du filtre « favoris » —
 voir workouts.views.workout_list.
 
-Empilée sous 40rem (issue #35 suite) : titre/date, indicateurs et bouton
-favori occupent chacun leur propre ligne pleine largeur, plutôt que de se
-partager une seule ligne où le titre finissait écrasé. À partir de `sm:`, la
-largeur disponible permet de revenir à une ligne unique qui s'enroule.
+Deux parties (issue #107) : titre/date/favori/durée d'abord — le bouton
+favori reste toujours sous le nom et la date, jamais poussé à droite par une
+liste de muscles longue — puis, sur sa propre ligne, ce qui a été travaillé
+(muscles et matériel, `workout.equipment_labels` posé par
+`workouts.views._annotate_equipment`).
 {% endcomment %}
 <div class="grid gap-3">
     {% for workout in workouts %}
-        <article class="ugg-card flex flex-col gap-3 p-4 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4">
-            <a href="{% url 'workouts:detail' workout.pk %}" class="min-w-0 no-underline sm:flex-1">
-                <p class="font-semibold">{{ workout.display_name }}</p>
-                <p class="mt-1 text-sm text-muted">
-                    {{ workout.created_at|date:"j F Y, H:i" }}
-                </p>
-            </a>
+        <article class="ugg-card grid gap-3 p-4">
+            <div>
+                <a href="{% url 'workouts:detail' workout.pk %}" class="min-w-0 no-underline">
+                    <p class="font-semibold">{{ workout.display_name }}</p>
+                    <p class="mt-1 text-sm text-muted">
+                        {{ workout.created_at|date:"j F Y, H:i" }}
+                    </p>
+                </a>
+                <div class="mt-2 flex flex-wrap items-center gap-2">
+                    {% include "workouts/partials/favorite_button.html" with workout=workout %}
+                    <span class="ugg-tag ugg-tag--accent">{{ workout.planned_minutes }} min</span>
+                    {% if workout.name %}
+                        <span class="ugg-tag">{{ workout.get_format_display }}</span>
+                    {% endif %}
+                </div>
+            </div>
 
             <p class="flex flex-wrap gap-2">
-                <span class="ugg-tag ugg-tag--accent">{{ workout.planned_minutes }} min</span>
-                {% if workout.name %}
-                    <span class="ugg-tag">{{ workout.get_format_display }}</span>
-                {% endif %}
                 {% for muscle in workout.muscles.all %}
                     <span class="ugg-tag">{{ muscle.name }}</span>
                 {% empty %}
                     <span class="ugg-tag">Tout le corps</span>
                 {% endfor %}
+                {% for label in workout.equipment_labels %}
+                    <span class="ugg-tag">{{ label }}</span>
+                {% endfor %}
             </p>
-
-            <div class="self-start sm:self-auto">
-                {% include "workouts/partials/favorite_button.html" with workout=workout %}
-            </div>
         </article>
     {% empty %}
         {% if favorites_only %}

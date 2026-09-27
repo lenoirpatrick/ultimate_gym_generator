@@ -423,11 +423,14 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
   d'état » ci-dessous) ; l'historique propose alors le même critère « Mes favoris
   uniquement » que le catalogue.
 - La **carte d'une séance dans l'historique** (`workouts/partials/workout_results.html`,
-  issue #35 suite) s'empile sous `40rem` : titre/date, indicateurs et bouton favori
-  occupent chacun leur propre ligne pleine largeur — les partager sur une seule ligne
-  écrasait le titre. À partir de `sm:`, ils reviennent sur une seule ligne qui s'enroule
-  (`flex-wrap`), le bouton favori ne s'étirant jamais en pleine largeur (`self-start` /
-  `sm:self-auto`).
+  issue #107) se lit en **deux parties**, quelle que soit la largeur d'écran — une liste
+  de muscles longue ne doit jamais repousser le bouton favori loin du titre qu'il
+  qualifie. La première regroupe titre, date, bouton favori et durée (`.ugg-tag--accent`)
+  — favori et durée sous le nom et la date, jamais à droite sur la même ligne. La
+  seconde, sur sa propre ligne, ce qui a été travaillé : muscles (ou « Tout le corps »)
+  puis matériel utilisé (`workout.equipment_labels`, posé par
+  `workouts.views._annotate_equipment` — une requête pour tout l'historique plutôt
+  qu'une par séance, même mécanique que `_annotate_favorites`).
 - Une séance peut être **nommée** (`Workout.name`, facultatif), soit dès la composition
   (`WorkoutForm.name`, issue #44), soit ensuite depuis l'écran de détail. Le nom remplace
   alors l'intitulé du format en tête d'écran (`Workout.display_name`), et le format
