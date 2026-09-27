@@ -166,6 +166,18 @@ def test_le_groupe_apple_sante_porte_son_icone(logged_client):
     assert "M12 21s-7.5-4.6-10-9.1" in content
 
 
+def test_le_groupe_apple_sante_disparait_quand_il_est_desactive(logged_client, user):
+    """Issue #104 : masqué entièrement, pas un intitulé vide — même principe
+    que Configuration pour un compte non-personnel."""
+    user.health_enabled = False
+    user.save()
+
+    content = logged_client.get(reverse("workouts:list")).content.decode()
+
+    assert "Apple Santé" not in entetes_de_menu(content)
+    assert reverse("health:dashboard") not in content
+
+
 def test_l_ecran_courant_est_marque(logged_client):
     content = logged_client.get(reverse("exercises:list")).content.decode()
 

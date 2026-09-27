@@ -286,6 +286,30 @@
     </section>
 
     <section class="mt-12">
+        <h2 class="ugg-title text-xl">Onglets</h2>
+        <p class="mt-2 text-muted">
+            Radios et libellés, <code class="font-mono">:has()</code> bascule le panneau —
+            aucun script (issue #104, page profil). Un jeu d'onglets par écran, ses radios
+            hors du formulaire qu'ils accompagnent : un pur contrôle d'affichage, jamais
+            une valeur soumise.
+        </p>
+        <div class="ugg-tabs mt-6">
+            <div class="ugg-tabs__list" role="tablist">
+                <input type="radio" name="demo-onglet" id="demo-tab-a" class="ugg-tabs__input" checked>
+                <label for="demo-tab-a" class="ugg-tabs__tab" role="tab">Premier</label>
+                <input type="radio" name="demo-onglet" id="demo-tab-b" class="ugg-tabs__input">
+                <label for="demo-tab-b" class="ugg-tabs__tab" role="tab">Second</label>
+            </div>
+            <div class="ugg-tabs__panel mt-4" data-tab="a">
+                <p class="text-sm text-muted">Contenu du premier onglet.</p>
+            </div>
+            <div class="ugg-tabs__panel mt-4" data-tab="b">
+                <p class="text-sm text-muted">Contenu du second onglet.</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="mt-12">
         <h2 class="ugg-title text-xl">Messages</h2>
         <div class="mt-6 grid gap-3">
             {% include "core/components/alert.html" with level="success" text="Configuration enregistrée." %}

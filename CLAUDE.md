@@ -127,7 +127,10 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
   `core.nav.menu_for(user)` filtre récursivement selon `is_staff` et retire
   toute section devenue vide (`NavGroup.is_empty`) ; un intitulé
   « Configuration » sans rien dessous laisserait croire à un droit manquant
-  plutôt qu'à une section sans objet pour ce compte.
+  plutôt qu'à une section sans objet pour ce compte. Apple Santé disparaît
+  entièrement du même principe (`NavGroup.requires_health_module`, issue
+  #104) quand `User.health_enabled` est désactivé depuis l'onglet Options du
+  profil — jamais un intitulé vide.
 - Ouverture par `<details>`, sans JavaScript : le panneau se referme à la
   navigation et à `Échap`, pas au clic extérieur — limite assumée. Les trois
   `<details>` de la barre partagent en revanche un même `name="ugg-nav-group"`
@@ -784,6 +787,30 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
   lui-même (`hx-swap="outerHTML"`) ; un échec affiche un message et laisse le bouton en
   place pour réessayer — seul cas où une panne de fournisseur IA reste visible, parce que
   l'action est volontaire, pas une récupération en arrière-plan.
+
+### Profil (issue #104)
+
+- La page profil (`/profil/`) se lit en **trois onglets** — Identité, Mesures, Options —
+  plutôt qu'une longue page à faire défiler. Premier composant `.ugg-tabs` du projet :
+  radios masqués + libellés cliquables, `:has()` bascule le panneau correspondant — même
+  absence de JavaScript que le reste des panneaux repliables. Appariement **par
+  position** (`:nth-of-type`), pas par id : `:has()` ne sait pas comparer la valeur de
+  deux attributs entre eux, mais un même rang suffit — le n-ième radio ouvre le n-ième
+  panneau. Convention à respecter dans tout gabarit qui réutilise `.ugg-tabs` : les
+  panneaux d'un même jeu partagent tous la même balise, sans en mélanger d'autres du
+  même type au même niveau, sans quoi le rang se décale.
+- Les radios d'onglet vivent **hors du `<form>`** qui porte les champs : un pur contrôle
+  d'affichage, jamais une valeur soumise — le formulaire reste un unique `POST`, quel
+  que soit l'onglet ouvert au moment d'Enregistrer.
+- Une erreur de validation sur un champ **rouvre l'onglet qui le porte**
+  (`accounts.views._active_profile_tab`, à partir de `form.errors`) plutôt que de
+  rester sur Identité par défaut — une erreur cachée derrière un onglet fermé serait
+  invisible.
+- **Options** ne porte pour l'instant qu'un seul réglage : **Apple Santé activée**
+  (`User.health_enabled`, coché par défaut). Décoché, le groupe Apple Santé disparaît
+  entièrement du menu (voir « Navigation principale » ci-dessus) — la désactivation ne
+  bloque pas pour autant l'accès direct aux pages `/sante/…` : c'est un réglage
+  d'affichage, pas un verrou.
 
 ### Avatars
 

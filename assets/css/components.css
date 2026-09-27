@@ -1846,3 +1846,63 @@
     flex: 1;
     min-height: 0;
 }
+
+/* Onglets (issue #104) : radios + libellés, `:has()` bascule le panneau —
+   même principe que les cartes de format. Les radios vivent hors du <form>
+   qui porte les panneaux : un pur contrôle d'affichage, jamais une valeur
+   soumise. Appariement par position (`:nth-of-type`), pas par id : `:has()`
+   ne sait pas comparer la valeur de deux attributs entre eux, mais un même
+   rang suffit — le n-ième radio ouvre le n-ième panneau, composant partagé
+   par tout jeu d'onglets. Convention à respecter côté gabarit : les
+   panneaux d'un même jeu partagent la même balise (`<fieldset>` ou `<div>`,
+   sans en mélanger d'autres du même type), sans quoi le rang se décale. */
+.ugg-tabs__input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+}
+
+.ugg-tabs__list {
+    display: flex;
+    gap: var(--ugg-space-4);
+    overflow-x: auto;
+    border-bottom: 1px solid var(--ugg-border);
+}
+
+.ugg-tabs__tab {
+    display: flex;
+    min-height: var(--ugg-touch-target);
+    flex: none;
+    align-items: center;
+    padding: 0 var(--ugg-space-1);
+    border-bottom: 2px solid transparent;
+    color: var(--ugg-text-muted);
+    font-size: 0.8125rem;
+    font-weight: 600;
+    letter-spacing: var(--ugg-tracking-label);
+    text-transform: uppercase;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.ugg-tabs__input:checked + .ugg-tabs__tab {
+    border-bottom-color: var(--ugg-accent);
+    color: var(--ugg-text);
+}
+
+.ugg-tabs__input:focus-visible + .ugg-tabs__tab {
+    outline: 3px solid var(--ugg-focus);
+    outline-offset: -3px;
+}
+
+.ugg-tabs__panel {
+    display: none;
+}
+
+.ugg-tabs:has(.ugg-tabs__input:nth-of-type(1):checked) .ugg-tabs__panel:nth-of-type(1),
+.ugg-tabs:has(.ugg-tabs__input:nth-of-type(2):checked) .ugg-tabs__panel:nth-of-type(2),
+.ugg-tabs:has(.ugg-tabs__input:nth-of-type(3):checked) .ugg-tabs__panel:nth-of-type(3),
+.ugg-tabs:has(.ugg-tabs__input:nth-of-type(4):checked) .ugg-tabs__panel:nth-of-type(4) {
+    display: grid;
+}

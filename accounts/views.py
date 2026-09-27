@@ -67,6 +67,23 @@ def register(request: HttpRequest) -> HttpResponse:
     return render(request, "accounts/register.html", {"form": form})
 
 
+#: Champs de `ProfileForm` par onglet (issue #104) — sert à rouvrir l'onglet
+#: qui porte une erreur après un envoi refusé, plutôt que de la masquer
+#: derrière l'onglet par défaut.
+PROFILE_TABS = {
+    "identite": ("first_name", "last_name", "email", "avatar"),
+    "mesures": ("gender", "height_cm", "weight_kg"),
+    "options": ("health_enabled",),
+}
+
+
+def _active_profile_tab(form: ProfileForm) -> str:
+    for tab, fields in PROFILE_TABS.items():
+        if any(field in form.errors for field in fields):
+            return tab
+    return "identite"
+
+
 @login_required
 def profile(request: HttpRequest) -> HttpResponse:
     """Édition par l'utilisateur de ses informations et de ses mesures."""
@@ -79,7 +96,11 @@ def profile(request: HttpRequest) -> HttpResponse:
     else:
         form = ProfileForm(instance=request.user)
 
-    return render(request, "accounts/profile.html", {"form": form})
+    return render(
+        request,
+        "accounts/profile.html",
+        {"form": form, "active_tab": _active_profile_tab(form)},
+    )
 
 
 @login_required
