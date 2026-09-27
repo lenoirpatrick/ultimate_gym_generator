@@ -4,6 +4,7 @@ l'environnement (fichier `.env`). `config.settings.test` surcharge ce module
 pour la suite de tests. Aucun secret n'est écrit en dur ici.
 """
 
+import tomllib
 from pathlib import Path
 
 import environ
@@ -32,6 +33,20 @@ CREDENTIALS_ENCRYPTION_KEY = env.str("CREDENTIALS_ENCRYPTION_KEY", default="")
 
 # Port d'écoute de l'application (5907 = « sport » en leet).
 APP_PORT = env.int("DJANGO_PORT", default=5907)
+
+
+# Version affichée en pied de page (issue #100) : lue dans pyproject.toml
+# plutôt que dupliquée ici — un seul endroit du dépôt à faire évoluer,
+# celui où tout outillage Python la cherche par convention.
+def _app_version() -> str:
+    try:
+        with (BASE_DIR / "pyproject.toml").open("rb") as fh:
+            return tomllib.load(fh)["project"]["version"]
+    except (OSError, KeyError, tomllib.TOMLDecodeError):
+        return "0.0.0"
+
+
+APP_VERSION = _app_version()
 
 # Déplaçable pour réduire la surface d'attaque d'un déploiement exposé.
 ADMIN_URL = env.str("DJANGO_ADMIN_URL", default="admin/")

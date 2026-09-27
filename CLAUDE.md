@@ -532,7 +532,12 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
   liste complète voyage dans `data-photos` sur la ligne de la timeline (`workouts/
   partials/timer_timeline.html`), séparée par `|`, sur le même principe que
   `data-equipment`/`data-muscles` ; la vignette de la timeline, elle, reste fixe sur la
-  première photo.
+  première photo. Le nom de l'exercice y est borné à deux lignes (`-webkit-line-clamp`,
+  issue #98) et le panneau lui-même défile en dernier recours (`overflow-y: auto`) : un
+  nom long ne doit jamais repousser matériel, muscles ou consignes hors de l'écran. La
+  photo est bornée par un `max-height` propre plutôt que `height: 100%` du panneau, qui
+  n'a pas de hauteur définie — sans quoi elle grandissait ou rétrécissait avec le texte
+  voisin au lieu de garder une taille stable.
 - Cinq secondes de **préparation**, décomptées avant le premier pas, pour le temps de se
   mettre en place — pas encore comptées dans l'avancement de la séance. Le même sas
   reprend après chaque récupération entre tours/blocs, avant de relancer l'effort
@@ -557,7 +562,16 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
   Le repos se distingue de l'effort par le libellé affiché autant que par la tonalité,
   jamais par la seule couleur ; la récupération entre tours/blocs (issue #44 suite)
   reprend la tonalité du repos — les deux sont une pause, pas un effort — mais garde son
-  propre libellé (« Récupération »).
+  propre libellé (« Récupération »). Un curseur **Volume des bips** (`<input
+  type="range">`, issue #99 — premier de son genre dans le projet, aucun `.ugg-ruler`/
+  `.ugg-segmented` existant ne convenant à une valeur continue) règle un `GainNode`
+  maître partagé par tous les sons, entre le gain individuel de chaque son et
+  `audioCtx.destination` — un seul point de réglage plutôt qu'un gain par type de son.
+  Persisté en `localStorage` (préférence d'appareil, pas de compte — premier usage du
+  stockage local dans le projet), dégradation silencieuse si indisponible (navigation
+  privée, quota). Le gain de base de chaque son a aussi été relevé — trop faible au
+  casque même au volume maximal du curseur — le bip par seconde restant volontairement
+  le plus discret des cinq.
 - Chaque phase du minuteur porte, en plus de son libellé, une couleur constante sur tout
   l'écran (issue #35 suite), portée par une seule variable `--ugg-timer-phase-color`
   posée sur `.ugg-timer[data-phase="…"]` et reprise par l'étiquette de phase, le chrono

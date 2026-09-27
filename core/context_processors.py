@@ -13,6 +13,7 @@ def site(request: HttpRequest) -> dict[str, object]:
     return {
         "site_name": "Ultimate Gym Generator",
         "debug": settings.DEBUG,
+        "app_version": settings.APP_VERSION,
         # Options d'authentification, pour n'afficher que ce qui est réellement
         # disponible sur cette installation.
         "sso_enabled": settings.OIDC_ENABLED,

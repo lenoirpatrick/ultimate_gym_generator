@@ -1,6 +1,8 @@
 [project]
 name = "ultimate-gym-generator"
-version = "0.1.0"
+# Alignée sur le nom de la branche de travail en cours (feature_1.2) — à
+# faire évoluer avec elle, seule source affichée en pied de page (issue #100).
+version = "1.2"
 description = "Générateur de programmes sportifs assisté par IA"
 requires-python = ">=3.13"
 

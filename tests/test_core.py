@@ -43,6 +43,19 @@ def test_le_pied_de_page_credite_le_referentiel_d_exercices(client):
     assert "Unlicense" in content
 
 
+@pytest.mark.django_db
+def test_le_pied_de_page_affiche_la_version_de_l_application(client):
+    """Issue #100 : pyproject.toml reste l'unique source de vérité du numéro."""
+    import tomllib
+
+    with open("pyproject.toml", "rb") as fh:
+        expected = tomllib.load(fh)["project"]["version"]
+
+    content = client.get(reverse("core:home")).content.decode()
+
+    assert f"Version {expected}" in content
+
+
 # --------------------------------------------------------------------------- #
 # Socle mobile (issue #24)
 # --------------------------------------------------------------------------- #
