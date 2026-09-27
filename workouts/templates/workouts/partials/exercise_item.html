@@ -17,12 +17,15 @@ remplacement n'est possible).
     <div class="ugg-set__timing">
         {% if item.is_timed %}
             <span class="ugg-set__work">{{ item.work_seconds }}s</span>
-            <span class="ugg-set__rest">{{ item.rest_seconds }}s repos</span>
+            <span class="ugg-set__rest">{{ item.rest_seconds }}<span class="ugg-set__unit">s</span> repos</span>
             <span class="ugg-set__rounds">× {{ item.rounds }}</span>
         {% else %}
             <span class="ugg-set__work ugg-set__work--reps">{{ item.reps|join:" · " }}</span>
-            <span class="ugg-set__rest">{{ item.rest_seconds }}s repos</span>
+            <span class="ugg-set__rest">{{ item.rest_seconds }}<span class="ugg-set__unit">s</span> repos</span>
             <span class="ugg-set__rounds">{{ item.rounds }} séries</span>
+        {% endif %}
+        {% if item.exercise.body_regions %}
+            {% include "core/components/body_map.html" with regions=item.exercise.body_regions %}
         {% endif %}
     </div>
 

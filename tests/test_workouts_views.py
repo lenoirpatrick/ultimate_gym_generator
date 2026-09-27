@@ -302,7 +302,8 @@ def test_la_seance_affiche_son_deroule(logged_client, user):
     assert "Bloc 1" in content
     # Le minutage doit être lisible d'un coup d'œil, entre deux séries.
     assert "20s" in content
-    assert "10s repos" in content
+    # L'unité reste en minuscule, isolée dans son propre élément (issue #108).
+    assert '10<span class="ugg-set__unit">s</span> repos' in content
 
 
 def test_la_seance_affiche_les_charges_proposees(logged_client, user):
@@ -1010,3 +1011,40 @@ def test_la_timeline_ne_porte_aucune_photo_sans_illustration(logged_client, user
     content = logged_client.get(reverse("workouts:detail", args=[workout.pk])).content.decode()
 
     assert 'data-photos=""' in content
+
+
+# --------------------------------------------------------------------------- #
+# Iconographie corporelle et unité de repos (issue #108)
+# --------------------------------------------------------------------------- #
+
+
+def test_l_unite_de_repos_reste_en_minuscule(logged_client, user):
+    """Un « S » de repos en majuscule se confond avec une abréviation."""
+    squat = Exercise.objects.get(slug="Barbell_Squat")
+    workout = build_workout(user, squat)
+
+    content = logged_client.get(reverse("workouts:detail", args=[workout.pk])).content.decode()
+
+    assert '<span class="ugg-set__unit">s</span> repos' in content
+
+
+def test_l_icone_corporelle_eclaire_la_region_sollicitee(logged_client, user):
+    """Barbell_Squat ne cible que les quadriceps (bas du corps, fixture de test)."""
+    squat = Exercise.objects.get(slug="Barbell_Squat")
+    workout = build_workout(user, squat)
+
+    content = logged_client.get(reverse("workouts:detail", args=[workout.pk])).content.decode()
+
+    assert 'aria-label="Muscles sollicités : Bas du corps"' in content
+    assert "ugg-body-map__zone--active" in content
+
+
+def test_l_icone_corporelle_est_absente_sans_muscle_mappe(logged_client, user):
+    """Aucun muscle mappé à une région : rien à éclairer, plutôt qu'un
+    rapprochement hasardeux (même principe que l'issue #82)."""
+    minimal = Exercise.objects.get(slug="Text_Only_Exercise")
+    workout = build_workout(user, minimal)
+
+    content = logged_client.get(reverse("workouts:detail", args=[workout.pk])).content.decode()
+
+    assert "ugg-body-map" not in content

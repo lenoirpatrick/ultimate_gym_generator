@@ -409,7 +409,19 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
   le nom de l'exercice, en gros et en accent, aligné à droite d'une colonne fixe pour que
   l'œil le retrouve sans chercher.
 - Ordre imposé : **durée d'effort → repos → nombre de tours → exercice → charge**. La
-  charge est accentuée, jamais le matériel.
+  charge est accentuée, jamais le matériel. L'unité d'un temps reste en **minuscule**
+  dans un libellé sinon tout en capitales (`.ugg-set__unit`, issue #108) — un « S » de
+  repos, en majuscule, se confond avec une abréviation.
+- Sous la durée/répétitions de chaque exercice, une **iconographie corporelle**
+  (`core/components/body_map.html`, issue #108) éclaire en accent les régions du corps
+  sollicitées (`exercises.catalog.body_regions`, posé par
+  `workouts.views._annotate_body_regions`) — le reste dans le ton discret des bordures,
+  jamais la seule couleur : un `aria-label` porte la même information en texte.
+  Schématique, pas une planche anatomique — pas de vue arrière dédiée pour le dos, dont
+  la zone est la bande centrale du buste, éclairée indépendamment du haut du corps qui
+  l'entoure. Un exercice dont aucun muscle n'est mappé à une région (`Autres`) n'affiche
+  aucune icône plutôt qu'un rapprochement hasardeux (même principe que le rappel
+  d'exercice associé à une activité Apple Santé, issue #82).
 - Un bloc tient d'un seul tenant dans une carte ; on ne coupe pas un bloc entre deux écrans.
 - Les conseils rédigés par l'IA sont un **habillage** : ils arrivent après la séance, et
   leur absence ne produit aucun message au premier chargement automatique. Une fois des

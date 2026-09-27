@@ -1,0 +1,28 @@
+{% comment %}
+Iconographie du corps humain : régions sollicitées en accent, le reste dans
+le ton discret des bordures (issue #108). Jamais la seule couleur — un
+`aria-label` porte la même information en texte pour un lecteur d'écran.
+
+Attend `regions` (liste de libellés, ex. ["Haut du corps", "Dos"]) —
+`exercises.catalog.body_regions`, posé par `workouts.views._annotate_body_regions`
+sur `exercise.body_regions`.
+
+Silhouette schématique, pas une planche anatomique : le « dos » n'a pas de
+vue arrière dédiée, faute de place dans une icône de cette taille — sa zone
+est la bande centrale du buste, éclairée indépendamment du haut du corps qui
+l'entoure.
+{% endcomment %}
+<svg class="ugg-body-map" viewBox="0 0 24 24" role="img"
+     aria-label="Muscles sollicités : {{ regions|join:", " }}">
+    <circle class="ugg-body-map__head" cx="12" cy="3.4" r="1.8" />
+    <rect class="ugg-body-map__zone{% if "Haut du corps" in regions %} ugg-body-map__zone--active{% endif %}"
+          x="6" y="6" width="12" height="5" rx="2.5" />
+    <rect class="ugg-body-map__zone{% if "Tronc" in regions %} ugg-body-map__zone--active{% endif %}"
+          x="8" y="11" width="8" height="6" rx="2" />
+    <rect class="ugg-body-map__zone{% if "Bas du corps" in regions %} ugg-body-map__zone--active{% endif %}"
+          x="8.3" y="17" width="2.6" height="6" rx="1.3" />
+    <rect class="ugg-body-map__zone{% if "Bas du corps" in regions %} ugg-body-map__zone--active{% endif %}"
+          x="13.1" y="17" width="2.6" height="6" rx="1.3" />
+    <rect class="ugg-body-map__zone{% if "Dos" in regions %} ugg-body-map__zone--active{% endif %}"
+          x="10.7" y="6" width="2.6" height="11" rx="1.3" />
+</svg>

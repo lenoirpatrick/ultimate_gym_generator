@@ -119,6 +119,16 @@ def style_guide(request: HttpRequest) -> HttpResponse:
             "workout_form_demo": WorkoutForm(),
             # Une icône par matériel du référentiel (issue #37).
             "equipment_choices": Exercise.Equipment.choices,
+            # Iconographie corporelle du déroulé de séance (issue #108) :
+            # combinaisons illustrant une région seule, plusieurs, et aucune.
+            "body_map_demo": [
+                ["Haut du corps"],
+                ["Dos"],
+                ["Tronc"],
+                ["Bas du corps"],
+                ["Dos", "Bas du corps"],
+                [],
+            ],
             # Indicateur clé (issue #72) : les trois formes de tendance possibles.
             "kpi_demos": [
                 Kpi(

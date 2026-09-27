@@ -210,6 +210,24 @@
     </section>
 
     <section class="mt-12">
+        <h2 class="ugg-title text-xl">Iconographie corporelle</h2>
+        <p class="mt-2 text-muted">
+            Sous la durée de chaque exercice du déroulé de séance : les régions
+            sollicitées en accent, le reste dans le ton discret des bordures
+            (issue #108). Schématique, pas une planche anatomique — le dos n'a pas
+            de vue arrière dédiée, sa zone est la bande centrale du buste.
+        </p>
+        <div class="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
+            {% for demo_regions in body_map_demo %}
+                <div class="ugg-card flex flex-col items-center p-4 text-center">
+                    {% include "core/components/body_map.html" with regions=demo_regions %}
+                    <p class="mt-2 text-xs text-muted">{{ demo_regions|join:", " }}</p>
+                </div>
+            {% endfor %}
+        </div>
+    </section>
+
+    <section class="mt-12">
         <h2 class="ugg-title text-xl">Couleurs</h2>
         <div class="mt-6 grid gap-3 sm:grid-cols-3 lg:grid-cols-5">
             {% for name, var in swatches %}

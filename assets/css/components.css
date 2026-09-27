@@ -1224,6 +1224,37 @@
     color: var(--ugg-text-muted);
 }
 
+/* L'unité de temps reste en minuscule dans un libellé sinon capitalisé
+   (issue #108) : un « S » de repos, en majuscule, se confond avec une
+   abréviation — jamais la seule lettre d'unité. */
+.ugg-set__unit {
+    text-transform: lowercase;
+}
+
+/* Iconographie du corps humain (issue #108) : régions sollicitées par
+   l'exercice, sous sa durée/répétitions dans .ugg-set__timing. Zones
+   inactives dans le ton des bordures, actives dans l'accent — jamais la
+   seule couleur, un `aria-label` (core/components/body_map.html) porte la
+   même information en texte. */
+.ugg-body-map {
+    width: 1.75rem;
+    height: 1.75rem;
+    margin-top: var(--ugg-space-2);
+    align-self: flex-end;
+}
+
+.ugg-body-map__head {
+    fill: var(--ugg-text-muted);
+}
+
+.ugg-body-map__zone {
+    fill: var(--ugg-border);
+}
+
+.ugg-body-map__zone--active {
+    fill: var(--ugg-accent);
+}
+
 /* Conseils rédigés : un texte suivi, qui doit se lire comme tel. */
 .ugg-coaching {
     border-left: 4px solid var(--ugg-accent);
