@@ -16,21 +16,35 @@ from django.core.exceptions import ImproperlyConfigured
 from django.db import models
 
 
+class EncryptionKeyError(ImproperlyConfigured):
+    """CREDENTIALS_ENCRYPTION_KEY absente ou invalide : credentials illisibles.
+
+    Distincte d'`ImproperlyConfigured` pour que les vues puissent l'attraper
+    spécifiquement et afficher un message actionnable, plutôt que de laisser
+    remonter une page d'erreur technique jusqu'au personnel qui configure un
+    fournisseur IA.
+    """
+
+
+_GENERATE_KEY_HINT = (
+    'python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"'
+)
+
+
 @lru_cache(maxsize=1)
 def _fernet() -> Fernet:
     key = settings.CREDENTIALS_ENCRYPTION_KEY
     if not key:
-        raise ImproperlyConfigured(
+        raise EncryptionKeyError(
             "CREDENTIALS_ENCRYPTION_KEY n'est pas renseignée : impossible de lire ou "
-            "d'écrire un credential IA."
+            f"d'écrire un credential IA. En générer une : {_GENERATE_KEY_HINT}"
         )
     try:
         return Fernet(key.encode() if isinstance(key, str) else key)
     except (ValueError, TypeError) as exc:
-        raise ImproperlyConfigured(
-            "CREDENTIALS_ENCRYPTION_KEY n'est pas une clé Fernet valide. En générer une : "
-            'python -c "from cryptography.fernet import Fernet; '
-            'print(Fernet.generate_key().decode())"'
+        raise EncryptionKeyError(
+            "CREDENTIALS_ENCRYPTION_KEY n'est pas une clé Fernet valide. "
+            f"En générer une : {_GENERATE_KEY_HINT}"
         ) from exc
 
 

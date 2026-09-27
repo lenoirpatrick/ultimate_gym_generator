@@ -2,11 +2,13 @@
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, user_passes_test
+from django.db import transaction
 from django.http import Http404, HttpRequest, HttpResponse
 from django.shortcuts import redirect, render
 from django.views.decorators.http import require_POST
 
 from .clients import ProviderError, get_client
+from .fields import EncryptionKeyError
 from .forms import ProviderCredentialForm
 from .models import ProviderCredential
 from .registry import PROVIDERS, get_spec
@@ -23,11 +25,26 @@ def _spec_or_404(slug: str):
         raise Http404(f"Fournisseur inconnu : {slug}") from exc
 
 
+def _encryption_key_missing(request: HttpRequest, exc: EncryptionKeyError) -> HttpResponse:
+    """Page dédiée : CREDENTIALS_ENCRYPTION_KEY absente ou invalide côté serveur.
+
+    Un problème d'environnement, pas une erreur de saisie — la personne qui
+    configure un fournisseur ne peut rien y faire depuis cet écran, mais doit
+    comprendre pourquoi la page échoue plutôt que de voir une trace technique.
+    """
+    return render(
+        request, "aiproviders/encryption_key_missing.html", {"error": str(exc)}, status=503
+    )
+
+
 @login_required
 @staff_required
 def credential_list(request: HttpRequest) -> HttpResponse:
     """Une ligne par fournisseur du registre, configurée ou non."""
-    stored = {c.provider: c for c in ProviderCredential.objects.all()}
+    try:
+        stored = {c.provider: c for c in ProviderCredential.objects.all()}
+    except EncryptionKeyError as exc:
+        return _encryption_key_missing(request, exc)
     rows = [{"spec": spec, "credential": stored.get(spec.slug)} for spec in PROVIDERS]
     return render(request, "aiproviders/credential_list.html", {"rows": rows})
 
@@ -36,18 +53,25 @@ def credential_list(request: HttpRequest) -> HttpResponse:
 @staff_required
 def credential_edit(request: HttpRequest, provider: str) -> HttpResponse:
     spec = _spec_or_404(provider)
-    instance = ProviderCredential.objects.filter(provider=provider).first()
+    try:
+        instance = ProviderCredential.objects.filter(provider=provider).first()
 
-    if request.method == "POST":
-        form = ProviderCredentialForm(request.POST, instance=instance, spec=spec)
-        if form.is_valid():
-            credential = form.save(commit=False)
-            credential.provider = provider
-            credential.save()
-            messages.success(request, f"Configuration de {spec.name} enregistrée.")
-            return redirect("aiproviders:list")
-    else:
-        form = ProviderCredentialForm(instance=instance, spec=spec)
+        if request.method == "POST":
+            form = ProviderCredentialForm(request.POST, instance=instance, spec=spec)
+            if form.is_valid():
+                credential = form.save(commit=False)
+                credential.provider = provider
+                # Savepoint dédié : un chiffrement qui échoue (clé absente) ne
+                # doit pas laisser la transaction englobante inutilisable pour
+                # la suite de la requête.
+                with transaction.atomic():
+                    credential.save()
+                messages.success(request, f"Configuration de {spec.name} enregistrée.")
+                return redirect("aiproviders:list")
+        else:
+            form = ProviderCredentialForm(instance=instance, spec=spec)
+    except EncryptionKeyError as exc:
+        return _encryption_key_missing(request, exc)
 
     return render(
         request,
@@ -72,16 +96,19 @@ def credential_edit(request: HttpRequest, provider: str) -> HttpResponse:
 def credential_test(request: HttpRequest, provider: str) -> HttpResponse:
     """Test de connexion déclenché en HTMX depuis la liste des fournisseurs."""
     spec = _spec_or_404(provider)
-    credential = ProviderCredential.objects.filter(provider=provider).first()
+    try:
+        credential = ProviderCredential.objects.filter(provider=provider).first()
 
-    if credential is None or not credential.is_configured:
-        result = {"ok": False, "message": f"{spec.name} n'est pas encore configuré."}
-    else:
-        try:
-            ping = get_client(credential).ping()
-            result = {"ok": ping.ok, "message": ping.message}
-        except ProviderError as exc:
-            result = {"ok": False, "message": str(exc)}
+        if credential is None or not credential.is_configured:
+            result = {"ok": False, "message": f"{spec.name} n'est pas encore configuré."}
+        else:
+            try:
+                ping = get_client(credential).ping()
+                result = {"ok": ping.ok, "message": ping.message}
+            except ProviderError as exc:
+                result = {"ok": False, "message": str(exc)}
+    except EncryptionKeyError as exc:
+        result = {"ok": False, "message": str(exc)}
 
     return render(request, "aiproviders/partials/test_result.html", {"result": result})
 
@@ -99,17 +126,22 @@ def credential_models(request: HttpRequest, provider: str) -> HttpResponse:
     if not spec.supports_model_listing:
         raise Http404(f"{spec.name} ne publie pas la liste de ses modèles.")
 
-    credential = ProviderCredential.objects.filter(provider=provider).first()
+    credential = None
     models: list = []
     error = None
 
-    if credential is None or not credential.is_configured:
-        error = f"Enregistre d'abord une clé pour consulter les modèles de {spec.name}."
-    else:
-        try:
-            models = get_client(credential).list_models()
-        except ProviderError as exc:
-            error = str(exc)
+    try:
+        credential = ProviderCredential.objects.filter(provider=provider).first()
+
+        if credential is None or not credential.is_configured:
+            error = f"Enregistre d'abord une clé pour consulter les modèles de {spec.name}."
+        else:
+            try:
+                models = get_client(credential).list_models()
+            except ProviderError as exc:
+                error = str(exc)
+    except EncryptionKeyError as exc:
+        error = str(exc)
 
     return render(
         request,

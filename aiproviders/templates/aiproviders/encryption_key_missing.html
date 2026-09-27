@@ -1,0 +1,17 @@
+{% extends "core/base.html" %}
+
+{% block title %}Configuration IA indisponible — {{ site_name }}{% endblock %}
+
+{% block content %}
+    <p class="ugg-eyebrow">Configuration</p>
+    <h1 class="ugg-title mt-2 text-3xl">Fournisseurs d'IA</h1>
+
+    <div class="mt-6 max-w-2xl">
+        {% include "core/components/alert.html" with level="error" text=error %}
+        <p class="mt-3 text-sm text-muted">
+            Ce réglage vit dans l'environnement du serveur, pas en base : personne
+            ne peut le corriger depuis cette page. Renseigne
+            <code>CREDENTIALS_ENCRYPTION_KEY</code> puis relance l'application.
+        </p>
+    </div>
+{% endblock %}
