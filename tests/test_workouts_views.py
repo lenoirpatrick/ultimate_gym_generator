@@ -146,6 +146,20 @@ def test_le_formulaire_affiche_les_regions_du_corps(logged_client):
         assert region in content
 
 
+def test_chaque_region_propose_une_case_tout_selectionner(logged_client):
+    """Issue #106 : cocher toute une région sans cocher chaque muscle un par un."""
+    content = logged_client.get(reverse("workouts:create")).content.decode()
+
+    # Une case par région (Haut du corps, Dos, Tronc, Bas du corps).
+    assert content.count("data-muscle-region-toggle") == 4
+    assert "Tout sélectionner : Haut du corps" in content
+
+    # Pur raccourci d'interface, jamais une valeur du champ « muscles » :
+    # sans `name`, elle ne peut pas voyager dans le POST.
+    toggle_tag = re.search(r"<input[^>]*data-muscle-region-toggle[^>]*>", content).group()
+    assert "name=" not in toggle_tag
+
+
 def test_le_formulaire_affiche_une_bulle_d_aide_par_format(logged_client):
     content = logged_client.get(reverse("workouts:create")).content.decode()
 

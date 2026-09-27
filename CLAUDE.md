@@ -670,6 +670,14 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
   l'onglet fermé) — voir `exercises.catalog.group_by_region` et
   `workouts/templates/workouts/partials/muscle_regions.html`. Le champ reste un
   `ModelMultipleChoiceField` unique ; le regroupement n'est qu'un habillage d'affichage.
+  Chaque région propose en tête de panneau une case **« Tout sélectionner »**
+  (`.ugg-filter__option--all`, bordure en pointillés, issue #106) qui coche ou décoche
+  toutes les cases de sa région — utile pour cibler « tout le haut du corps » sans cocher
+  chaque muscle un par un. Sans `name`, elle ne voyage jamais dans le POST : un pur
+  raccourci d'interface, tenu à jour par `core/static/core/js/muscle_region_select_all.js`
+  (état coché/décoché/indéterminé selon les cases de sa région). Aucune case ne peut
+  refléter l'état de plusieurs autres en CSS seul — même exception assumée que le minuteur
+  de séance (JavaScript plutôt que CSS pur, faute d'alternative).
 - Le **matériel pris en compte** se coche directement dans son encart, en puces
   `.ugg-filter__option--standalone` — jamais en lecture seule (issue #32). Un choix par
   matériel réellement configuré, coché par défaut, mais indépendant de la configuration

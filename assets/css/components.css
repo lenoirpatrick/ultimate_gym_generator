@@ -713,6 +713,20 @@
     outline-offset: 2px;
 }
 
+/* Case « Tout sélectionner » d'une région du corps (issue #106) : bordure en
+   pointillés pour la distinguer d'un muscle nommé — c'est un raccourci
+   d'interface, pas une valeur du champ. */
+.ugg-filter__option--all {
+    border-style: dashed;
+}
+
+/* Sélection partielle de la région (au moins une case cochée, pas toutes) :
+   la case reste visuellement distincte du plein et du vide. */
+.ugg-filter__option input:indeterminate + span::before {
+    border-color: var(--ugg-accent);
+    background: var(--ugg-surface-sunken);
+}
+
 /* Puce isolée, hors panneau repliable. */
 .ugg-filter__option--standalone {
     background: var(--ugg-surface-raised);
