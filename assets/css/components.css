@@ -1267,10 +1267,14 @@
    seule couleur, un `aria-label` (core/components/body_map.html) porte la
    même information en texte. */
 .ugg-body-map {
-    width: 1.75rem;
-    height: 1.75rem;
+    width: 2.5rem;
+    height: 2.5rem;
     margin-top: var(--ugg-space-2);
     align-self: flex-end;
+}
+
+@media (min-width: 40rem) {
+    .ugg-body-map { width: 3rem; height: 3rem; }
 }
 
 .ugg-body-map__head {
