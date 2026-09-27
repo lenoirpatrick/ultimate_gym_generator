@@ -34,6 +34,14 @@ def test_accueil_est_public(client):
     assert client.get(reverse("core:home")).status_code == 200
 
 
+def test_un_utilisateur_connecte_est_envoye_vers_ses_seances(logged_client):
+    """Issue #105 : plus rien à configurer en arrivant, direction les séances."""
+    response = logged_client.get(reverse("core:home"))
+
+    assert response.status_code == 302
+    assert response.url == reverse("workouts:list")
+
+
 @pytest.mark.django_db
 def test_le_pied_de_page_credite_le_referentiel_d_exercices(client):
     """Issue #33 : le catalogue et ses illustrations viennent de free-exercise-db."""
@@ -83,7 +91,7 @@ def entetes_de_menu(content: str) -> list[str]:
 def test_les_trois_groupes_sont_toujours_presents(logged_client):
     """UGG, Apple Santé et Compte sont visibles quel que soit le compte —
     seul le sous-groupe Configuration, sous Compte, dépend du personnel."""
-    content = logged_client.get(reverse("core:home")).content.decode()
+    content = logged_client.get(reverse("workouts:list")).content.decode()
 
     assert entetes_de_menu(content) == ["UGG", "Apple Santé", "Compte"]
     assert reverse("workouts:list") in content
@@ -92,14 +100,14 @@ def test_les_trois_groupes_sont_toujours_presents(logged_client):
 
 
 def test_un_utilisateur_ordinaire_ne_voit_aucun_sous_groupe_configuration(logged_client):
-    content = logged_client.get(reverse("core:home")).content.decode()
+    content = logged_client.get(reverse("workouts:list")).content.decode()
 
     assert "Configuration" not in entetes_de_menu(content)
     assert reverse("accounts:user_list") not in content
 
 
 def test_le_sous_groupe_configuration_n_apparait_que_pour_le_personnel(staff_client):
-    content = staff_client.get(reverse("core:home")).content.decode()
+    content = staff_client.get(reverse("workouts:list")).content.decode()
 
     # Rendu deux fois (menu déroulant de la barre + tiroir), comme le reste
     # du menu — voir core/nav.py.
@@ -111,30 +119,36 @@ def test_le_sous_groupe_configuration_n_apparait_que_pour_le_personnel(staff_cli
 
 def test_le_compte_personnel_est_un_lien_direct_du_groupe_compte(logged_client):
     """Mon compte est un lien du groupe Compte, pas sous Configuration."""
-    content = logged_client.get(reverse("core:home")).content.decode()
+    content = logged_client.get(reverse("workouts:list")).content.decode()
 
     assert content.count(reverse("accounts:profile")) == 2
 
 
 def test_un_sous_groupe_vide_n_est_pas_titre(logged_client):
     """Un intitulé « Configuration » sans rien dessous ferait croire à un droit manquant."""
-    content = logged_client.get(reverse("core:home")).content.decode()
+    content = logged_client.get(reverse("workouts:list")).content.decode()
 
     assert "Configuration" not in entetes_de_menu(content)
 
 
 def test_les_entrees_sont_rendues_en_barre_et_dans_le_tiroir(logged_client):
-    """Une seule description, deux rendus : voir core/nav.py."""
-    content = logged_client.get(reverse("core:home")).content.decode()
+    """Une seule description, deux rendus : voir core/nav.py.
 
-    assert content.count(reverse("workouts:list")) == 2
+    Correspondance exacte de `href` plutôt qu'une simple sous-chaîne : cette
+    page-ci EST les séances, dont les cartes listent chacune un lien vers
+    « /seances/<id>/ » — une simple sous-chaîne « /seances/ » les compterait
+    à tort avec les deux liens de nav (barre + tiroir).
+    """
+    content = logged_client.get(reverse("workouts:list")).content.decode()
+
+    assert content.count(f'href="{reverse("workouts:list")}"') == 2
     assert "ugg-nav--dropdown" in content
     assert "ugg-nav--drawer" in content
 
 
 def test_le_groupe_apple_sante_porte_son_icone(logged_client):
     """Issue #76 : un repère visuel dédié, pas seulement le libellé."""
-    content = logged_client.get(reverse("core:home")).content.decode()
+    content = logged_client.get(reverse("workouts:list")).content.decode()
 
     assert "Apple Santé" in content
     assert "M12 21s-7.5-4.6-10-9.1" in content

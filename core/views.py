@@ -4,7 +4,7 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.db import connection
 from django.http import Http404, HttpRequest, HttpResponse, JsonResponse
-from django.shortcuts import render
+from django.shortcuts import redirect, render
 
 # Rôles sémantiques exposés par le référentiel visuel. Les valeurs vivent dans
 # assets/css/tokens.css — on ne référence ici que les noms de variables.
@@ -24,6 +24,13 @@ COLOR_SWATCHES = (
 
 
 def home(request: HttpRequest) -> HttpResponse:
+    """Vitrine publique pour un visiteur non connecté (issue #105).
+
+    Une fois connecté, plus rien à vendre : direction les séances, l'écran
+    réellement utile au quotidien.
+    """
+    if request.user.is_authenticated:
+        return redirect("workouts:list")
     return render(request, "core/home.html")
 
 

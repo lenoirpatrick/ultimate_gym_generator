@@ -29,7 +29,8 @@ def test_l_adresse_e_mail_et_le_mot_de_passe_ouvrent_la_session(client, user):
     response = connexion(client, user.email)
 
     assert response.context["user"].is_authenticated
-    assert response.request["PATH_INFO"] == reverse("core:home")
+    # La connexion mène directement aux séances, pas à la vitrine (issue #105).
+    assert response.request["PATH_INFO"] == reverse("workouts:list")
 
 
 @pytest.mark.django_db
