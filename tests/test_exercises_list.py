@@ -120,6 +120,43 @@ def test_le_panneau_agrandi_se_referme(logged_client):
     assert "Fermer l'agrandissement" in content
 
 
+def test_la_fermeture_pointe_vers_la_vignette_pas_un_fragment_vide(logged_client):
+    """Issue #109 : un `#` sans cible ramène en haut de page, perdant la
+    position quittée pour ouvrir la photo — fond et croix doivent plutôt
+    reprendre sur la vignette elle-même."""
+    from exercises.models import Exercise
+
+    squat = Exercise.objects.get(slug="Barbell_Squat")
+    content = logged_client.get(reverse("exercises:list")).content.decode()
+
+    thumb = f"exo-{squat.pk}-thumb-0"
+    assert f'id="{thumb}"' in content
+    assert f'href="#{thumb}" class="ugg-lightbox__backdrop"' in content
+    assert f'href="#{thumb}" class="ugg-lightbox__close"' in content
+
+
+def test_la_galerie_propose_des_fleches_entre_les_photos(logged_client):
+    """Issue #109 : Barbell_Squat compte deux photos dans la fixture de test."""
+    from exercises.models import Exercise
+
+    squat = Exercise.objects.get(slug="Barbell_Squat")
+    assert len(squat.image_urls) == 2
+    content = logged_client.get(reverse("exercises:list")).content.decode()
+
+    # Première photo : une flèche « suivante » seulement, pas de « précédente ».
+    assert re.search(
+        rf'href="#exo-{squat.pk}-photo-1"\s+class="ugg-lightbox__nav ugg-lightbox__nav--next"',
+        content,
+    )
+    # Seconde photo : une flèche « précédente » seulement, pas de « suivante ».
+    assert re.search(
+        rf'href="#exo-{squat.pk}-photo-0"\s+class="ugg-lightbox__nav ugg-lightbox__nav--prev"',
+        content,
+    )
+    assert content.count("ugg-lightbox__nav--prev") == 1
+    assert content.count("ugg-lightbox__nav--next") == 1
+
+
 def test_une_fiche_sans_consigne_ni_illustration_ne_deplie_rien(logged_client):
     """Text_Only_Exercise n'a ni consigne ni image : pas de panneau à déplier pour elle."""
     content = logged_client.get(reverse("exercises:list")).content.decode()

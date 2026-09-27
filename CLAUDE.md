@@ -753,7 +753,13 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
 - Les illustrations d'une fiche sont des vignettes cliquables qui s'agrandissent en plein
   écran (`.ugg-lightbox`), bascule pilotée en CSS pur par `:target` — aucun script. Le
   panneau se referme par le fond ou par la croix, jamais par Échap, qu'aucune règle CSS ne
-  peut intercepter sans JavaScript (même limite assumée que le tiroir de navigation).
+  peut intercepter sans JavaScript (même limite assumée que le tiroir de navigation). Fond
+  et croix referment vers l'**id de la vignette elle-même** (`exo-{dom_id}-thumb-{n}`,
+  issue #109), pas vers un `#` sans cible : un fragment qui ne correspond à aucun élément
+  ramène le navigateur en haut de la page, perdant la position quittée pour l'ouvrir. Une
+  galerie de plusieurs photos propose aussi des flèches **précédente/suivante**
+  (`.ugg-lightbox__nav`, même bascule `:target` — le panneau voisin devient la nouvelle
+  cible), absentes en première/dernière photo plutôt que de boucler.
 
 ### Référentiel d'exercices
 

@@ -879,6 +879,36 @@
     height: 1.25rem;
 }
 
+/* Navigation entre les photos d'une même galerie (issue #109) : un cran de
+   chaque côté de l'image, absent en première/dernière photo plutôt que de
+   boucler. */
+.ugg-lightbox__nav {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    min-width: var(--ugg-touch-target);
+    min-height: var(--ugg-touch-target);
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--ugg-radius-md);
+    background: var(--ugg-surface-raised);
+    color: var(--ugg-text);
+}
+
+.ugg-lightbox__nav svg {
+    width: 1.5rem;
+    height: 1.5rem;
+}
+
+.ugg-lightbox__nav--prev {
+    left: var(--ugg-space-4);
+}
+
+.ugg-lightbox__nav--next {
+    right: var(--ugg-space-4);
+}
+
 /* Panneau repliable générique, hors contexte de filtre — consignes d'exercice,
    renommage d'une séance. Accentué et capitalisé, sans chevron ni compteur
    (contrairement à `.ugg-filter`, réservé aux critères de recherche). */
