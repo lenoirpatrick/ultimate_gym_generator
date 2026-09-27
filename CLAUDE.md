@@ -129,7 +129,12 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
   « Configuration » sans rien dessous laisserait croire à un droit manquant
   plutôt qu'à une section sans objet pour ce compte.
 - Ouverture par `<details>`, sans JavaScript : le panneau se referme à la
-  navigation et à `Échap`, pas au clic extérieur — limite assumée.
+  navigation et à `Échap`, pas au clic extérieur — limite assumée. Les trois
+  `<details>` de la barre partagent en revanche un même `name="ugg-nav-group"`
+  (issue #103) : attribut natif qui les rend mutuellement exclusifs — en
+  ouvrir un referme les autres — là où ils pouvaient auparavant rester
+  ouverts ensemble et se chevaucher. Un navigateur qui ne le reconnaît pas
+  encore retombe simplement sur l'ancien comportement, sans rien casser.
 - L'écran courant porte `aria-current="page"` et un liseré d'accent, jamais une
   simple différence de couleur.
 

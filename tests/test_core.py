@@ -146,6 +146,18 @@ def test_les_entrees_sont_rendues_en_barre_et_dans_le_tiroir(logged_client):
     assert "ugg-nav--drawer" in content
 
 
+def test_les_menus_de_la_barre_sont_mutuellement_exclusifs(logged_client):
+    """Issue #103 : ouvrir un menu de la barre doit refermer les autres.
+
+    `name` (natif, sans JavaScript) sur les trois `<details>` de la barre
+    uniquement — jamais sur le tiroir mobile, seul de son espèce.
+    """
+    content = logged_client.get(reverse("workouts:list")).content.decode()
+
+    assert content.count('class="ugg-nav ugg-nav--dropdown" name="ugg-nav-group"') == 3
+    assert 'ugg-nav--drawer" name=' not in content
+
+
 def test_le_groupe_apple_sante_porte_son_icone(logged_client):
     """Issue #76 : un repère visuel dédié, pas seulement le libellé."""
     content = logged_client.get(reverse("workouts:list")).content.decode()
