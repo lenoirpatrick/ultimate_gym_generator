@@ -1,5 +1,5 @@
 Django>=6.1,<6.2
-django-environ>=0.12,<1.0
+django-environ>=0.14.0,<1.0
 cryptography>=44.0
 Pillow>=11.0
 
