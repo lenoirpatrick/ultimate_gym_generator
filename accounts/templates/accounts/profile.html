@@ -21,37 +21,65 @@
             {% include "core/components/alert.html" with level="error" text=error %}
         {% endfor %}
 
-        <form method="post" enctype="multipart/form-data" class="mt-8 grid gap-5">
-            {% csrf_token %}
+        {% comment %}
+        Onglets (issue #104) : radios + libellés, aucun script — même principe
+        que les cartes de format (`:has()`). Les radios vivent hors du
+        <form> : de purs contrôles d'affichage, jamais une valeur soumise —
+        le formulaire reste un unique POST, quel que soit l'onglet ouvert au
+        moment d'Enregistrer.
+        {% endcomment %}
+        <div class="ugg-tabs mt-8">
+            <div class="ugg-tabs__list" role="tablist">
+                <input type="radio" name="profil-onglet" id="profil-tab-identite"
+                       class="ugg-tabs__input" {% if active_tab == "identite" %}checked{% endif %}>
+                <label for="profil-tab-identite" class="ugg-tabs__tab" role="tab">Identité</label>
 
-            <fieldset class="grid gap-5">
-                <legend class="ugg-eyebrow mb-2">Identité</legend>
-                {% include "core/components/field.html" with field=form.first_name %}
-                {% include "core/components/field.html" with field=form.last_name %}
-                {% include "core/components/field.html" with field=form.email %}
-                {% include "core/components/field.html" with field=form.avatar %}
-            </fieldset>
+                <input type="radio" name="profil-onglet" id="profil-tab-mesures"
+                       class="ugg-tabs__input" {% if active_tab == "mesures" %}checked{% endif %}>
+                <label for="profil-tab-mesures" class="ugg-tabs__tab" role="tab">Mesures</label>
 
-            <fieldset class="mt-4 grid gap-5">
-                <legend class="ugg-eyebrow mb-2">Mesures</legend>
-                <p class="text-sm text-muted">
-                    Facultatives. Elles serviront à calibrer les charges et les volumes
-                    des programmes générés.
-                </p>
-                {% include "core/components/field.html" with field=form.gender %}
-                {% include "core/components/field.html" with field=form.height_cm %}
-                {% include "core/components/field.html" with field=form.weight_kg %}
-            </fieldset>
-
-            <div class="flex flex-wrap gap-3">
-                <button type="submit" class="ugg-btn ugg-btn--primary">Enregistrer</button>
-                <a href="{% url 'accounts:equipment' %}" class="ugg-btn ugg-btn--ghost">
-                    Mon matériel
-                </a>
-                <a href="{% url 'accounts:password_change' %}" class="ugg-btn ugg-btn--ghost">
-                    Changer de mot de passe
-                </a>
+                <input type="radio" name="profil-onglet" id="profil-tab-options"
+                       class="ugg-tabs__input" {% if active_tab == "options" %}checked{% endif %}>
+                <label for="profil-tab-options" class="ugg-tabs__tab" role="tab">Options</label>
             </div>
-        </form>
+
+            <form method="post" enctype="multipart/form-data" class="mt-5 grid gap-5">
+                {% csrf_token %}
+
+                <fieldset class="ugg-tabs__panel grid gap-5" data-tab="identite">
+                    <legend class="sr-only">Identité</legend>
+                    {% include "core/components/field.html" with field=form.first_name %}
+                    {% include "core/components/field.html" with field=form.last_name %}
+                    {% include "core/components/field.html" with field=form.email %}
+                    {% include "core/components/field.html" with field=form.avatar %}
+                </fieldset>
+
+                <fieldset class="ugg-tabs__panel grid gap-5" data-tab="mesures">
+                    <legend class="sr-only">Mesures</legend>
+                    <p class="text-sm text-muted">
+                        Facultatives. Elles serviront à calibrer les charges et les volumes
+                        des programmes générés.
+                    </p>
+                    {% include "core/components/field.html" with field=form.gender %}
+                    {% include "core/components/field.html" with field=form.height_cm %}
+                    {% include "core/components/field.html" with field=form.weight_kg %}
+                </fieldset>
+
+                <fieldset class="ugg-tabs__panel grid gap-5" data-tab="options">
+                    <legend class="sr-only">Options</legend>
+                    {% include "core/components/field.html" with field=form.health_enabled %}
+                </fieldset>
+
+                <div class="flex flex-wrap gap-3">
+                    <button type="submit" class="ugg-btn ugg-btn--primary">Enregistrer</button>
+                    <a href="{% url 'accounts:equipment' %}" class="ugg-btn ugg-btn--ghost">
+                        Mon matériel
+                    </a>
+                    <a href="{% url 'accounts:password_change' %}" class="ugg-btn ugg-btn--ghost">
+                        Changer de mot de passe
+                    </a>
+                </div>
+            </form>
+        </div>
     </div>
 {% endblock %}

@@ -7,11 +7,28 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
 from aiproviders.clients import get_active_client
+from exercises import catalog
 from exercises.models import Favorite
 
 from . import coaching, generator, timer
 from .forms import WorkoutForm
 from .models import Workout, WorkoutExercise
+
+
+def _annotate_equipment(workouts: list[Workout]) -> None:
+    """Pose `workout.equipment_labels` : le matériel réellement utilisé (issue #107).
+
+    Une seule requête pour tout l'historique plutôt qu'une par séance — même
+    mécanique que `_annotate_favorites` ci-dessous, attribut posé à la volée
+    sur des instances déjà chargées.
+    """
+    items = WorkoutExercise.objects.filter(workout__in=workouts).select_related("exercise")
+    labels_by_workout: dict[int, set[str]] = {workout.pk: set() for workout in workouts}
+    for item in items:
+        label = item.exercise.get_equipment_display() or "Poids du corps"
+        labels_by_workout[item.workout_id].add(label)
+    for workout in workouts:
+        workout.equipment_labels = sorted(labels_by_workout[workout.pk])
 
 
 @login_required
@@ -23,9 +40,12 @@ def workout_list(request: HttpRequest) -> HttpResponse:
     """
     favorites_only = request.GET.get("favoris") == "1"
 
-    workouts = Workout.objects.filter(user=request.user).prefetch_related("muscles")
+    workouts_qs = Workout.objects.filter(user=request.user).prefetch_related("muscles")
     if favorites_only:
-        workouts = workouts.filter(is_favorite=True)
+        workouts_qs = workouts_qs.filter(is_favorite=True)
+
+    workouts = list(workouts_qs)
+    _annotate_equipment(workouts)
 
     context = {"workouts": workouts, "favorites_only": favorites_only}
 
@@ -82,6 +102,13 @@ def _annotate_favorites(user, items: list[WorkoutExercise]) -> None:
         item.exercise.is_favorite = item.exercise_id in favorite_ids
 
 
+def _annotate_body_regions(items: list[WorkoutExercise]) -> None:
+    """Pose `exercise.body_regions` : régions à éclairer sur l'iconographie
+    corporelle, sous la durée de chaque exercice (issue #108)."""
+    for item in items:
+        item.exercise.body_regions = catalog.body_regions(item.exercise.primary_muscles.all())
+
+
 @login_required
 def workout_detail(request: HttpRequest, pk: int) -> HttpResponse:
     """Déroulé d'une séance. Filtré sur l'utilisateur : une séance ne se partage pas."""
@@ -92,7 +119,9 @@ def workout_detail(request: HttpRequest, pk: int) -> HttpResponse:
         pk=pk,
         user=request.user,
     )
-    _annotate_favorites(request.user, list(workout.items.all()))
+    items = list(workout.items.all())
+    _annotate_favorites(request.user, items)
+    _annotate_body_regions(items)
     context = {
         "workout": workout,
         # Bouton de traduction unitaire du rappel d'exercice (issue #31) :
@@ -223,6 +252,7 @@ def workout_exercise_refresh(request: HttpRequest, pk: int, item_pk: int) -> Htt
     except generator.GenerationError:
         failed = True
     _annotate_favorites(request.user, [item])
+    _annotate_body_regions([item])
 
     return render(
         request,

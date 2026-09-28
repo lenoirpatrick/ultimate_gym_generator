@@ -406,4 +406,43 @@ def test_une_fiche_sans_consigne_n_est_pas_envoyee_en_traduction(monkeypatch):
     catalog.import_all(translate=True)
 
     assert [] not in demandes
+
+
+# --------------------------------------------------------------------------- #
+# Régions du corps pour l'iconographie corporelle (issue #108)
+# --------------------------------------------------------------------------- #
+
+
+def _muscle(slug: str, name: str) -> Muscle:
+    """Le catalogue de test précharge déjà certains muscles : `get_or_create`
+    évite une collision d'unicité sur leur slug."""
+    muscle, _ = Muscle.objects.get_or_create(slug=slug, defaults={"name": name})
+    return muscle
+
+
+def test_body_regions_reduit_au_seul_libelle_des_regions():
+    dos = _muscle("lats", "Dorsaux")
+    jambes = _muscle("quadriceps", "Quadriceps")
+
+    assert catalog.body_regions([dos, jambes]) == ["Dos", "Bas du corps"]
+
+
+def test_body_regions_respecte_l_ordre_des_regions():
+    """L'ordre suit `MUSCLE_REGIONS`, pas celui des muscles fournis en entrée."""
+    jambes = _muscle("calves", "Mollets")
+    haut = _muscle("biceps", "Biceps")
+
+    assert catalog.body_regions([jambes, haut]) == ["Haut du corps", "Bas du corps"]
+
+
+def test_body_regions_ecarte_un_muscle_non_mappe():
+    """Un muscle hors `MUSCLE_REGIONS` rejoint « Autres », sans zone dédiée :
+    mieux vaut n'éclairer aucune région qu'un rapprochement hasardeux."""
+    inconnu = _muscle("inclassable", "Inclassable")
+
+    assert catalog.body_regions([inconnu]) == []
+
+
+def test_body_regions_vide_sans_muscle():
+    assert catalog.body_regions([]) == []
     assert Exercise.objects.get(slug="Text_Only_Exercise").instructions_fr == []

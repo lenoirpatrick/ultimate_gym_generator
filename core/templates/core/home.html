@@ -11,18 +11,8 @@
     </p>
 
     <div class="mt-8">
-        {% if user.is_authenticated %}
-            <a href="{% url 'aiproviders:list' %}" class="ugg-btn ugg-btn--primary">
-                Configurer les fournisseurs IA
-            </a>
-        {% else %}
-            <a href="{% url 'accounts:login' %}" class="ugg-btn ugg-btn--primary">Se connecter</a>
-        {% endif %}
+        {# Un visiteur connecté ne voit jamais ce gabarit : core.views.home le renvoie
+           directement vers ses séances (issue #105). #}
+        <a href="{% url 'accounts:login' %}" class="ugg-btn ugg-btn--primary">Se connecter</a>
     </div>
-
-    <p class="mt-12 text-sm text-muted">
-        La génération de programmes n'est pas encore branchée : cette version pose les
-        fondations (base de données, authentification, credentials IA, catalogue
-        d'exercices, socle visuel).
-    </p>
 {% endblock %}

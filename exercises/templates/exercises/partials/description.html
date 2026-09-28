@@ -24,7 +24,14 @@ fois par écran plutôt qu'une fois par fiche), `translation_failed`
     {% if exercise.image_urls %}
         <div class="ugg-exercise__gallery mt-3">
             {% for url in exercise.image_urls %}
+                {% comment %}
+                `id` sur la vignette elle-même (issue #109) : le panneau s'y
+                referme (fond et croix), plutôt que vers un `#` qui ne
+                correspond à aucun élément — un fragment sans cible ramène le
+                navigateur en haut de la page, perdant la position quittée.
+                {% endcomment %}
                 <a href="#exo-{{ dom_id }}-photo-{{ forloop.counter0 }}"
+                   id="exo-{{ dom_id }}-thumb-{{ forloop.counter0 }}"
                    class="ugg-exercise__thumb"
                    aria-label="Agrandir la photo {{ forloop.counter }} de {{ exercise.name }}">
                     <img src="{{ url }}" alt="" loading="lazy" class="ugg-exercise__photo">
@@ -35,18 +42,39 @@ fois par écran plutôt qu'une fois par fiche), `translation_failed`
         Agrandissement en CSS pur (`:target`), sans script : la vignette pointe
         vers son panneau, qui se referme par le fond ou la croix — jamais par
         Échap, qu'aucune règle CSS ne peut intercepter sans JavaScript (même
-        limite assumée que le tiroir de navigation, CLAUDE.md).
+        limite assumée que le tiroir de navigation, CLAUDE.md). Les flèches
+        précédente/suivante (issue #109) pointent vers le panneau voisin, sur
+        le même principe — absentes en première/dernière photo plutôt que de
+        boucler.
         {% endcomment %}
         {% for url in exercise.image_urls %}
             <div class="ugg-lightbox"
                  id="exo-{{ dom_id }}-photo-{{ forloop.counter0 }}"
                  role="dialog"
                  aria-modal="true"
-                 aria-label="{{ exercise.name }}, photo {{ forloop.counter }}"
+                 aria-label="{{ exercise.name }}, photo {{ forloop.counter }} sur {{ exercise.image_urls|length }}"
                  tabindex="-1">
-                <a href="#" class="ugg-lightbox__backdrop" tabindex="-1" aria-hidden="true"></a>
+                <a href="#exo-{{ dom_id }}-thumb-{{ forloop.counter0 }}" class="ugg-lightbox__backdrop" tabindex="-1" aria-hidden="true"></a>
+                {% if not forloop.first %}
+                    <a href="#exo-{{ dom_id }}-photo-{{ forloop.counter0|add:"-1" }}"
+                       class="ugg-lightbox__nav ugg-lightbox__nav--prev"
+                       aria-label="Photo précédente">
+                        <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M15 6l-6 6 6 6" />
+                        </svg>
+                    </a>
+                {% endif %}
                 <img src="{{ url }}" alt="{{ exercise.name }}" class="ugg-lightbox__image">
-                <a href="#" class="ugg-lightbox__close" aria-label="Fermer l'agrandissement">
+                {% if not forloop.last %}
+                    <a href="#exo-{{ dom_id }}-photo-{{ forloop.counter0|add:"1" }}"
+                       class="ugg-lightbox__nav ugg-lightbox__nav--next"
+                       aria-label="Photo suivante">
+                        <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M9 6l6 6-6 6" />
+                        </svg>
+                    </a>
+                {% endif %}
+                <a href="#exo-{{ dom_id }}-thumb-{{ forloop.counter0 }}" class="ugg-lightbox__close" aria-label="Fermer l'agrandissement">
                     <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
                         <path d="M6 6l12 12M18 6L6 18" />
                     </svg>

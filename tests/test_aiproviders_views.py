@@ -5,6 +5,7 @@ import re
 import pytest
 from django.urls import reverse
 
+from aiproviders import fields
 from aiproviders.clients.base import ModelOption, PingResult, ProviderError
 from aiproviders.models import ProviderCredential
 
@@ -22,6 +23,22 @@ def stub_client(monkeypatch, **methods):
 def balises(response) -> str:
     """Rend le HTML sur une ligne, pour des assertions indifférentes à l'indentation."""
     return re.sub(r"\s+", " ", response.content.decode())
+
+
+@pytest.fixture
+def sans_cle_de_chiffrement(settings):
+    """Fabrique qui casse CREDENTIALS_ENCRYPTION_KEY à la demande (issue #102).
+
+    Une fabrique plutôt qu'une bascule automatique : certains tests doivent
+    enregistrer un credential avec une clé valide avant de la casser.
+    """
+
+    def casser() -> None:
+        settings.CREDENTIALS_ENCRYPTION_KEY = ""
+        fields._fernet.cache_clear()
+
+    yield casser
+    fields._fernet.cache_clear()
 
 
 @pytest.mark.django_db
@@ -175,4 +192,67 @@ def test_sans_cle_enregistree_le_modele_reste_une_saisie_libre(staff_client):
     content = balises(staff_client.get(reverse("aiproviders:models", args=["gemini"])))
 
     assert "Enregistre d&#x27;abord une clé" in content
+    assert "<select" not in content
+
+
+# --------------------------------------------------------------------------- #
+# CREDENTIALS_ENCRYPTION_KEY absente côté serveur (issue #102)
+# --------------------------------------------------------------------------- #
+
+
+@pytest.mark.django_db
+def test_l_enregistrement_sans_cle_de_chiffrement_affiche_un_message_actionnable(
+    staff_client, sans_cle_de_chiffrement
+):
+    """Reproduit l'issue #102 : POST /settings/ai/gemini/ ne doit plus planter."""
+    sans_cle_de_chiffrement()
+
+    response = staff_client.post(
+        reverse("aiproviders:edit", args=["gemini"]),
+        {"secret": SECRET, "base_url": "", "default_model": "", "is_active": "on"},
+    )
+    content = response.content.decode()
+
+    assert response.status_code == 503
+    assert "CREDENTIALS_ENCRYPTION_KEY" in content
+    assert not ProviderCredential.objects.filter(provider="gemini").exists()
+
+
+@pytest.mark.django_db
+def test_la_liste_sans_cle_de_chiffrement_affiche_un_message_actionnable(
+    staff_client, sans_cle_de_chiffrement
+):
+    # Enregistrée avant que la clé ne casse : c'est sa lecture qui doit échouer proprement.
+    ProviderCredential.objects.create(provider="gemini", secret=SECRET)
+    sans_cle_de_chiffrement()
+
+    response = staff_client.get(reverse("aiproviders:list"))
+
+    assert response.status_code == 503
+    assert "CREDENTIALS_ENCRYPTION_KEY" in response.content.decode()
+
+
+@pytest.mark.django_db
+def test_le_test_de_connexion_sans_cle_de_chiffrement_affiche_un_message_actionnable(
+    staff_client, sans_cle_de_chiffrement
+):
+    ProviderCredential.objects.create(provider="gemini", secret=SECRET)
+    sans_cle_de_chiffrement()
+
+    response = staff_client.post(reverse("aiproviders:test", args=["gemini"]))
+
+    assert response.status_code == 200
+    assert "CREDENTIALS_ENCRYPTION_KEY" in response.content.decode()
+
+
+@pytest.mark.django_db
+def test_le_choix_des_modeles_sans_cle_de_chiffrement_affiche_un_message_actionnable(
+    staff_client, sans_cle_de_chiffrement
+):
+    ProviderCredential.objects.create(provider="gemini", secret=SECRET)
+    sans_cle_de_chiffrement()
+
+    content = balises(staff_client.get(reverse("aiproviders:models", args=["gemini"])))
+
+    assert "CREDENTIALS_ENCRYPTION_KEY" in content
     assert "<select" not in content

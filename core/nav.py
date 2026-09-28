@@ -48,6 +48,9 @@ class NavGroup:
     trailing_links: tuple[NavLink, ...] = ()
     #: Nom d'icône optionnel, lu par `partials/nav_dropdown.html`.
     icon: str = ""
+    #: Vrai uniquement pour Apple Santé — masqué quand `User.health_enabled`
+    #: est désactivé depuis l'onglet Options du profil (issue #104).
+    requires_health_module: bool = False
 
     @property
     def is_empty(self) -> bool:
@@ -66,6 +69,7 @@ MENU: tuple[NavGroup, ...] = (
     NavGroup(
         "Apple Santé",
         icon="apple-health",
+        requires_health_module=True,
         links=(
             NavLink("Analyse", "health:dashboard"),
             NavLink("Import", "health:import"),
@@ -89,18 +93,24 @@ MENU: tuple[NavGroup, ...] = (
 )
 
 
-def _filtered(group: NavGroup, is_staff: bool) -> NavGroup | None:
-    """Copie de `group` réduite à ce que `is_staff` autorise à voir.
+def _filtered(group: NavGroup, is_staff: bool, health_enabled: bool) -> NavGroup | None:
+    """Copie de `group` réduite à ce que `is_staff`/`health_enabled` autorise à voir.
 
     Un sous-groupe vidé de ses entrées disparaît — un intitulé
     « Configuration » sans rien dessous laisserait croire à un droit manquant
-    plutôt qu'à une section sans objet pour ce compte.
+    plutôt qu'à une section sans objet pour ce compte. Apple Santé disparaît
+    entièrement, du même principe, quand l'utilisateur l'a désactivé
+    (issue #104) — pas un simple intitulé vide.
     """
+    if group.requires_health_module and not health_enabled:
+        return None
+
     links = tuple(link for link in group.links if is_staff or not link.staff_only)
     subgroups = tuple(
         filtered
         for sub in group.subgroups
-        if (filtered := _filtered(sub, is_staff)) is not None and not filtered.is_empty
+        if (filtered := _filtered(sub, is_staff, health_enabled)) is not None
+        and not filtered.is_empty
     )
     filtered_group = NavGroup(
         label=group.label,
@@ -108,6 +118,7 @@ def _filtered(group: NavGroup, is_staff: bool) -> NavGroup | None:
         subgroups=subgroups,
         trailing_links=group.trailing_links,
         icon=group.icon,
+        requires_health_module=group.requires_health_module,
     )
     return None if filtered_group.is_empty else filtered_group
 
@@ -115,5 +126,6 @@ def _filtered(group: NavGroup, is_staff: bool) -> NavGroup | None:
 def menu_for(user) -> list[NavGroup]:
     """Menu complet, réduit aux entrées que `user` a le droit de voir."""
     is_staff = bool(getattr(user, "is_staff", False))
-    groups = (_filtered(group, is_staff) for group in MENU)
+    health_enabled = bool(getattr(user, "health_enabled", True))
+    groups = (_filtered(group, is_staff, health_enabled) for group in MENU)
     return [group for group in groups if group is not None]

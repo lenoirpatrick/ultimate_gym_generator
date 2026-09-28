@@ -104,6 +104,12 @@ class User(AbstractUser):
         validators=[MinValueValidator(Decimal("25.0")), MaxValueValidator(Decimal("350.0"))],
     )
 
+    health_enabled = models.BooleanField(
+        "Apple Santé activée",
+        default=True,
+        help_text="Affiche le groupe Apple Santé dans le menu (issue #104).",
+    )
+
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS: list[str] = []
 

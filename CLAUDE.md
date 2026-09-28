@@ -127,9 +127,17 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
   `core.nav.menu_for(user)` filtre récursivement selon `is_staff` et retire
   toute section devenue vide (`NavGroup.is_empty`) ; un intitulé
   « Configuration » sans rien dessous laisserait croire à un droit manquant
-  plutôt qu'à une section sans objet pour ce compte.
+  plutôt qu'à une section sans objet pour ce compte. Apple Santé disparaît
+  entièrement du même principe (`NavGroup.requires_health_module`, issue
+  #104) quand `User.health_enabled` est désactivé depuis l'onglet Options du
+  profil — jamais un intitulé vide.
 - Ouverture par `<details>`, sans JavaScript : le panneau se referme à la
-  navigation et à `Échap`, pas au clic extérieur — limite assumée.
+  navigation et à `Échap`, pas au clic extérieur — limite assumée. Les trois
+  `<details>` de la barre partagent en revanche un même `name="ugg-nav-group"`
+  (issue #103) : attribut natif qui les rend mutuellement exclusifs — en
+  ouvrir un referme les autres — là où ils pouvaient auparavant rester
+  ouverts ensemble et se chevaucher. Un navigateur qui ne le reconnaît pas
+  encore retombe simplement sur l'ancien comportement, sans rien casser.
 - L'écran courant porte `aria-current="page"` et un liseré d'accent, jamais une
   simple différence de couleur.
 
@@ -404,7 +412,19 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
   le nom de l'exercice, en gros et en accent, aligné à droite d'une colonne fixe pour que
   l'œil le retrouve sans chercher.
 - Ordre imposé : **durée d'effort → repos → nombre de tours → exercice → charge**. La
-  charge est accentuée, jamais le matériel.
+  charge est accentuée, jamais le matériel. L'unité d'un temps reste en **minuscule**
+  dans un libellé sinon tout en capitales (`.ugg-set__unit`, issue #108) — un « S » de
+  repos, en majuscule, se confond avec une abréviation.
+- Sous la durée/répétitions de chaque exercice, une **iconographie corporelle**
+  (`core/components/body_map.html`, issue #108) éclaire en accent les régions du corps
+  sollicitées (`exercises.catalog.body_regions`, posé par
+  `workouts.views._annotate_body_regions`) — le reste dans le ton discret des bordures,
+  jamais la seule couleur : un `aria-label` porte la même information en texte.
+  Schématique, pas une planche anatomique — pas de vue arrière dédiée pour le dos, dont
+  la zone est la bande centrale du buste, éclairée indépendamment du haut du corps qui
+  l'entoure. Un exercice dont aucun muscle n'est mappé à une région (`Autres`) n'affiche
+  aucune icône plutôt qu'un rapprochement hasardeux (même principe que le rappel
+  d'exercice associé à une activité Apple Santé, issue #82).
 - Un bloc tient d'un seul tenant dans une carte ; on ne coupe pas un bloc entre deux écrans.
 - Les conseils rédigés par l'IA sont un **habillage** : ils arrivent après la séance, et
   leur absence ne produit aucun message au premier chargement automatique. Une fois des
@@ -418,11 +438,14 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
   d'état » ci-dessous) ; l'historique propose alors le même critère « Mes favoris
   uniquement » que le catalogue.
 - La **carte d'une séance dans l'historique** (`workouts/partials/workout_results.html`,
-  issue #35 suite) s'empile sous `40rem` : titre/date, indicateurs et bouton favori
-  occupent chacun leur propre ligne pleine largeur — les partager sur une seule ligne
-  écrasait le titre. À partir de `sm:`, ils reviennent sur une seule ligne qui s'enroule
-  (`flex-wrap`), le bouton favori ne s'étirant jamais en pleine largeur (`self-start` /
-  `sm:self-auto`).
+  issue #107) se lit en **deux parties**, quelle que soit la largeur d'écran — une liste
+  de muscles longue ne doit jamais repousser le bouton favori loin du titre qu'il
+  qualifie. La première regroupe titre, date, bouton favori et durée (`.ugg-tag--accent`)
+  — favori et durée sous le nom et la date, jamais à droite sur la même ligne. La
+  seconde, sur sa propre ligne, ce qui a été travaillé : muscles (ou « Tout le corps »)
+  puis matériel utilisé (`workout.equipment_labels`, posé par
+  `workouts.views._annotate_equipment` — une requête pour tout l'historique plutôt
+  qu'une par séance, même mécanique que `_annotate_favorites`).
 - Une séance peut être **nommée** (`Workout.name`, facultatif), soit dès la composition
   (`WorkoutForm.name`, issue #44), soit ensuite depuis l'écran de détail. Le nom remplace
   alors l'intitulé du format en tête d'écran (`Workout.display_name`), et le format
@@ -665,6 +688,14 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
   l'onglet fermé) — voir `exercises.catalog.group_by_region` et
   `workouts/templates/workouts/partials/muscle_regions.html`. Le champ reste un
   `ModelMultipleChoiceField` unique ; le regroupement n'est qu'un habillage d'affichage.
+  Chaque région propose en tête de panneau une case **« Tout sélectionner »**
+  (`.ugg-filter__option--all`, bordure en pointillés, issue #106) qui coche ou décoche
+  toutes les cases de sa région — utile pour cibler « tout le haut du corps » sans cocher
+  chaque muscle un par un. Sans `name`, elle ne voyage jamais dans le POST : un pur
+  raccourci d'interface, tenu à jour par `core/static/core/js/muscle_region_select_all.js`
+  (état coché/décoché/indéterminé selon les cases de sa région). Aucune case ne peut
+  refléter l'état de plusieurs autres en CSS seul — même exception assumée que le minuteur
+  de séance (JavaScript plutôt que CSS pur, faute d'alternative).
 - Le **matériel pris en compte** se coche directement dans son encart, en puces
   `.ugg-filter__option--standalone` — jamais en lecture seule (issue #32). Un choix par
   matériel réellement configuré, coché par défaut, mais indépendant de la configuration
@@ -725,7 +756,13 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
 - Les illustrations d'une fiche sont des vignettes cliquables qui s'agrandissent en plein
   écran (`.ugg-lightbox`), bascule pilotée en CSS pur par `:target` — aucun script. Le
   panneau se referme par le fond ou par la croix, jamais par Échap, qu'aucune règle CSS ne
-  peut intercepter sans JavaScript (même limite assumée que le tiroir de navigation).
+  peut intercepter sans JavaScript (même limite assumée que le tiroir de navigation). Fond
+  et croix referment vers l'**id de la vignette elle-même** (`exo-{dom_id}-thumb-{n}`,
+  issue #109), pas vers un `#` sans cible : un fragment qui ne correspond à aucun élément
+  ramène le navigateur en haut de la page, perdant la position quittée pour l'ouvrir. Une
+  galerie de plusieurs photos propose aussi des flèches **précédente/suivante**
+  (`.ugg-lightbox__nav`, même bascule `:target` — le panneau voisin devient la nouvelle
+  cible), absentes en première/dernière photo plutôt que de boucler.
 
 ### Référentiel d'exercices
 
@@ -750,6 +787,30 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
   lui-même (`hx-swap="outerHTML"`) ; un échec affiche un message et laisse le bouton en
   place pour réessayer — seul cas où une panne de fournisseur IA reste visible, parce que
   l'action est volontaire, pas une récupération en arrière-plan.
+
+### Profil (issue #104)
+
+- La page profil (`/profil/`) se lit en **trois onglets** — Identité, Mesures, Options —
+  plutôt qu'une longue page à faire défiler. Premier composant `.ugg-tabs` du projet :
+  radios masqués + libellés cliquables, `:has()` bascule le panneau correspondant — même
+  absence de JavaScript que le reste des panneaux repliables. Appariement **par
+  position** (`:nth-of-type`), pas par id : `:has()` ne sait pas comparer la valeur de
+  deux attributs entre eux, mais un même rang suffit — le n-ième radio ouvre le n-ième
+  panneau. Convention à respecter dans tout gabarit qui réutilise `.ugg-tabs` : les
+  panneaux d'un même jeu partagent tous la même balise, sans en mélanger d'autres du
+  même type au même niveau, sans quoi le rang se décale.
+- Les radios d'onglet vivent **hors du `<form>`** qui porte les champs : un pur contrôle
+  d'affichage, jamais une valeur soumise — le formulaire reste un unique `POST`, quel
+  que soit l'onglet ouvert au moment d'Enregistrer.
+- Une erreur de validation sur un champ **rouvre l'onglet qui le porte**
+  (`accounts.views._active_profile_tab`, à partir de `form.errors`) plutôt que de
+  rester sur Identité par défaut — une erreur cachée derrière un onglet fermé serait
+  invisible.
+- **Options** ne porte pour l'instant qu'un seul réglage : **Apple Santé activée**
+  (`User.health_enabled`, coché par défaut). Décoché, le groupe Apple Santé disparaît
+  entièrement du menu (voir « Navigation principale » ci-dessus) — la désactivation ne
+  bloque pas pour autant l'accès direct aux pages `/sante/…` : c'est un réglage
+  d'affichage, pas un verrou.
 
 ### Avatars
 

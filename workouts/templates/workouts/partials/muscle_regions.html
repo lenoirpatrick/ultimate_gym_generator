@@ -5,6 +5,16 @@ de catalogue) : panneau repliable, déplié dès qu'une case de la région est
 cochée, compteur de sélections visible sur l'onglet fermé.
 
 Attend `regions` (form.muscle_regions).
+
+Chaque groupe porte en plus une case « Tout sélectionner » (issue #106) :
+cocher toute une région entraînée (ex. tout le haut du corps) exigeait
+jusque-là de cocher chaque muscle un par un. Sans `name`, elle ne voyage
+jamais dans le POST — un pur raccourci d'interface, coché/décoché et mis à
+l'état indéterminé par `core/static/core/js/muscle_region_select_all.js`
+selon l'état des cases de sa région. Aucune case à cocher liée ne peut
+autrement refléter l'état de plusieurs autres en CSS seul (contrairement au
+reste de la navigation, sans JavaScript) — même exception assumée que le
+minuteur de séance.
 {% endcomment %}
 <div class="grid gap-3 sm:grid-cols-2">
     {% for region in regions %}
@@ -19,6 +29,12 @@ Attend `regions` (form.muscle_regions).
             </summary>
             <fieldset class="ugg-filter__options">
                 <legend class="sr-only">{{ region.label }}</legend>
+                <label class="ugg-filter__option ugg-filter__option--all">
+                    <input type="checkbox"
+                           data-muscle-region-toggle
+                           aria-label="Tout sélectionner : {{ region.label }}">
+                    <span>Tout sélectionner</span>
+                </label>
                 {% for box in region.boxes %}
                     <label class="ugg-filter__option">
                         {{ box.tag }}

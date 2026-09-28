@@ -89,6 +89,19 @@ def group_by_region(muscles) -> dict[str, list]:
     return {region: items for region, items in grouped.items() if items}
 
 
+def body_regions(muscles) -> list[str]:
+    """Régions du corps sollicitées par un ensemble de muscles (issue #108).
+
+    Réduit `group_by_region` à la seule liste des régions concernées, pour
+    l'iconographie corporelle du déroulé de séance — qui n'a besoin que de
+    savoir lesquelles éclairer, pas le détail des muscles qu'elles couvrent.
+    `Autres` (muscle non mappé) n'a pas de zone dans l'icône : mieux vaut ne
+    rien éclairer qu'un rapprochement hasardeux (même principe que le rappel
+    d'exercice associé à une activité Apple Santé, issue #82).
+    """
+    return [region for region in group_by_region(muscles) if region != OTHER_REGION]
+
+
 class CatalogError(Exception):
     """Source de catalogue absente ou illisible, avec un message actionnable."""
 

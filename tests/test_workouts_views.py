@@ -146,6 +146,20 @@ def test_le_formulaire_affiche_les_regions_du_corps(logged_client):
         assert region in content
 
 
+def test_chaque_region_propose_une_case_tout_selectionner(logged_client):
+    """Issue #106 : cocher toute une région sans cocher chaque muscle un par un."""
+    content = logged_client.get(reverse("workouts:create")).content.decode()
+
+    # Une case par région (Haut du corps, Dos, Tronc, Bas du corps).
+    assert content.count("data-muscle-region-toggle") == 4
+    assert "Tout sélectionner : Haut du corps" in content
+
+    # Pur raccourci d'interface, jamais une valeur du champ « muscles » :
+    # sans `name`, elle ne peut pas voyager dans le POST.
+    toggle_tag = re.search(r"<input[^>]*data-muscle-region-toggle[^>]*>", content).group()
+    assert "name=" not in toggle_tag
+
+
 def test_le_formulaire_affiche_une_bulle_d_aide_par_format(logged_client):
     content = logged_client.get(reverse("workouts:create")).content.decode()
 
@@ -288,7 +302,8 @@ def test_la_seance_affiche_son_deroule(logged_client, user):
     assert "Bloc 1" in content
     # Le minutage doit être lisible d'un coup d'œil, entre deux séries.
     assert "20s" in content
-    assert "10s repos" in content
+    # L'unité reste en minuscule, isolée dans son propre élément (issue #108).
+    assert '10<span class="ugg-set__unit">s</span> repos' in content
 
 
 def test_la_seance_affiche_les_charges_proposees(logged_client, user):
@@ -312,15 +327,34 @@ def test_l_historique_liste_les_seances(logged_client, user):
     assert reverse("workouts:detail", args=[workout.pk]) in content
 
 
-def test_la_carte_de_seance_s_empile_sous_40rem(logged_client, user):
-    """Titre/date, indicateurs et bouton favori tiennent chacun leur propre
-    ligne pleine largeur en dessous de 40rem — une seule ligne au-delà
-    (issue #35 suite)."""
+def test_la_carte_de_seance_a_deux_parties(logged_client, user):
+    """Issue #107 : titre/date/favori/durée d'abord, muscles/matériel ensuite —
+    le favori ne doit jamais se retrouver loin du titre, quelle que soit la
+    largeur d'écran (plus de bascule `sm:`, contrairement à l'issue #35 suite)."""
     composer(logged_client)
 
     content = logged_client.get(reverse("workouts:list")).content.decode()
 
-    assert "flex flex-col gap-3 p-4 sm:flex-row" in content
+    assert "ugg-card grid gap-3 p-4" in content
+    # Le favori est rendu dans le premier bloc (titre/date), pas dans le
+    # second (muscles/matériel) : il précède la liste des muscles/« Tout le
+    # corps » dans le document.
+    assert content.index("aria-pressed") < content.index("Tout le corps")
+
+
+def test_la_carte_de_seance_liste_le_materiel_utilise(logged_client, user):
+    """Issue #107 : le matériel réellement utilisé, pas seulement les muscles."""
+    composer(logged_client)
+
+    workout = Workout.objects.get(user=user)
+    used = {
+        item.exercise.get_equipment_display() or "Poids du corps" for item in workout.items.all()
+    }
+
+    content = logged_client.get(reverse("workouts:list")).content.decode()
+
+    for label in used:
+        assert label in content
 
 
 def test_la_seance_d_un_autre_utilisateur_est_introuvable(logged_client, staff_client, user):
@@ -977,3 +1011,40 @@ def test_la_timeline_ne_porte_aucune_photo_sans_illustration(logged_client, user
     content = logged_client.get(reverse("workouts:detail", args=[workout.pk])).content.decode()
 
     assert 'data-photos=""' in content
+
+
+# --------------------------------------------------------------------------- #
+# Iconographie corporelle et unité de repos (issue #108)
+# --------------------------------------------------------------------------- #
+
+
+def test_l_unite_de_repos_reste_en_minuscule(logged_client, user):
+    """Un « S » de repos en majuscule se confond avec une abréviation."""
+    squat = Exercise.objects.get(slug="Barbell_Squat")
+    workout = build_workout(user, squat)
+
+    content = logged_client.get(reverse("workouts:detail", args=[workout.pk])).content.decode()
+
+    assert '<span class="ugg-set__unit">s</span> repos' in content
+
+
+def test_l_icone_corporelle_eclaire_la_region_sollicitee(logged_client, user):
+    """Barbell_Squat ne cible que les quadriceps (bas du corps, fixture de test)."""
+    squat = Exercise.objects.get(slug="Barbell_Squat")
+    workout = build_workout(user, squat)
+
+    content = logged_client.get(reverse("workouts:detail", args=[workout.pk])).content.decode()
+
+    assert 'aria-label="Muscles sollicités : Bas du corps"' in content
+    assert "ugg-body-map__zone--active" in content
+
+
+def test_l_icone_corporelle_est_absente_sans_muscle_mappe(logged_client, user):
+    """Aucun muscle mappé à une région : rien à éclairer, plutôt qu'un
+    rapprochement hasardeux (même principe que l'issue #82)."""
+    minimal = Exercise.objects.get(slug="Text_Only_Exercise")
+    workout = build_workout(user, minimal)
+
+    content = logged_client.get(reverse("workouts:detail", args=[workout.pk])).content.decode()
+
+    assert "ugg-body-map" not in content

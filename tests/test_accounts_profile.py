@@ -1,6 +1,7 @@
 """Profil : édition en libre-service et dépôt d'avatar."""
 
 import io
+import re
 from decimal import Decimal
 
 import pytest
@@ -15,6 +16,10 @@ PROFILE_PAYLOAD = {
     "gender": "F",
     "height_cm": "172",
     "weight_kg": "64.5",
+    # Reflète une case cochée par défaut (issue #104) : un navigateur réel
+    # soumet l'état courant de la case même sur un onglet non visité, une
+    # case décochée absente du payload ne l'est jamais par accident.
+    "health_enabled": "on",
 }
 
 
@@ -88,6 +93,45 @@ def test_l_utilisateur_ne_peut_pas_se_donner_les_droits_par_le_profil(logged_cli
 
     user.refresh_from_db()
     assert user.is_staff is False
+
+
+# --------------------------------------------------------------------------- #
+# Onglets et option Apple Santé (issue #104)
+# --------------------------------------------------------------------------- #
+
+
+@pytest.mark.django_db
+def test_le_profil_propose_trois_onglets(logged_client):
+    content = logged_client.get(reverse("accounts:profile")).content.decode()
+
+    assert content.count('class="ugg-tabs__input"') == 3
+    assert ">Identité<" in content
+    assert ">Mesures<" in content
+    assert ">Options<" in content
+
+
+@pytest.mark.django_db
+def test_apple_sante_est_activee_par_defaut(user):
+    assert user.health_enabled is True
+
+
+@pytest.mark.django_db
+def test_l_utilisateur_desactive_apple_sante(logged_client, user):
+    logged_client.post(reverse("accounts:profile"), PROFILE_PAYLOAD | {"health_enabled": ""})
+
+    user.refresh_from_db()
+    assert user.health_enabled is False
+
+
+@pytest.mark.django_db
+def test_une_erreur_sur_les_mesures_rouvre_cet_onglet(logged_client):
+    """Une erreur cachée derrière un onglet fermé par défaut serait invisible."""
+    response = logged_client.post(
+        reverse("accounts:profile"), PROFILE_PAYLOAD | {"height_cm": "400"}
+    )
+    content = response.content.decode()
+
+    assert re.search(r'id="profil-tab-mesures"\s+class="ugg-tabs__input" checked', content)
 
 
 @pytest.mark.django_db

@@ -4,7 +4,7 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.db import connection
 from django.http import Http404, HttpRequest, HttpResponse, JsonResponse
-from django.shortcuts import render
+from django.shortcuts import redirect, render
 
 # Rôles sémantiques exposés par le référentiel visuel. Les valeurs vivent dans
 # assets/css/tokens.css — on ne référence ici que les noms de variables.
@@ -24,6 +24,13 @@ COLOR_SWATCHES = (
 
 
 def home(request: HttpRequest) -> HttpResponse:
+    """Vitrine publique pour un visiteur non connecté (issue #105).
+
+    Une fois connecté, plus rien à vendre : direction les séances, l'écran
+    réellement utile au quotidien.
+    """
+    if request.user.is_authenticated:
+        return redirect("workouts:list")
     return render(request, "core/home.html")
 
 
@@ -112,6 +119,16 @@ def style_guide(request: HttpRequest) -> HttpResponse:
             "workout_form_demo": WorkoutForm(),
             # Une icône par matériel du référentiel (issue #37).
             "equipment_choices": Exercise.Equipment.choices,
+            # Iconographie corporelle du déroulé de séance (issue #108) :
+            # combinaisons illustrant une région seule, plusieurs, et aucune.
+            "body_map_demo": [
+                ["Haut du corps"],
+                ["Dos"],
+                ["Tronc"],
+                ["Bas du corps"],
+                ["Dos", "Bas du corps"],
+                [],
+            ],
             # Indicateur clé (issue #72) : les trois formes de tendance possibles.
             "kpi_demos": [
                 Kpi(

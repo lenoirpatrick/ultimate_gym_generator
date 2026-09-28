@@ -210,6 +210,24 @@
     </section>
 
     <section class="mt-12">
+        <h2 class="ugg-title text-xl">Iconographie corporelle</h2>
+        <p class="mt-2 text-muted">
+            Sous la durée de chaque exercice du déroulé de séance : les régions
+            sollicitées en accent, le reste dans le ton discret des bordures
+            (issue #108). Schématique, pas une planche anatomique — le dos n'a pas
+            de vue arrière dédiée, sa zone est la bande centrale du buste.
+        </p>
+        <div class="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
+            {% for demo_regions in body_map_demo %}
+                <div class="ugg-card flex flex-col items-center p-4 text-center">
+                    {% include "core/components/body_map.html" with regions=demo_regions %}
+                    <p class="mt-2 text-xs text-muted">{{ demo_regions|join:", " }}</p>
+                </div>
+            {% endfor %}
+        </div>
+    </section>
+
+    <section class="mt-12">
         <h2 class="ugg-title text-xl">Couleurs</h2>
         <div class="mt-6 grid gap-3 sm:grid-cols-3 lg:grid-cols-5">
             {% for name, var in swatches %}
@@ -263,6 +281,30 @@
                     <button type="button" class="ugg-btn ugg-btn--ghost">Passer</button>
                     <button type="button" class="ugg-btn ugg-btn--danger">Arrêter</button>
                 </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="mt-12">
+        <h2 class="ugg-title text-xl">Onglets</h2>
+        <p class="mt-2 text-muted">
+            Radios et libellés, <code class="font-mono">:has()</code> bascule le panneau —
+            aucun script (issue #104, page profil). Un jeu d'onglets par écran, ses radios
+            hors du formulaire qu'ils accompagnent : un pur contrôle d'affichage, jamais
+            une valeur soumise.
+        </p>
+        <div class="ugg-tabs mt-6">
+            <div class="ugg-tabs__list" role="tablist">
+                <input type="radio" name="demo-onglet" id="demo-tab-a" class="ugg-tabs__input" checked>
+                <label for="demo-tab-a" class="ugg-tabs__tab" role="tab">Premier</label>
+                <input type="radio" name="demo-onglet" id="demo-tab-b" class="ugg-tabs__input">
+                <label for="demo-tab-b" class="ugg-tabs__tab" role="tab">Second</label>
+            </div>
+            <div class="ugg-tabs__panel mt-4" data-tab="a">
+                <p class="text-sm text-muted">Contenu du premier onglet.</p>
+            </div>
+            <div class="ugg-tabs__panel mt-4" data-tab="b">
+                <p class="text-sm text-muted">Contenu du second onglet.</p>
             </div>
         </div>
     </section>
