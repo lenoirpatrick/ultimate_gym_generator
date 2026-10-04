@@ -39,7 +39,10 @@ liste de muscles longue — puis, sur sa propre ligne, ce qui a été travaillé
             </p>
         </article>
     {% empty %}
-        {% if favorites_only %}
+        {% if search_query or selected_zones %}
+            {% url 'workouts:list' as all_url %}
+            {% include "core/components/empty_state.html" with title="Aucune séance trouvée" body="Aucune séance ne correspond à cette recherche. Retire un filtre ou change de mot." action_url=all_url action_label="Voir toutes les séances" %}
+        {% elif favorites_only %}
             {% url 'workouts:list' as all_url %}
             {% include "core/components/empty_state.html" with title="Aucun favori" body="Marque une séance en favori pour la retrouver ici." action_url=all_url action_label="Voir toutes les séances" %}
         {% else %}

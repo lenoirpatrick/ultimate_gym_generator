@@ -6,7 +6,7 @@ import pytest
 from django.urls import reverse
 
 from accounts.models import UserEquipment
-from exercises.models import Exercise
+from exercises.models import Exercise, Muscle
 from workouts import generator
 from workouts.models import Workout, WorkoutExercise
 
@@ -1048,3 +1048,121 @@ def test_l_icone_corporelle_est_absente_sans_muscle_mappe(logged_client, user):
     content = logged_client.get(reverse("workouts:detail", args=[workout.pk])).content.decode()
 
     assert "ugg-body-map" not in content
+
+
+# --------------------------------------------------------------------------- #
+# Recherche et filtres rapides de l'historique (issue #116)
+# --------------------------------------------------------------------------- #
+
+
+@pytest.fixture
+def seances(user):
+    """Une séance « bras » nommée et une séance « jambes » sans nom."""
+    biceps = Muscle.objects.get_or_create(slug="biceps", defaults={"name": "Biceps"})[0]
+    quads = Muscle.objects.get_or_create(slug="quadriceps", defaults={"name": "Quadriceps"})[0]
+    bras = Workout.objects.create(
+        user=user, format=Workout.Format.CIRCUIT, name="Pompes du matin", duration_minutes=20
+    )
+    bras.muscles.add(biceps)
+    jambes = Workout.objects.create(user=user, format=Workout.Format.HIIT, duration_minutes=30)
+    jambes.muscles.add(quads)
+    return bras, jambes
+
+
+def _liste(client, **params) -> str:
+    return client.get(reverse("workouts:list"), params).content.decode()
+
+
+def _present(content: str, workout: Workout) -> bool:
+    return reverse("workouts:detail", args=[workout.pk]) in content
+
+
+def test_la_recherche_porte_sur_le_nom(logged_client, seances):
+    bras, jambes = seances
+
+    content = _liste(logged_client, q="pompes")
+
+    assert _present(content, bras)
+    assert not _present(content, jambes)
+
+
+def test_la_recherche_porte_sur_les_muscles(logged_client, seances):
+    bras, jambes = seances
+
+    content = _liste(logged_client, q="QUADRI")
+
+    assert _present(content, jambes)
+    assert not _present(content, bras)
+
+
+def test_la_recherche_porte_sur_le_libelle_du_format(logged_client, seances):
+    _, jambes = seances
+
+    content = _liste(logged_client, q=jambes.get_format_display())
+
+    assert _present(content, jambes)
+
+
+def test_une_zone_rapide_restreint_aux_seances_concernees(logged_client, seances):
+    bras, jambes = seances
+
+    content = _liste(logged_client, zone="bras")
+
+    assert _present(content, bras)
+    assert not _present(content, jambes)
+
+
+def test_plusieurs_zones_s_additionnent(logged_client, seances):
+    bras, jambes = seances
+
+    content = _liste(logged_client, zone=["bras", "jambes"])
+
+    assert _present(content, bras)
+    assert _present(content, jambes)
+
+
+def test_zone_et_recherche_se_cumulent(logged_client, seances):
+    bras, jambes = seances
+
+    content = _liste(logged_client, zone="bras", q="quadri")
+
+    assert not _present(content, bras)
+    assert not _present(content, jambes)
+
+
+def test_une_zone_inconnue_est_ignoree(logged_client, seances):
+    bras, jambes = seances
+
+    content = _liste(logged_client, zone="oreilles")
+
+    assert _present(content, bras)
+    assert _present(content, jambes)
+
+
+def test_une_recherche_sans_resultat_le_dit(logged_client, seances):
+    content = _liste(logged_client, q="introuvable")
+
+    assert "Aucune séance trouvée" in content
+
+
+def test_la_recherche_ne_voit_pas_les_seances_d_un_autre(logged_client, staff_client, seances):
+    bras, _ = seances
+
+    assert not _present(
+        staff_client.get(reverse("workouts:list"), {"q": "pompes"}).content.decode(), bras
+    )
+
+
+def test_le_formulaire_propose_recherche_et_zones(logged_client):
+    content = _liste(logged_client)
+
+    assert 'name="q"' in content
+    for zone in ("bras", "jambes", "dos", "abdos"):
+        assert f'name="zone" value="{zone}"' in content
+
+
+def test_la_selection_reste_cochee_apres_filtrage(logged_client, seances):
+    content = _liste(logged_client, zone="dos", q="x")
+
+    assert re.search(r'value="dos"\s+checked', content)
+    assert 'value="x"' in content

@@ -446,6 +446,15 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
   puis matériel utilisé (`workout.equipment_labels`, posé par
   `workouts.views._annotate_equipment` — une requête pour tout l'historique plutôt
   qu'une par séance, même mécanique que `_annotate_favorites`).
+- L'**historique** se filtre par **recherche texte** (`.ugg-search`, champ `q`, issue
+  #116 — nom, format, muscles et matériel, sans casse) et par **zones rapides**
+  Bras / Jambes / Dos / Abdos (`exercises.catalog.QUICK_ZONES`, puces
+  `.ugg-filter__option--standalone` cumulables en OU, ET avec la recherche et les
+  favoris). Même patron dynamique que le catalogue : un seul formulaire, second
+  déclencheur HTMX débouncé (`keyup changed delay:400ms`), adresse réécrite. Découpage
+  volontairement plus grossier que les régions de composition (`MUSCLE_REGIONS`) : un
+  filtre d'historique se manie au pouce. Une recherche sans résultat a son propre état
+  vide, distinct de « Aucun favori » et de « Aucune séance ».
 - Une séance peut être **nommée** (`Workout.name`, facultatif), soit dès la composition
   (`WorkoutForm.name`, issue #44), soit ensuite depuis l'écran de détail. Le nom remplace
   alors l'intitulé du format en tête d'écran (`Workout.display_name`), et le format

@@ -67,6 +67,19 @@ MUSCLE_REGIONS: dict[str, tuple[str, ...]] = {
     ),
 }
 
+#: Filtres rapides de l'historique des séances (issue #116) : un découpage plus
+#: grossier et plus parlant que `MUSCLE_REGIONS` pour retrouver une séance d'un
+#: coup de pouce. Clé = valeur du paramètre d'adresse, valeur = (libellé, slugs).
+QUICK_ZONES: dict[str, tuple[str, tuple[str, ...]]] = {
+    "bras": ("Bras", ("biceps", "triceps", "forearms")),
+    "jambes": (
+        "Jambes",
+        ("quadriceps", "hamstrings", "glutes", "calves", "abductors", "adductors"),
+    ),
+    "dos": ("Dos", MUSCLE_REGIONS["Dos"]),
+    "abdos": ("Abdos", ("abdominals",)),
+}
+
 #: Libellé du groupe accueillant un muscle inconnu des régions ci-dessus.
 OTHER_REGION = "Autres"
 

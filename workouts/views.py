@@ -31,6 +31,24 @@ def _annotate_equipment(workouts: list[Workout]) -> None:
         workout.equipment_labels = sorted(labels_by_workout[workout.pk])
 
 
+def _matches_search(workout: Workout, query: str) -> bool:
+    """Recherche texte (issue #116) : nom, format, muscles et matériel.
+
+    En Python plutôt qu'en SQL : le format est stocké sous son code, pas son
+    libellé affiché, et le matériel est calculé (`_annotate_equipment`). Un
+    historique personnel reste assez petit pour que ce soit sans conséquence.
+    """
+    haystack = " ".join(
+        [
+            workout.display_name,
+            workout.get_format_display(),
+            *(muscle.name for muscle in workout.muscles.all()),
+            *workout.equipment_labels,
+        ]
+    ).casefold()
+    return query.casefold() in haystack
+
+
 @login_required
 def workout_list(request: HttpRequest) -> HttpResponse:
     """Séances passées de l'utilisateur, la plus récente en tête.
@@ -39,15 +57,32 @@ def workout_list(request: HttpRequest) -> HttpResponse:
     exercises.views.exercise_list pour le même principe.
     """
     favorites_only = request.GET.get("favoris") == "1"
+    search_query = request.GET.get("q", "").strip()
+    selected_zones = [z for z in request.GET.getlist("zone") if z in catalog.QUICK_ZONES]
 
     workouts_qs = Workout.objects.filter(user=request.user).prefetch_related("muscles")
     if favorites_only:
         workouts_qs = workouts_qs.filter(is_favorite=True)
+    if selected_zones:
+        # Plusieurs zones s'additionnent (OU), comme les critères du catalogue.
+        slugs = [slug for z in selected_zones for slug in catalog.QUICK_ZONES[z][1]]
+        workouts_qs = workouts_qs.filter(muscles__slug__in=slugs).distinct()
 
     workouts = list(workouts_qs)
     _annotate_equipment(workouts)
+    if search_query:
+        workouts = [w for w in workouts if _matches_search(w, search_query)]
 
-    context = {"workouts": workouts, "favorites_only": favorites_only}
+    context = {
+        "workouts": workouts,
+        "favorites_only": favorites_only,
+        "search_query": search_query,
+        "selected_zones": selected_zones,
+        "zones": [
+            {"key": key, "label": label, "checked": key in selected_zones}
+            for key, (label, _slugs) in catalog.QUICK_ZONES.items()
+        ],
+    }
 
     if request.headers.get("HX-Request"):
         return render(request, "workouts/partials/workout_results.html", context)
