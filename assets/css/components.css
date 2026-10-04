@@ -1761,6 +1761,7 @@
 .ugg-equipment-row:has(select[name$="-equipment"] option[value="medicine ball"]:checked) .ugg-equipment__icon--medicine-ball,
 .ugg-equipment-row:has(select[name$="-equipment"] option[value="exercise ball"]:checked) .ugg-equipment__icon--exercise-ball,
 .ugg-equipment-row:has(select[name$="-equipment"] option[value="foam roll"]:checked) .ugg-equipment__icon--foam-roll,
+.ugg-equipment-row:has(select[name$="-equipment"] option[value="jump rope"]:checked) .ugg-equipment__icon--jump-rope,
 .ugg-equipment-row:has(select[name$="-equipment"] option[value="other"]:checked) .ugg-equipment__icon--other {
     display: block;
 }

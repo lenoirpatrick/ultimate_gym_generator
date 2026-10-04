@@ -741,6 +741,12 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
   disponible, quelle que soit la configuration de l'utilisateur — le proposer ici
   laisserait croire qu'il faut le cocher comme le reste. Exclu à la fois du `<select>`
   (`EquipmentForm.__init__`) et des icônes (même constante partagée).
+- La **corde à sauter** (`Exercise.Equipment.JUMP_ROPE`, issue #117) est un matériel
+  à part entière, avec son pictogramme (poignées + arc) : le catalogue livré n'a qu'une
+  fiche qui l'emploie (`Rope_Jumping`, classée « other » par la source), reclassée par
+  `exercises.catalog.EQUIPMENT_OVERRIDES` plutôt que par édition du JSON vendoré, et par
+  la migration `exercises.0004` pour une base déjà chargée. Mode de charge « Sans
+  charge » en pratique : une corde n'a pas de poids à régler.
 - Les lignes s'affichent **dans l'ordre où elles ont été déclarées**, pas alphabétique
   (`UserEquipment.Meta.ordering = ("id",)`) : c'est dans cet ordre qu'elles existent
   pour l'utilisateur qui les a saisies.

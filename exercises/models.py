@@ -99,6 +99,7 @@ class Exercise(models.Model):
         MEDICINE_BALL = "medicine ball", "Médecine ball"
         EXERCISE_BALL = "exercise ball", "Ballon de gym"
         FOAM_ROLL = "foam roll", "Rouleau de massage"
+        JUMP_ROPE = "jump rope", "Corde à sauter"
         OTHER = "other", "Autre"
 
     slug = models.SlugField("identifiant", max_length=80, unique=True)

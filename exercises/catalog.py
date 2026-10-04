@@ -80,6 +80,11 @@ QUICK_ZONES: dict[str, tuple[str, tuple[str, ...]]] = {
     "abdos": ("Abdos", ("abdominals",)),
 }
 
+#: Matériel corrigé par fiche (issue #117). La source classe la corde à sauter
+#: sous « other », faute de valeur dédiée : c'est le seul exercice du catalogue
+#: livré qui l'emploie (`Fast_Skipping` est une course sur place, sans corde).
+EQUIPMENT_OVERRIDES: dict[str, str] = {"Rope_Jumping": "jump rope"}
+
 #: Libellé du groupe accueillant un muscle inconnu des régions ci-dessus.
 OTHER_REGION = "Autres"
 
@@ -275,7 +280,9 @@ def import_batch(offset: int, size: int | None = None, translate: bool = False) 
                 "level": _valid(entry.get("level"), Exercise.Level),
                 "force": _valid(entry.get("force"), Exercise.Force),
                 "mechanic": _valid(entry.get("mechanic"), Exercise.Mechanic),
-                "equipment": _valid(entry.get("equipment"), Exercise.Equipment),
+                "equipment": _valid(
+                    EQUIPMENT_OVERRIDES.get(slug, entry.get("equipment")), Exercise.Equipment
+                ),
                 "instructions": entry.get("instructions") or [],
                 "images": entry.get("images") or [],
             },
