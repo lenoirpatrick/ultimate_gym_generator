@@ -2,6 +2,7 @@
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.db.models import F, OrderBy
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
@@ -53,8 +54,11 @@ def _matches_search(workout: Workout, query: str) -> bool:
 #: Tris proposés sur l'historique (issue #119), le premier par défaut. La
 #: durée triée est celle réellement planifiée — celle qu'affiche la carte —,
 #: pas la durée demandée ; à durée égale, la plus récente reste en tête.
-SORT_ORDERS: dict[str, tuple[str, tuple[str, ...]]] = {
+#: « Faites récemment » suit la date de dernière exécution (issue #120) ; les
+#: séances jamais menées au bout passent en fin de liste.
+SORT_ORDERS: dict[str, tuple[str, tuple[str | OrderBy, ...]]] = {
     "recentes": ("Plus récentes", ("-created_at",)),
+    "faites": ("Faites récemment", (F("last_performed_at").desc(nulls_last=True), "-created_at")),
     "courtes": ("Plus courtes", ("planned_seconds", "-created_at")),
     "longues": ("Plus longues", ("-planned_seconds", "-created_at")),
 }

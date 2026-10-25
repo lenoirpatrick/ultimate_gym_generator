@@ -455,12 +455,13 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
   volontairement plus grossier que les régions de composition (`MUSCLE_REGIONS`) : un
   filtre d'historique se manie au pouce. Une recherche sans résultat a son propre état
   vide, distinct de « Aucun favori » et de « Aucune séance ».
-- L'historique se **trie** (issue #119) — Plus récentes (défaut) / Plus courtes / Plus
-  longues — par un contrôle segmenté (`.ugg-segmented`, choix fermé) dans le même
+- L'historique se **trie** (issue #119) — Plus récentes (défaut) / Faites récemment /
+  Plus courtes / Plus longues — par un contrôle segmenté (`.ugg-segmented`, choix fermé) dans le même
   formulaire, champ `tri` (`workouts.views.SORT_ORDERS`). La durée triée est celle
   **planifiée** (`planned_seconds`, celle qu'affiche la carte), jamais la durée
   demandée ; à durée égale, la plus récente reste en tête. Une valeur inconnue retombe
-  sur le tri par date.
+  sur le tri par date. « Faites récemment » suit `last_performed_at` (issue #120) ; une
+  séance jamais menée au bout passe en fin de liste plutôt que d'être écartée.
 - La **date de dernière exécution** (`Workout.last_performed_at`, issue #120) n'est
   posée que lorsque le minuteur arrive **au bout** de la séance (`finish()` dans
   `workout_timer.js`, POST vers `workouts:performed`) — une séance arrêtée en cours de

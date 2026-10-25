@@ -1234,6 +1234,20 @@ def test_un_tri_inconnu_retombe_sur_la_date(logged_client, seances_de_durees):
     assert re.search(r'value="recentes"\s+checked', content)
 
 
+def test_l_historique_se_trie_par_derniere_execution(logged_client, seances_de_durees):
+    courte, longue, moyenne = seances_de_durees
+    courte.last_performed_at = timezone.now() - timedelta(days=1)
+    longue.last_performed_at = timezone.now() - timedelta(days=5)
+    courte.save()
+    longue.save()
+
+    content = _liste(logged_client, tri="faites")
+
+    # Jamais exécutée : en fin de liste, quelle que soit sa date de création.
+    assert _ordre(content, seances_de_durees) == [courte, longue, moyenne]
+    assert re.search(r'value="faites"\s+checked', content)
+
+
 def test_le_tri_se_cumule_avec_les_zones(logged_client, user, seances):
     bras, jambes = seances
     bras.planned_seconds, jambes.planned_seconds = 2400, 600
