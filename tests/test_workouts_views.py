@@ -1266,30 +1266,61 @@ def test_une_seance_neuve_n_a_jamais_ete_executee(logged_client, user):
 
 
 def test_la_fin_du_minuteur_enregistre_la_date(logged_client, user):
-    workout = Workout.objects.create(user=user, format=Workout.Format.HIIT, duration_minutes=20)
+    workout = build_workout(user, Exercise.objects.first())  # trois efforts
 
-    response = logged_client.post(_performed_url(workout))
+    response = logged_client.post(_performed_url(workout), {"done": 3})
 
     workout.refresh_from_db()
     assert response.status_code == 200
     assert workout.last_performed_at is not None
     assert 'id="derniere-execution"' in response.content.decode()
+    assert 'data-counted="true"' in response.content.decode()
     assert "Dernière exécution" in response.content.decode()
 
 
 def test_une_nouvelle_execution_remplace_la_precedente(logged_client, user):
     ancienne = timezone.now() - timedelta(days=3)
-    workout = Workout.objects.create(
-        user=user,
-        format=Workout.Format.HIIT,
-        duration_minutes=20,
-        last_performed_at=ancienne,
-    )
+    workout = build_workout(user, Exercise.objects.first())
+    workout.last_performed_at = ancienne
+    workout.save()
 
-    logged_client.post(_performed_url(workout))
+    logged_client.post(_performed_url(workout), {"done": 3})
 
     workout.refresh_from_db()
     assert workout.last_performed_at > ancienne
+
+
+def test_une_seance_aux_efforts_majoritairement_passes_n_est_pas_comptee(logged_client, user):
+    workout = build_workout(user, Exercise.objects.first())  # trois efforts
+
+    response = logged_client.post(_performed_url(workout), {"done": 1})
+
+    workout.refresh_from_db()
+    assert workout.last_performed_at is None
+    assert 'data-counted="false"' in response.content.decode()
+    assert "Jamais exécutée" in response.content.decode()
+
+
+def test_une_execution_non_comptee_conserve_la_date_precedente(logged_client, user):
+    ancienne = timezone.now() - timedelta(days=3)
+    workout = build_workout(user, Exercise.objects.first())
+    workout.last_performed_at = ancienne
+    workout.save()
+
+    logged_client.post(_performed_url(workout), {"done": 0})
+
+    workout.refresh_from_db()
+    assert workout.last_performed_at == ancienne
+
+
+@pytest.mark.parametrize("done", ["", "abc", "-5"])
+def test_un_decompte_absent_ou_invalide_ne_compte_pas(logged_client, user, done):
+    workout = build_workout(user, Exercise.objects.first())
+
+    logged_client.post(_performed_url(workout), {"done": done})
+
+    workout.refresh_from_db()
+    assert workout.last_performed_at is None
 
 
 def test_l_execution_exige_un_post(logged_client, user):
@@ -1301,7 +1332,7 @@ def test_l_execution_exige_un_post(logged_client, user):
 def test_l_execution_d_une_seance_d_un_autre_est_refusee(staff_client, user):
     workout = Workout.objects.create(user=user, format=Workout.Format.HIIT, duration_minutes=20)
 
-    assert staff_client.post(_performed_url(workout)).status_code == 404
+    assert staff_client.post(_performed_url(workout), {"done": 3}).status_code == 404
     workout.refresh_from_db()
     assert workout.last_performed_at is None
 

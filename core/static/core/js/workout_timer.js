@@ -77,6 +77,10 @@
     let photoUrls = [];
     let photoIndex = 0;
     let wakeLock = null;
+    // Pas d'effort réellement effectués, transmis à la fin de la séance : le
+    // serveur ne la compte comme exécutée qu'au-delà d'une part minimale
+    // (workouts.timer.is_performed, issue #120 suite).
+    let workDone = 0;
 
     // Le web ne donne accès à aucun réglage de luminosité matérielle : le plus
     // proche disponible est d'empêcher l'écran de s'éteindre ou de s'assombrir
@@ -341,8 +345,18 @@
         );
     }
 
+    // Un effort chronométré compte s'il a tourné au moins la moitié de sa
+    // durée avant d'être passé ; un effort en répétitions compte toujours,
+    // « Passer » y étant la confirmation attendue, pas un abandon.
+    function countLeavingStep() {
+        const step = steps[index];
+        if (!step || step.phase !== "work") return;
+        if (step.seconds === null || total - remaining >= total / 2) workDone += 1;
+    }
+
     function goTo(nextIndex) {
         stopInterval();
+        countLeavingStep();
         if (needsPrep(nextIndex)) {
             runPrep(nextIndex);
             return;
@@ -428,14 +442,23 @@
         const url = dialog.dataset.performedUrl;
         if (!url) return;
         try {
+            const body = new FormData();
+            body.append("done", String(workDone));
             const response = await fetch(url, {
                 method: "POST",
                 headers: { "X-CSRFToken": dialog.dataset.csrfToken || "" },
                 credentials: "same-origin",
+                body,
             });
             if (!response.ok) return;
+            const html = await response.text();
             const target = document.getElementById("derniere-execution");
-            if (target) target.outerHTML = await response.text();
+            if (target) target.outerHTML = html;
+            if (html.includes('data-counted="false"')) {
+                exerciseEl.textContent =
+                    "Séance non comptée : plus de la moitié des efforts ont été passés.";
+                announceEl.textContent = `Séance terminée. ${exerciseEl.textContent}`;
+            }
         } catch {
             // Hors connexion ou serveur indisponible : ignoré, voir plus haut.
         }
@@ -444,6 +467,7 @@
     function reset() {
         stopInterval();
         index = -1;
+        workDone = 0;
         pendingPrepIndex = null;
         pauseBtn.disabled = false;
         pauseBtn.textContent = "Pause";

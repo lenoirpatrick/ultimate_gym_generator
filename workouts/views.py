@@ -329,14 +329,28 @@ def workout_performed(request: HttpRequest, pk: int) -> HttpResponse:
     """Enregistre la fin d'une exécution complète de la séance (issue #120).
 
     Appelée par le minuteur (`workout_timer.js`) quand le dernier pas est
-    atteint ; rend la mention « Dernière exécution » à jour pour l'écran de
-    détail resté derrière la modale.
+    atteint, avec `done` — le nombre de pas d'effort réellement effectués.
+    Une séance dont trop d'efforts ont été passés n'est pas comptée
+    (`timer.is_performed`, issue #120 suite). Rend dans tous les cas la
+    mention « Dernière exécution » de l'écran de détail resté derrière la
+    modale, `data-counted` indiquant au minuteur si la date a été posée.
     """
     workout = get_object_or_404(Workout, pk=pk, user=request.user)
-    workout.last_performed_at = timezone.now()
-    workout.save(update_fields=["last_performed_at"])
+    try:
+        done = max(0, int(request.POST.get("done", "")))
+    except ValueError:
+        done = 0
 
-    return render(request, "workouts/partials/last_performed.html", {"workout": workout})
+    counted = timer.is_performed(workout, done)
+    if counted:
+        workout.last_performed_at = timezone.now()
+        workout.save(update_fields=["last_performed_at"])
+
+    return render(
+        request,
+        "workouts/partials/last_performed.html",
+        {"workout": workout, "counted": counted},
+    )
 
 
 @login_required

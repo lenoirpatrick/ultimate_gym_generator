@@ -464,7 +464,13 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
 - La **date de dernière exécution** (`Workout.last_performed_at`, issue #120) n'est
   posée que lorsque le minuteur arrive **au bout** de la séance (`finish()` dans
   `workout_timer.js`, POST vers `workouts:performed`) — une séance arrêtée en cours de
-  route ne compte pas. Affichée sous le titre de l'écran de détail
+  route ne compte pas, ni une séance dont **plus de la moitié des efforts ont été
+  passés** (`workouts.timer.is_performed`, `PERFORMED_MIN_RATIO`, issue #120 suite) : le
+  minuteur transmet le nombre d'efforts réellement effectués (`done`) — un effort
+  chronométré compte s'il a tourné au moins la moitié de sa durée, un effort en
+  répétitions toujours (« Passer » y est la confirmation attendue) —, le total est
+  recalculé côté serveur, jamais transmis. Une séance non comptée le dit sur l'écran de
+  fin, sans écraser la date précédente (`data-counted` sur le partiel). Affichée sous le titre de l'écran de détail
   (`workouts/partials/last_performed.html`, « Jamais exécutée jusqu'au bout » à défaut,
   remplacée sans rechargement à la fin du minuteur) et sur la carte d'historique
   (« Faite le … », absente plutôt qu'un « jamais » répété sur chaque carte). Échec

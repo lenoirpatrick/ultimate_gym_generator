@@ -3,9 +3,10 @@ Date de dernière exécution complète d'une séance (issue #120) — remplacée
 par `workout_timer.js` à la fin du minuteur, voir
 workouts.views.workout_performed.
 
-Attend `workout`.
+Attend `workout` ; `counted` (facultatif) n'est posé que par cette vue —
+`data-counted` dit au minuteur si l'exécution a été comptée (issue #120 suite).
 {% endcomment %}
-<p id="derniere-execution" class="mt-3 text-sm text-muted">
+<p id="derniere-execution" class="mt-3 text-sm text-muted"{% if counted is not None %} data-counted="{{ counted|yesno:'true,false' }}"{% endif %}>
     {% if workout.last_performed_at %}
         Dernière exécution : <time datetime="{{ workout.last_performed_at|date:'c' }}">{{ workout.last_performed_at|date:"j F Y, H:i" }}</time>
     {% else %}
