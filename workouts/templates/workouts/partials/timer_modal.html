@@ -22,10 +22,15 @@ qui devient la colonne entière — photo, repères, consignes). Markup et JS
 inchangés par ailleurs : `workout_timer.js` cible des `id`, jamais la
 structure de leurs parents.
 
+Une séance menée jusqu'au bout est enregistrée comme exécutée (issue #120) :
+`data-performed-url` reçoit un POST à l'appel de `finish()`.
+
 Attend `workout`, `timeline` (workouts.timer.build_timeline, sérialisée ici).
 {% endcomment %}
 {{ timeline|json_script:"minuteur-donnees" }}
-<dialog id="minuteur-modal" class="ugg-timer" aria-label="Suivi de la séance">
+<dialog id="minuteur-modal" class="ugg-timer" aria-label="Suivi de la séance"
+        data-performed-url="{% url 'workouts:performed' workout.pk %}"
+        data-csrf-token="{{ csrf_token }}">
     <div class="ugg-timer__column-primary">
         <div class="ugg-timer__display">
             <p class="ugg-timer__phase" id="minuteur-phase">Prêt</p>

@@ -11,6 +11,6 @@ class WorkoutExerciseInline(admin.TabularInline):
 
 @admin.register(Workout)
 class WorkoutAdmin(admin.ModelAdmin):
-    list_display = ("user", "format", "duration_minutes", "created_at")
+    list_display = ("user", "format", "duration_minutes", "created_at", "last_performed_at")
     list_filter = ("format", "duration_minutes")
     inlines = (WorkoutExerciseInline,)

@@ -418,6 +418,27 @@
         currentPanel.hidden = true;
         playCue("end");
         announceEl.textContent = "Séance terminée.";
+        recordPerformed();
+    }
+
+    // Une séance menée jusqu'au bout est enregistrée comme exécutée (issue
+    // #120). Échec silencieux : la séance est faite, une date manquante ne
+    // vaut pas d'interrompre l'écran de fin.
+    async function recordPerformed() {
+        const url = dialog.dataset.performedUrl;
+        if (!url) return;
+        try {
+            const response = await fetch(url, {
+                method: "POST",
+                headers: { "X-CSRFToken": dialog.dataset.csrfToken || "" },
+                credentials: "same-origin",
+            });
+            if (!response.ok) return;
+            const target = document.getElementById("derniere-execution");
+            if (target) target.outerHTML = await response.text();
+        } catch {
+            // Hors connexion ou serveur indisponible : ignoré, voir plus haut.
+        }
     }
 
     function reset() {

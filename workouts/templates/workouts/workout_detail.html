@@ -30,6 +30,8 @@
             {% endfor %}
         </p>
 
+        {% include "workouts/partials/last_performed.html" with workout=workout %}
+
         {% if workout.planned_minutes < workout.duration_minutes %}
             <p class="mt-3 text-sm text-muted">
                 Demandé : {{ workout.duration_minutes }} min. Ce format se remplit par

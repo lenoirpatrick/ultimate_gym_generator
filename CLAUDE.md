@@ -461,6 +461,14 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
   **planifiée** (`planned_seconds`, celle qu'affiche la carte), jamais la durée
   demandée ; à durée égale, la plus récente reste en tête. Une valeur inconnue retombe
   sur le tri par date.
+- La **date de dernière exécution** (`Workout.last_performed_at`, issue #120) n'est
+  posée que lorsque le minuteur arrive **au bout** de la séance (`finish()` dans
+  `workout_timer.js`, POST vers `workouts:performed`) — une séance arrêtée en cours de
+  route ne compte pas. Affichée sous le titre de l'écran de détail
+  (`workouts/partials/last_performed.html`, « Jamais exécutée jusqu'au bout » à défaut,
+  remplacée sans rechargement à la fin du minuteur) et sur la carte d'historique
+  (« Faite le … », absente plutôt qu'un « jamais » répété sur chaque carte). Échec
+  d'enregistrement silencieux : la séance est faite, l'écran de fin ne s'interrompt pas.
 - Une séance peut être **nommée** (`Workout.name`, facultatif), soit dès la composition
   (`WorkoutForm.name`, issue #44), soit ensuite depuis l'écran de détail. Le nom remplace
   alors l'intitulé du format en tête d'écran (`Workout.display_name`), et le format

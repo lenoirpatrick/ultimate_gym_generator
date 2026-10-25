@@ -1,0 +1,14 @@
+{% comment %}
+Date de dernière exécution complète d'une séance (issue #120) — remplacée
+par `workout_timer.js` à la fin du minuteur, voir
+workouts.views.workout_performed.
+
+Attend `workout`.
+{% endcomment %}
+<p id="derniere-execution" class="mt-3 text-sm text-muted">
+    {% if workout.last_performed_at %}
+        Dernière exécution : <time datetime="{{ workout.last_performed_at|date:'c' }}">{{ workout.last_performed_at|date:"j F Y, H:i" }}</time>
+    {% else %}
+        Jamais exécutée jusqu'au bout.
+    {% endif %}
+</p>

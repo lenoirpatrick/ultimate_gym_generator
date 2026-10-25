@@ -4,6 +4,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils import timezone
 from django.views.decorators.http import require_POST
 
 from aiproviders.clients import get_active_client
@@ -320,6 +321,22 @@ def workout_exercise_refresh(request: HttpRequest, pk: int, item_pk: int) -> Htt
             "refresh_failed": failed,
         },
     )
+
+
+@login_required
+@require_POST
+def workout_performed(request: HttpRequest, pk: int) -> HttpResponse:
+    """Enregistre la fin d'une exécution complète de la séance (issue #120).
+
+    Appelée par le minuteur (`workout_timer.js`) quand le dernier pas est
+    atteint ; rend la mention « Dernière exécution » à jour pour l'écran de
+    détail resté derrière la modale.
+    """
+    workout = get_object_or_404(Workout, pk=pk, user=request.user)
+    workout.last_performed_at = timezone.now()
+    workout.save(update_fields=["last_performed_at"])
+
+    return render(request, "workouts/partials/last_performed.html", {"workout": workout})
 
 
 @login_required

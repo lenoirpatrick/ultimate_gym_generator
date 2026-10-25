@@ -1,9 +1,11 @@
 """Écrans de séance : composition, historique, cloisonnement."""
 
 import re
+from datetime import datetime, timedelta
 
 import pytest
 from django.urls import reverse
+from django.utils import timezone
 
 from accounts.models import UserEquipment
 from exercises.models import Exercise, Muscle
@@ -1243,3 +1245,83 @@ def test_le_tri_se_cumule_avec_les_zones(logged_client, user, seances):
     assert _present(content, bras)
     assert not _present(content, jambes)
     assert re.search(r'value="courtes"\s+checked', content)
+
+
+# --------------------------------------------------------------------------- #
+# Date de dernière exécution (issue #120)
+# --------------------------------------------------------------------------- #
+
+
+def _performed_url(workout: Workout) -> str:
+    return reverse("workouts:performed", args=[workout.pk])
+
+
+def test_une_seance_neuve_n_a_jamais_ete_executee(logged_client, user):
+    workout = Workout.objects.create(user=user, format=Workout.Format.HIIT, duration_minutes=20)
+
+    content = logged_client.get(reverse("workouts:detail", args=[workout.pk])).content.decode()
+
+    assert workout.last_performed_at is None
+    assert "Jamais exécutée" in content
+
+
+def test_la_fin_du_minuteur_enregistre_la_date(logged_client, user):
+    workout = Workout.objects.create(user=user, format=Workout.Format.HIIT, duration_minutes=20)
+
+    response = logged_client.post(_performed_url(workout))
+
+    workout.refresh_from_db()
+    assert response.status_code == 200
+    assert workout.last_performed_at is not None
+    assert 'id="derniere-execution"' in response.content.decode()
+    assert "Dernière exécution" in response.content.decode()
+
+
+def test_une_nouvelle_execution_remplace_la_precedente(logged_client, user):
+    ancienne = timezone.now() - timedelta(days=3)
+    workout = Workout.objects.create(
+        user=user,
+        format=Workout.Format.HIIT,
+        duration_minutes=20,
+        last_performed_at=ancienne,
+    )
+
+    logged_client.post(_performed_url(workout))
+
+    workout.refresh_from_db()
+    assert workout.last_performed_at > ancienne
+
+
+def test_l_execution_exige_un_post(logged_client, user):
+    workout = Workout.objects.create(user=user, format=Workout.Format.HIIT, duration_minutes=20)
+
+    assert logged_client.get(_performed_url(workout)).status_code == 405
+
+
+def test_l_execution_d_une_seance_d_un_autre_est_refusee(staff_client, user):
+    workout = Workout.objects.create(user=user, format=Workout.Format.HIIT, duration_minutes=20)
+
+    assert staff_client.post(_performed_url(workout)).status_code == 404
+    workout.refresh_from_db()
+    assert workout.last_performed_at is None
+
+
+def test_le_minuteur_connait_l_adresse_d_enregistrement(logged_client, user):
+    exercise = Exercise.objects.first()
+    workout = build_workout(user, exercise)
+
+    content = logged_client.get(reverse("workouts:detail", args=[workout.pk])).content.decode()
+
+    assert f'data-performed-url="{_performed_url(workout)}"' in content
+
+
+def test_l_historique_affiche_la_date_de_derniere_execution(logged_client, user):
+    Workout.objects.create(
+        user=user,
+        format=Workout.Format.HIIT,
+        duration_minutes=20,
+        last_performed_at=timezone.make_aware(datetime(2026, 10, 3, 18, 0)),
+    )
+
+    assert "Faite le" in _liste(logged_client)
+    assert "3 octobre 2026" in _liste(logged_client)
