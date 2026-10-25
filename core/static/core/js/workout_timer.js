@@ -515,6 +515,90 @@
         runPrep(0);
     });
 
+    // Séparateur des deux colonnes (issue #121) : déplacé à la souris, au
+    // doigt ou aux flèches du clavier, il pose `--ugg-timer-split` (part de
+    // la colonne de gauche) sur la modale. Invisible sous 40rem, où l'écran
+    // reste empilé. Persisté par appareil, comme le volume : la bonne
+    // répartition dépend de la taille d'écran, pas du compte.
+    const SPLIT_STORAGE_KEY = "ugg-timer-split";
+    const SPLIT_DEFAULT = 50;
+    const SPLIT_MIN = 30;
+    const SPLIT_MAX = 70;
+    const SPLIT_KEY_STEP = 5;
+    const splitter = document.getElementById("minuteur-separateur");
+
+    function clampSplit(value) {
+        return Math.min(SPLIT_MAX, Math.max(SPLIT_MIN, Math.round(value)));
+    }
+
+    function applySplit(value) {
+        const split = clampSplit(value);
+        dialog.style.setProperty("--ugg-timer-split", `${split}%`);
+        splitter.setAttribute("aria-valuenow", String(split));
+        return split;
+    }
+
+    function readStoredSplit() {
+        try {
+            const value = Number(window.localStorage.getItem(SPLIT_STORAGE_KEY));
+            return value ? clampSplit(value) : SPLIT_DEFAULT;
+        } catch {
+            return SPLIT_DEFAULT;
+        }
+    }
+
+    function writeStoredSplit(value) {
+        try {
+            window.localStorage.setItem(SPLIT_STORAGE_KEY, String(value));
+        } catch {
+            // Ignoré : voir readStoredVolume.
+        }
+    }
+
+    function splitFromPointer(event) {
+        const rect = dialog.getBoundingClientRect();
+        return ((event.clientX - rect.left) / rect.width) * 100;
+    }
+
+    if (splitter) {
+        let currentSplit = applySplit(readStoredSplit());
+
+        splitter.addEventListener("pointerdown", (event) => {
+            if (event.button !== 0) return;
+            event.preventDefault();
+            splitter.setPointerCapture(event.pointerId);
+            splitter.dataset.dragging = "";
+        });
+
+        splitter.addEventListener("pointermove", (event) => {
+            if (!splitter.hasPointerCapture(event.pointerId)) return;
+            currentSplit = applySplit(splitFromPointer(event));
+        });
+
+        const endDrag = (event) => {
+            if (!splitter.hasPointerCapture(event.pointerId)) return;
+            splitter.releasePointerCapture(event.pointerId);
+            delete splitter.dataset.dragging;
+            writeStoredSplit(currentSplit);
+        };
+        splitter.addEventListener("pointerup", endDrag);
+        splitter.addEventListener("pointercancel", endDrag);
+
+        splitter.addEventListener("keydown", (event) => {
+            const moves = {
+                ArrowLeft: currentSplit - SPLIT_KEY_STEP,
+                ArrowRight: currentSplit + SPLIT_KEY_STEP,
+                Home: SPLIT_MIN,
+                End: SPLIT_MAX,
+                Enter: SPLIT_DEFAULT,
+            };
+            if (!(event.key in moves)) return;
+            event.preventDefault();
+            currentSplit = applySplit(moves[event.key]);
+            writeStoredSplit(currentSplit);
+        });
+    }
+
     // Extraites en fonctions nommées pour être aussi déclenchables par les
     // touches multimédias du clavier sur poste de bureau (issue #55).
     function togglePause() {

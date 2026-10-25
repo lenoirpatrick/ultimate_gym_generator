@@ -536,6 +536,25 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
   empilement vertical plutôt que la photo étroite du mobile). Markup et JS inchangés par
   ailleurs : `workout_timer.js` cible des `id`, jamais la structure de leurs parents, ce
   qui a permis d'envelopper sans y toucher.
+- Le **séparateur** entre les deux colonnes se déplace (issue #121) : élément
+  `.ugg-timer__splitter` (patron ARIA « window splitter » — `role="separator"`,
+  focusable, `aria-valuenow` en pourcentage), glissé à la souris ou au doigt (Pointer
+  Events), ou au clavier (flèches gauche/droite par pas de 5 %, Début/Fin pour les
+  bornes, Entrée pour revenir à 50 %). Il pose `--ugg-timer-split` (part de la colonne
+  de gauche) sur la modale, bornée entre 30 et 70 % pour qu'aucune colonne ne devienne
+  inutilisable, et persistée en `localStorage` comme le volume des bips — une
+  préférence d'appareil. Liseré visible d'un pixel, mais cible de saisie de 44 px
+  (`::before`) et une poignée à points pour signaler qu'il se déplace. Absent sous
+  `40rem`, où l'écran reste empilé.
+- La colonne de droite est un **conteneur CSS** (`container-type: size`, issue #121) :
+  photo (`max-height` en `cqb`), nom, étiquettes et consignes (`clamp()` en `cqi`) se
+  dimensionnent sur la place qui lui reste, plus sur la largeur de l'écran. La colonne
+  de gauche l'est aussi en largeur (`inline-size`) pour que le chrono, rétréci avec
+  elle, ne déborde jamais. Seulement à partir de `40rem` : le tiers bas mobile n'a pas
+  de hauteur définie, une containment de taille l'écraserait.
+- La modale neutralise le `max-width`/`max-height` que l'agent utilisateur impose à un
+  `<dialog>` (`calc(100% - 2em - 6px)`) : sans quoi elle laissait une bande de la page
+  visible à droite et en bas, en contradiction avec le plein écran ci-dessus.
 - L'ordre chronologique réel — un tour de circuit ou HIIT enchaîne tous ses exercices
   avant de le répéter (round-robin), un Tabata ou une pyramide épuisent un exercice avant
   de passer au suivant — est calculé côté serveur par `workouts.timer.build_timeline`,

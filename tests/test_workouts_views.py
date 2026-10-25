@@ -1325,3 +1325,20 @@ def test_l_historique_affiche_la_date_de_derniere_execution(logged_client, user)
 
     assert "Faite le" in _liste(logged_client)
     assert "3 octobre 2026" in _liste(logged_client)
+
+
+# --------------------------------------------------------------------------- #
+# Séparateur ajustable du minuteur (issue #121)
+# --------------------------------------------------------------------------- #
+
+
+def test_le_minuteur_porte_un_separateur_accessible(logged_client, user):
+    workout = build_workout(user, Exercise.objects.first())
+
+    content = logged_client.get(reverse("workouts:detail", args=[workout.pk])).content.decode()
+
+    separateur = re.search(r'<div class="ugg-timer__splitter"[^>]*>', content).group(0)
+    assert 'role="separator"' in separateur
+    assert 'tabindex="0"' in separateur
+    assert 'aria-controls="minuteur-colonne-principale"' in separateur
+    assert 'id="minuteur-colonne-principale"' in content

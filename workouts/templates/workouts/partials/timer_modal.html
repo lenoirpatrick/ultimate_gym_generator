@@ -20,7 +20,9 @@ que de rester empilé : `.ugg-timer__column-primary` (infos de timer,
 commandes, timeline) et `.ugg-timer__column-secondary` (l'ancien tiers bas,
 qui devient la colonne entière — photo, repères, consignes). Markup et JS
 inchangés par ailleurs : `workout_timer.js` cible des `id`, jamais la
-structure de leurs parents.
+structure de leurs parents. Le séparateur entre les deux (issue #121) se
+déplace ; la colonne de droite est un conteneur CSS, photo et texte y
+suivent la place qu'il lui laisse.
 
 Une séance menée jusqu'au bout est enregistrée comme exécutée (issue #120) :
 `data-performed-url` reçoit un POST à l'appel de `finish()`.
@@ -31,7 +33,7 @@ Attend `workout`, `timeline` (workouts.timer.build_timeline, sérialisée ici).
 <dialog id="minuteur-modal" class="ugg-timer" aria-label="Suivi de la séance"
         data-performed-url="{% url 'workouts:performed' workout.pk %}"
         data-csrf-token="{{ csrf_token }}">
-    <div class="ugg-timer__column-primary">
+    <div class="ugg-timer__column-primary" id="minuteur-colonne-principale">
         <div class="ugg-timer__display">
             <p class="ugg-timer__phase" id="minuteur-phase">Prêt</p>
             <p class="ugg-timer__exercise" id="minuteur-exercice"></p>
@@ -69,6 +71,15 @@ Attend `workout`, `timeline` (workouts.timer.build_timeline, sérialisée ici).
 
         {% include "workouts/partials/timer_timeline.html" with workout=workout %}
     </div>
+
+    {# Séparateur ajustable (issue #121), patron ARIA « window splitter » : #}
+    {# glisser à la souris ou au doigt, flèches gauche/droite au clavier.   #}
+    <div class="ugg-timer__splitter" id="minuteur-separateur"
+         role="separator" tabindex="0"
+         aria-orientation="vertical"
+         aria-controls="minuteur-colonne-principale"
+         aria-label="Largeur des colonnes"
+         aria-valuemin="30" aria-valuemax="70" aria-valuenow="50"></div>
 
     <div class="ugg-timer__current ugg-timer__column-secondary" id="minuteur-exercice-actuel" hidden>
         <img class="ugg-timer__current-photo" id="minuteur-exercice-actuel-photo" src="" alt="" hidden>
