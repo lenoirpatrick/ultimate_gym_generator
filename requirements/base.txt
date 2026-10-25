@@ -1,6 +1,6 @@
 Django>=6.1,<6.2
-django-environ>=0.14.0,<1.0
-cryptography>=44.0
+django-environ>=0.12,<1.0
+cryptography>=50.0.1
 Pillow>=11.0
 
 # Parsing sûr de l'export Apple Health (#70) : un fichier déposé par
@@ -14,6 +14,6 @@ mozilla-django-oidc>=5.0,<6.0
 
 # SDK officiel pour Anthropic ; les autres fournisseurs sont appelés en REST via httpx.
 anthropic>=0.116
-httpx>=0.28,<1.0
+httpx>=0.28.1,<1.0
 gunicorn>=23.0
-whitenoise[brotli]>=6.9
+whitenoise[brotli]>=6.12.0
