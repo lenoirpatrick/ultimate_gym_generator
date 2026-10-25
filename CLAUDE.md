@@ -455,6 +455,12 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
   volontairement plus grossier que les régions de composition (`MUSCLE_REGIONS`) : un
   filtre d'historique se manie au pouce. Une recherche sans résultat a son propre état
   vide, distinct de « Aucun favori » et de « Aucune séance ».
+- L'historique se **trie** (issue #119) — Plus récentes (défaut) / Plus courtes / Plus
+  longues — par un contrôle segmenté (`.ugg-segmented`, choix fermé) dans le même
+  formulaire, champ `tri` (`workouts.views.SORT_ORDERS`). La durée triée est celle
+  **planifiée** (`planned_seconds`, celle qu'affiche la carte), jamais la durée
+  demandée ; à durée égale, la plus récente reste en tête. Une valeur inconnue retombe
+  sur le tri par date.
 - Une séance peut être **nommée** (`Workout.name`, facultatif), soit dès la composition
   (`WorkoutForm.name`, issue #44), soit ensuite depuis l'écran de détail. Le nom remplace
   alors l'intitulé du format en tête d'écran (`Workout.display_name`), et le format

@@ -50,6 +50,23 @@
                 <span>Mes favoris uniquement</span>
             </label>
         </div>
+
+        {% comment %}
+        Tri (issue #119) : choix fermé, donc un contrôle segmenté — même règle
+        que la période de la page d'analyse.
+        {% endcomment %}
+        <fieldset class="ugg-field mt-4">
+            <legend class="ugg-field__label">Trier</legend>
+            <div class="ugg-segmented mt-2">
+                {% for option in sort_options %}
+                    <label>
+                        <input type="radio" name="tri" value="{{ option.value }}"
+                               {% if option.selected %}checked{% endif %}>
+                        <span>{{ option.label }}</span>
+                    </label>
+                {% endfor %}
+            </div>
+        </fieldset>
         <noscript>
             <button type="submit" class="ugg-btn ugg-btn--primary mt-3">Filtrer</button>
         </noscript>

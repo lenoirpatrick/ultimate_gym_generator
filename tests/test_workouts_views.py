@@ -1166,3 +1166,80 @@ def test_la_selection_reste_cochee_apres_filtrage(logged_client, seances):
 
     assert re.search(r'value="dos"\s+checked', content)
     assert 'value="x"' in content
+
+
+# --------------------------------------------------------------------------- #
+# Tri de l'historique par durée (issue #119)
+# --------------------------------------------------------------------------- #
+
+
+@pytest.fixture
+def seances_de_durees(user):
+    """Trois séances créées dans l'ordre courte, longue, moyenne."""
+    return [
+        Workout.objects.create(
+            user=user, format=Workout.Format.CIRCUIT, duration_minutes=20, planned_seconds=seconds
+        )
+        for seconds in (600, 3000, 1800)
+    ]
+
+
+def _ordre(content: str, workouts: list[Workout]) -> list[Workout]:
+    return sorted(workouts, key=lambda w: content.index(reverse("workouts:detail", args=[w.pk])))
+
+
+def test_l_historique_reste_trie_par_date_par_defaut(logged_client, seances_de_durees):
+    courte, longue, moyenne = seances_de_durees
+
+    assert _ordre(_liste(logged_client), seances_de_durees) == [moyenne, longue, courte]
+
+
+def test_l_historique_se_trie_par_duree_croissante(logged_client, seances_de_durees):
+    courte, longue, moyenne = seances_de_durees
+
+    content = _liste(logged_client, tri="courtes")
+
+    assert _ordre(content, seances_de_durees) == [courte, moyenne, longue]
+
+
+def test_l_historique_se_trie_par_duree_decroissante(logged_client, seances_de_durees):
+    courte, longue, moyenne = seances_de_durees
+
+    content = _liste(logged_client, tri="longues")
+
+    assert _ordre(content, seances_de_durees) == [longue, moyenne, courte]
+
+
+def test_a_duree_egale_la_plus_recente_passe_en_tete(logged_client, user):
+    ancienne, recente = (
+        Workout.objects.create(
+            user=user, format=Workout.Format.HIIT, duration_minutes=20, planned_seconds=1200
+        )
+        for _ in range(2)
+    )
+
+    content = _liste(logged_client, tri="courtes")
+
+    assert _ordre(content, [ancienne, recente]) == [recente, ancienne]
+
+
+def test_un_tri_inconnu_retombe_sur_la_date(logged_client, seances_de_durees):
+    courte, longue, moyenne = seances_de_durees
+
+    content = _liste(logged_client, tri="alphabetique")
+
+    assert _ordre(content, seances_de_durees) == [moyenne, longue, courte]
+    assert re.search(r'value="recentes"\s+checked', content)
+
+
+def test_le_tri_se_cumule_avec_les_zones(logged_client, user, seances):
+    bras, jambes = seances
+    bras.planned_seconds, jambes.planned_seconds = 2400, 600
+    bras.save()
+    jambes.save()
+
+    content = _liste(logged_client, tri="courtes", zone="bras")
+
+    assert _present(content, bras)
+    assert not _present(content, jambes)
+    assert re.search(r'value="courtes"\s+checked', content)

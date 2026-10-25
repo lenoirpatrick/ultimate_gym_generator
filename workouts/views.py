@@ -49,9 +49,20 @@ def _matches_search(workout: Workout, query: str) -> bool:
     return query.casefold() in haystack
 
 
+#: Tris proposés sur l'historique (issue #119), le premier par défaut. La
+#: durée triée est celle réellement planifiée — celle qu'affiche la carte —,
+#: pas la durée demandée ; à durée égale, la plus récente reste en tête.
+SORT_ORDERS: dict[str, tuple[str, tuple[str, ...]]] = {
+    "recentes": ("Plus récentes", ("-created_at",)),
+    "courtes": ("Plus courtes", ("planned_seconds", "-created_at")),
+    "longues": ("Plus longues", ("-planned_seconds", "-created_at")),
+}
+DEFAULT_SORT = "recentes"
+
+
 @login_required
 def workout_list(request: HttpRequest) -> HttpResponse:
-    """Séances passées de l'utilisateur, la plus récente en tête.
+    """Séances passées de l'utilisateur, la plus récente en tête par défaut.
 
     Même vue pour la page entière et, en HTMX, le seul bloc de résultats — voir
     exercises.views.exercise_list pour le même principe.
@@ -59,8 +70,15 @@ def workout_list(request: HttpRequest) -> HttpResponse:
     favorites_only = request.GET.get("favoris") == "1"
     search_query = request.GET.get("q", "").strip()
     selected_zones = [z for z in request.GET.getlist("zone") if z in catalog.QUICK_ZONES]
+    sort = request.GET.get("tri", DEFAULT_SORT)
+    if sort not in SORT_ORDERS:
+        sort = DEFAULT_SORT
 
-    workouts_qs = Workout.objects.filter(user=request.user).prefetch_related("muscles")
+    workouts_qs = (
+        Workout.objects.filter(user=request.user)
+        .prefetch_related("muscles")
+        .order_by(*SORT_ORDERS[sort][1])
+    )
     if favorites_only:
         workouts_qs = workouts_qs.filter(is_favorite=True)
     if selected_zones:
@@ -81,6 +99,10 @@ def workout_list(request: HttpRequest) -> HttpResponse:
         "zones": [
             {"key": key, "label": label, "checked": key in selected_zones}
             for key, (label, _slugs) in catalog.QUICK_ZONES.items()
+        ],
+        "sort_options": [
+            {"value": key, "label": label, "selected": key == sort}
+            for key, (label, _ordering) in SORT_ORDERS.items()
         ],
     }
 
