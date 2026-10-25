@@ -16,4 +16,4 @@ mozilla-django-oidc>=5.0,<6.0
 anthropic>=0.116
 httpx>=0.28,<1.0
 gunicorn>=23.0
-whitenoise[brotli]>=6.9
+whitenoise[brotli]>=6.12.0
