@@ -787,6 +787,18 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
   `exercises.catalog.EQUIPMENT_OVERRIDES` plutôt que par édition du JSON vendoré, et par
   la migration `exercises.0004` pour une base déjà chargée. Mode de charge « Sans
   charge » en pratique : une corde n'a pas de poids à régler.
+- Le matériel déclaré d'une fiche n'est pas toujours fidèle (`Hanging_Pike`, classé
+  « poids du corps » par la source, exige une barre de traction). Plutôt que de reclasser
+  le catalogue fiche par fiche, l'utilisateur **écarte lui-même un exercice** (issue
+  #127) : bouton **« Je n'ai pas le matériel »** (`.ugg-btn--ghost`, `hx-confirm`) à côté
+  de « Changer l'exercice » dans le déroulé, qui enregistre un `UnavailableExercise` et
+  remplace aussitôt l'exercice (`workouts.views.workout_exercise_unavailable`).
+  L'exclusion est filtrée dans `generator.eligible_exercises` — seul point de passage,
+  génération comme remplacement — et enregistrée même sans remplaçant disponible. Elle
+  se lève depuis une section **« Exercices écartés »** de cet écran, hors du formulaire
+  du matériel (`exercises/partials/unavailable_list.html`, bouton « Rétablir » qui
+  reswape la liste, état vide compris) : c'est là que mène le lien du message de
+  confirmation.
 - Les lignes s'affichent **dans l'ordre où elles ont été déclarées**, pas alphabétique
   (`UserEquipment.Meta.ordering = ("id",)`) : c'est dans cet ordre qu'elles existent
   pour l'utilisateur qui les a saisies.

@@ -16,7 +16,7 @@ from django.views.decorators.http import require_POST
 from aiproviders.clients import get_active_client
 
 from . import catalog, filters, translation
-from .models import Exercise, Favorite
+from .models import Exercise, Favorite, UnavailableExercise
 
 #: Cartes par page. Assez pour remplir un grand écran, assez peu pour qu'un
 #: téléphone ne charge pas 873 fiches d'un coup.
@@ -96,6 +96,27 @@ def toggle_favorite(request: HttpRequest, pk: int) -> HttpResponse:
         request,
         "exercises/partials/favorite_button.html",
         {"exercise": exercise},
+    )
+
+
+@login_required
+@require_POST
+def restore_unavailable(request: HttpRequest, pk: int) -> HttpResponse:
+    """Rend à nouveau un exercice écarté faute de matériel (issue #127).
+
+    Rend la liste des exercices encore écartés, affichée sur l'écran Mon
+    matériel : c'est là que l'utilisateur vient lever une exclusion posée
+    depuis une séance.
+    """
+    UnavailableExercise.objects.filter(user=request.user, exercise_id=pk).delete()
+    return render(
+        request,
+        "exercises/partials/unavailable_list.html",
+        {
+            "unavailable": UnavailableExercise.objects.filter(user=request.user).select_related(
+                "exercise"
+            )
+        },
     )
 
 

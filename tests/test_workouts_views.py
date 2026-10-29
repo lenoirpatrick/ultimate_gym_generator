@@ -8,7 +8,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from accounts.models import UserEquipment
-from exercises.models import Exercise, Muscle
+from exercises.models import Exercise, Muscle, UnavailableExercise
 from workouts import generator
 from workouts.models import Workout, WorkoutExercise
 
@@ -726,6 +726,91 @@ def test_on_ne_rafraichit_pas_l_exercice_d_une_seance_d_un_autre(logged_client, 
     item.refresh_from_db()
     assert response.status_code == 404
     assert item.exercise_id == squat.pk
+
+
+# --------------------------------------------------------------------------- #
+# Exercice écarté faute de matériel (issue #127)
+# --------------------------------------------------------------------------- #
+
+
+def test_le_deroule_propose_d_ecarter_un_exercice(logged_client, user):
+    squat = Exercise.objects.get(slug="Barbell_Squat")
+    workout = build_workout(user, squat)
+    item = workout.items.first()
+
+    content = logged_client.get(reverse("workouts:detail", args=[workout.pk])).content.decode()
+
+    assert reverse("workouts:exercise_unavailable", args=[workout.pk, item.pk]) in content
+
+
+def test_un_exercice_ecarte_est_remplace_et_ne_revient_plus(logged_client, user):
+    squat = Exercise.objects.get(slug="Barbell_Squat")
+    bench = Exercise.objects.get(slug="Dumbbell_Bench_Press")
+    UserEquipment.objects.create(user=user, equipment="dumbbell", mode="fixed", weights=[10])
+    workout = build_workout(user, squat)
+    workout.muscles.set(Muscle.objects.filter(slug="chest"))
+    item = workout.items.first()
+    url = reverse("workouts:exercise_unavailable", args=[workout.pk, item.pk])
+
+    response = logged_client.post(url)
+
+    item.refresh_from_db()
+    content = response.content.decode()
+    assert response.status_code == 200
+    assert item.exercise_id == bench.pk
+    assert UnavailableExercise.objects.filter(user=user, exercise=squat).exists()
+    assert "Barbell Squat » ne sera plus proposé" in content
+    assert reverse("accounts:equipment") in content
+
+
+def test_l_exclusion_est_enregistree_meme_sans_remplacant(logged_client, user):
+    """Rien d'autre à proposer : l'exercice reste affiché, mais ne reviendra plus."""
+    bench = Exercise.objects.get(slug="Dumbbell_Bench_Press")
+    UserEquipment.objects.create(user=user, equipment="dumbbell", mode="fixed", weights=[10])
+    workout = build_workout(user, bench)
+    workout.muscles.set(Muscle.objects.filter(slug="chest"))
+    item = workout.items.first()
+    url = reverse("workouts:exercise_unavailable", args=[workout.pk, item.pk])
+
+    response = logged_client.post(url)
+
+    item.refresh_from_db()
+    assert item.exercise_id == bench.pk
+    assert UnavailableExercise.objects.filter(user=user, exercise=bench).exists()
+    assert "Aucun autre exercice disponible" in response.content.decode()
+
+
+def test_ecarter_deux_fois_le_meme_exercice_ne_duplique_rien(logged_client, user):
+    bench = Exercise.objects.get(slug="Dumbbell_Bench_Press")
+    workout = build_workout(user, bench)
+    item = workout.items.first()
+    url = reverse("workouts:exercise_unavailable", args=[workout.pk, item.pk])
+
+    logged_client.post(url)
+    logged_client.post(url)
+
+    assert UnavailableExercise.objects.filter(user=user, exercise=bench).count() == 1
+
+
+def test_ecarter_un_exercice_refuse_la_methode_get(logged_client, user):
+    squat = Exercise.objects.get(slug="Barbell_Squat")
+    workout = build_workout(user, squat)
+    item = workout.items.first()
+    url = reverse("workouts:exercise_unavailable", args=[workout.pk, item.pk])
+
+    assert logged_client.get(url).status_code == 405
+
+
+def test_on_n_ecarte_pas_l_exercice_d_une_seance_d_un_autre(logged_client, staff_client, user):
+    squat = Exercise.objects.get(slug="Barbell_Squat")
+    workout = build_workout(user, squat)
+    item = workout.items.first()
+    url = reverse("workouts:exercise_unavailable", args=[workout.pk, item.pk])
+
+    response = staff_client.post(url)
+
+    assert response.status_code == 404
+    assert not UnavailableExercise.objects.exists()
 
 
 # --------------------------------------------------------------------------- #

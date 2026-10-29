@@ -17,6 +17,11 @@ urlpatterns = [
         views.workout_exercise_refresh,
         name="exercise_refresh",
     ),
+    path(
+        "<int:pk>/exercices/<int:item_pk>/materiel-absent/",
+        views.workout_exercise_unavailable,
+        name="exercise_unavailable",
+    ),
     path("<int:pk>/executee/", views.workout_performed, name="performed"),
     path("<int:pk>/favori/", views.workout_toggle_favorite, name="toggle_favorite"),
     path("<int:pk>/supprimer/", views.workout_delete, name="delete"),

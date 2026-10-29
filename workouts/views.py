@@ -10,7 +10,7 @@ from django.views.decorators.http import require_POST
 
 from aiproviders.clients import get_active_client
 from exercises import catalog
-from exercises.models import Favorite
+from exercises.models import Favorite, UnavailableExercise
 
 from . import coaching, generator, timer
 from .forms import WorkoutForm
@@ -323,6 +323,44 @@ def workout_exercise_refresh(request: HttpRequest, pk: int, item_pk: int) -> Htt
             "item": item,
             "can_translate": get_active_client() is not None,
             "refresh_failed": failed,
+        },
+    )
+
+
+@login_required
+@require_POST
+def workout_exercise_unavailable(request: HttpRequest, pk: int, item_pk: int) -> HttpResponse:
+    """Écarte l'exercice faute de matériel, puis le remplace dans la séance (issue #127).
+
+    L'exclusion vaut pour toutes les séances à venir (`UnavailableExercise`),
+    pas seulement celle-ci ; elle se lève depuis l'écran Mon matériel. Si
+    aucun remplaçant n'existe, l'exercice reste affiché mais l'exclusion est
+    enregistrée quand même : la prochaine séance ne le proposera plus.
+    """
+    item = get_object_or_404(
+        WorkoutExercise.objects.select_related("workout", "exercise"),
+        pk=item_pk,
+        workout_id=pk,
+        workout__user=request.user,
+    )
+    excluded = item.exercise
+    UnavailableExercise.objects.get_or_create(user=request.user, exercise=excluded)
+    failed = False
+    try:
+        generator.refresh_exercise(item)
+    except generator.GenerationError:
+        failed = True
+    _annotate_favorites(request.user, [item])
+    _annotate_body_regions([item])
+
+    return render(
+        request,
+        "workouts/partials/exercise_item.html",
+        {
+            "item": item,
+            "can_translate": get_active_client() is not None,
+            "refresh_failed": failed,
+            "excluded_exercise": excluded,
         },
     )
 

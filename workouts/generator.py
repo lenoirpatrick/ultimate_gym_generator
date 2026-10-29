@@ -346,6 +346,9 @@ def eligible_exercises(
     directement dans le formulaire, indépendant de la configuration
     elle-même. `None` retient tout le matériel configuré, comme avant cette
     option ; une liste, même vide, est prise au mot.
+
+    Les exercices que l'utilisateur a écartés faute de matériel (issue #127)
+    n'en font jamais partie, quel que soit le matériel déclaré de leur fiche.
     """
     owned = set(UserEquipment.objects.filter(user=user).values_list("equipment", flat=True))
     if equipment is not None:
@@ -354,8 +357,10 @@ def eligible_exercises(
     owned.add(BODYWEIGHT)
     owned.add("")
 
-    queryset = Exercise.objects.filter(equipment__in=owned).exclude(
-        category__in=EXCLUDED_CATEGORIES
+    queryset = (
+        Exercise.objects.filter(equipment__in=owned)
+        .exclude(category__in=EXCLUDED_CATEGORIES)
+        .exclude(unavailable_for__user=user)
     )
 
     if muscles:
