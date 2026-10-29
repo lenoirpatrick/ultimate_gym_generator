@@ -766,6 +766,18 @@
     color: var(--ugg-accent);
 }
 
+/* Bascule « Matériel absent » (issue #127) : même gabarit que le favori, mais
+   un état actif qui écarte plutôt qu'il ne met en avant — d'où le danger
+   plutôt que l'accent. L'icône pleine et `aria-pressed` portent l'état. */
+.ugg-favorite--danger:hover {
+    border-color: var(--ugg-danger);
+}
+
+.ugg-favorite--danger.ugg-favorite--on {
+    border-color: var(--ugg-danger);
+    color: var(--ugg-danger);
+}
+
 .ugg-favorite__icon {
     flex: none;
     width: 1rem;

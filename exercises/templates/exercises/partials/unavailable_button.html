@@ -1,0 +1,30 @@
+{% comment %}
+Bascule « Matériel absent » d'un exercice (issue #127) : un exercice marqué
+n'est plus proposé en séance. Même gabarit que la bascule favori
+(core/components/favorite_toggle.html) — libellé constant, état porté par
+`aria-pressed` et par le remplissage de l'icône, jamais par la seule couleur.
+
+Attend `exercise`, annoté de `is_unavailable`.
+{% endcomment %}
+<button type="button"
+        class="ugg-favorite ugg-favorite--danger{% if exercise.is_unavailable %} ugg-favorite--on{% endif %}"
+        aria-pressed="{{ exercise.is_unavailable|yesno:"true,false" }}"
+        hx-post="{% url 'exercises:toggle_unavailable' exercise.pk %}"
+        hx-swap="outerHTML">
+    <svg class="ugg-favorite__icon" viewBox="0 0 24 24" aria-hidden="true"
+         fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        {% if exercise.is_unavailable %}
+            {# Barre découpée dans le disque plein : lisible sur toute surface, sans couleur de fond supposée. #}
+            <mask id="materiel-absent-{{ exercise.pk }}">
+                <rect width="24" height="24" fill="white" />
+                <path d="M6 6l12 12" stroke="black" stroke-width="2.5" />
+            </mask>
+            <circle cx="12" cy="12" r="9.5" fill="currentColor" stroke="none"
+                    mask="url(#materiel-absent-{{ exercise.pk }})" />
+        {% else %}
+            <circle cx="12" cy="12" r="8.5" />
+            <path d="M6 6l12 12" />
+        {% endif %}
+    </svg>
+    <span>Matériel absent</span>
+</button>

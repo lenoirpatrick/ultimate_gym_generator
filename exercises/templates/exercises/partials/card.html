@@ -46,8 +46,9 @@ noieraient la grille.
         </details>
     {% endif %}
 
-    {# `mt-auto` cale la bascule en bas : les cartes d'une même ligne s'alignent. #}
-    <div class="mt-auto pt-4">
+    {# `mt-auto` cale les bascules en bas : les cartes d'une même ligne s'alignent. #}
+    <div class="mt-auto flex flex-wrap gap-2 pt-4">
         {% include "exercises/partials/favorite_button.html" with exercise=exercise %}
+        {% include "exercises/partials/unavailable_button.html" with exercise=exercise %}
     </div>
 </article>

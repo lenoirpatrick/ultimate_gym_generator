@@ -73,6 +73,8 @@ def style_guide(request: HttpRequest) -> HttpResponse:
     favorite_demos = [Exercise(pk=1, name="Non marqué"), Exercise(pk=2, name="Marqué")]
     favorite_demos[0].is_favorite = False
     favorite_demos[1].is_favorite = True
+    favorite_demos[0].is_unavailable = False
+    favorite_demos[1].is_unavailable = True
     return render(
         request,
         "core/style_guide.html",

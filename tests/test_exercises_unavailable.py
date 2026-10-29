@@ -60,6 +60,57 @@ def test_retablir_exige_une_requete_post(logged_client, squat):
     assert response.status_code == 405
 
 
+def test_la_carte_du_catalogue_propose_la_bascule(logged_client, squat):
+    content = logged_client.get(reverse("exercises:list")).content.decode()
+
+    assert reverse("exercises:toggle_unavailable", args=[squat.pk]) in content
+
+
+def test_la_carte_d_un_exercice_ecarte_montre_l_etat_actif(logged_client, user, squat):
+    UnavailableExercise.objects.create(user=user, exercise=squat)
+
+    content = logged_client.get(reverse("exercises:list")).content.decode()
+
+    assert f'id="materiel-absent-{squat.pk}"' in content
+    assert "Barbell Squat" in content
+
+
+def test_la_bascule_ecarte_puis_retablit(logged_client, user, squat):
+    url = reverse("exercises:toggle_unavailable", args=[squat.pk])
+
+    response = logged_client.post(url)
+
+    assert response.status_code == 200
+    assert 'aria-pressed="true"' in response.content.decode()
+    assert UnavailableExercise.objects.filter(user=user, exercise=squat).exists()
+
+    response = logged_client.post(url)
+
+    assert 'aria-pressed="false"' in response.content.decode()
+    assert not UnavailableExercise.objects.filter(user=user).exists()
+
+
+def test_la_bascule_ne_touche_pas_aux_exclusions_d_un_autre(logged_client, user, staff, squat):
+    UnavailableExercise.objects.create(user=staff, exercise=squat)
+
+    logged_client.post(reverse("exercises:toggle_unavailable", args=[squat.pk]))
+
+    assert UnavailableExercise.objects.filter(user=staff, exercise=squat).exists()
+    assert UnavailableExercise.objects.filter(user=user, exercise=squat).exists()
+
+
+def test_la_bascule_exige_une_requete_post(logged_client, squat):
+    response = logged_client.get(reverse("exercises:toggle_unavailable", args=[squat.pk]))
+
+    assert response.status_code == 405
+
+
+def test_la_bascule_d_un_exercice_inconnu_echoue_proprement(logged_client):
+    response = logged_client.post(reverse("exercises:toggle_unavailable", args=[999_999]))
+
+    assert response.status_code == 404
+
+
 def test_retablir_exige_une_authentification(client, squat):
     response = client.post(reverse("exercises:restore_unavailable", args=[squat.pk]))
 

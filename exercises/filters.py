@@ -11,7 +11,7 @@ from django.db.models import Exists, OuterRef, Q, QuerySet
 
 from core.filtering import FilterGroup, Option, selected_values
 
-from .models import Exercise, Favorite, Muscle
+from .models import Exercise, Favorite, Muscle, UnavailableExercise
 
 __all__ = [
     "CHOICE_FILTERS",
@@ -95,9 +95,14 @@ def favorites_only(params) -> bool:
 
 
 def filter_exercises(params, user) -> QuerySet[Exercise]:
-    """Catalogue restreint aux critères cochés, annoté de l'état « favori »."""
+    """Catalogue restreint aux critères cochés, annoté des états « favori » et
+    « matériel absent » (issue #127). Un exercice écarté reste listé : le
+    catalogue montre tout, seules les séances l'écartent."""
     marked = Favorite.objects.filter(user=user.pk, exercise=OuterRef("pk"))
-    queryset = Exercise.objects.annotate(is_favorite=Exists(marked))
+    unavailable = UnavailableExercise.objects.filter(user=user.pk, exercise=OuterRef("pk"))
+    queryset = Exercise.objects.annotate(
+        is_favorite=Exists(marked), is_unavailable=Exists(unavailable)
+    )
 
     query = search_query(params)
     if query:

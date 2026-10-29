@@ -101,6 +101,27 @@ def toggle_favorite(request: HttpRequest, pk: int) -> HttpResponse:
 
 @login_required
 @require_POST
+def toggle_unavailable(request: HttpRequest, pk: int) -> HttpResponse:
+    """Écarte ou rétablit un exercice depuis sa carte du catalogue (issue #127).
+
+    Même mécanique que `toggle_favorite` : le bouton se remplace lui-même.
+    """
+    exercise = get_object_or_404(Exercise, pk=pk)
+
+    entry, created = UnavailableExercise.objects.get_or_create(user=request.user, exercise=exercise)
+    if not created:
+        entry.delete()
+
+    exercise.is_unavailable = created
+    return render(
+        request,
+        "exercises/partials/unavailable_button.html",
+        {"exercise": exercise},
+    )
+
+
+@login_required
+@require_POST
 def restore_unavailable(request: HttpRequest, pk: int) -> HttpResponse:
     """Rend à nouveau un exercice écarté faute de matériel (issue #127).
 

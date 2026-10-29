@@ -695,6 +695,13 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
   par `workout_detail` et `workout_exercise_refresh` — ce dernier remplace l'exercice,
   l'état favori doit suivre le remplaçant) ; le partiel n'introduit aucune route
   propre, il réutilise `exercises:toggle_favorite` tel quel.
+- La bascule **« Matériel absent »** d'une carte du catalogue
+  (`exercises/partials/unavailable_button.html`, issue #127) suit les mêmes règles :
+  libellé constant, état par `aria-pressed` et par le remplissage de l'icône (cercle
+  barré au contour, ou disque plein dont la barre est découpée par un masque SVG — pas
+  par une couleur de fond supposée), auto-remplacement `outerHTML`. Même gabarit que le
+  favori (`.ugg-favorite`), modificateur `.ugg-favorite--danger` : l'état actif écarte
+  au lieu de mettre en avant, d'où `--ugg-danger` plutôt que l'accent.
 
 ### Formulaire de composition d'une séance
 
@@ -798,7 +805,11 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
   se lève depuis une section **« Exercices écartés »** de cet écran, hors du formulaire
   du matériel (`exercises/partials/unavailable_list.html`, bouton « Rétablir » qui
   reswape la liste, état vide compris) : c'est là que mène le lien du message de
-  confirmation.
+  confirmation. Chaque carte du catalogue porte aussi une bascule **« Matériel
+  absent »** (voir « Bascules d'état ») pour écarter un exercice sans attendre qu'il
+  apparaisse en séance ; le catalogue continue, lui, de lister les exercices écartés
+  (`exercises.filters.filter_exercises` les annote de `is_unavailable` sans les
+  retirer).
 - Les lignes s'affichent **dans l'ordre où elles ont été déclarées**, pas alphabétique
   (`UserEquipment.Meta.ordering = ("id",)`) : c'est dans cet ordre qu'elles existent
   pour l'utilisateur qui les a saisies.
