@@ -115,3 +115,17 @@ class Entity(models.Model):
         savoir lequel serait sans effet."""
         useless = {"on": "turn_on", "off": "turn_off"}.get(state or "")
         return tuple(action for action in self.actions if action.service != useless)
+
+
+def _configured() -> bool:
+    """Connexion renseignée, sans déchiffrer le jeton : la question est
+    seulement de savoir s'il y a quelque chose à montrer, et une clé de
+    chiffrement absente ne doit pas faire échouer l'écran de séance."""
+    return Connection.objects.exclude(base_url="").exclude(token="").exists()
+
+
+def workout_entities() -> list[Entity]:
+    """Entités en aperçu sur l'écran d'une séance (issue #133), vide sans connexion."""
+    if not _configured():
+        return []
+    return list(Entity.objects.filter(show_on_workout=True))

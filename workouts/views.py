@@ -11,6 +11,7 @@ from django.views.decorators.http import require_POST
 from aiproviders.clients import get_active_client
 from exercises import catalog
 from exercises.models import Favorite, UnavailableExercise
+from homeassistant import models as home_assistant
 
 from . import coaching, generator, timer
 from .forms import WorkoutForm
@@ -192,6 +193,8 @@ def workout_detail(request: HttpRequest, pk: int) -> HttpResponse:
         "can_translate": get_active_client() is not None,
         # Déroulé chronométré du minuteur de suivi (issue #35).
         "timeline": timer.build_timeline(workout),
+        # Aperçu des entités Home Assistant avant de lancer la séance (issue #133).
+        "home_assistant_entities": home_assistant.workout_entities(),
         **_recovery_ruler_context(workout),
     }
     return render(request, "workouts/workout_detail.html", context)

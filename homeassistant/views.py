@@ -1,15 +1,15 @@
-"""Home Assistant : configuration de la connexion et des entités (issue #129)."""
+"""Home Assistant : cartes d'entité et configuration (issue #129)."""
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.db import transaction
 from django.http import HttpRequest, HttpResponse
-from django.shortcuts import redirect, render
+from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
 from aiproviders.fields import EncryptionKeyError
 
-from .client import HomeAssistantError, get_client
+from .client import EntityState, HomeAssistantError, get_client
 from .forms import ConnectionForm, EntityFormSet
 from .models import MAX_ENTITIES, Connection, Entity
 
@@ -22,6 +22,68 @@ def _encryption_key_missing(request: HttpRequest, exc: EncryptionKeyError) -> Ht
     return render(
         request, "aiproviders/encryption_key_missing.html", {"error": str(exc)}, status=503
     )
+
+
+def _render_card(
+    request: HttpRequest,
+    entity: Entity,
+    state: EntityState | None = None,
+    error: str = "",
+) -> HttpResponse:
+    return render(
+        request,
+        "homeassistant/partials/entity_card.html",
+        {
+            "entity": entity,
+            "state": state,
+            "actions": entity.actions_for(state.state if state else None),
+            "error": error,
+            "compact": request.GET.get("compact") == "1",
+        },
+    )
+
+
+def _read_state(entity: Entity) -> tuple[EntityState | None, str]:
+    """État courant de l'entité, ou le message d'erreur à afficher à sa place."""
+    try:
+        client = get_client()
+        if client is None:
+            return None, "Home Assistant n'est pas configuré."
+        return client.state(entity.entity_id), ""
+    except (HomeAssistantError, EncryptionKeyError) as exc:
+        return None, str(exc)
+
+
+@login_required
+def entity_card(request: HttpRequest, pk: int) -> HttpResponse:
+    """Carte d'une entité avec son état courant, chargée en HTMX."""
+    entity = get_object_or_404(Entity, pk=pk)
+    state, error = _read_state(entity)
+    return _render_card(request, entity, state, error)
+
+
+@login_required
+@require_POST
+def entity_action(request: HttpRequest, pk: int, service: str) -> HttpResponse:
+    """Exécute une action de l'entité, puis rend sa carte avec l'état relu.
+
+    Seuls les services que le domaine de l'entité propose sont acceptés : un
+    appel forgé ne doit pas pouvoir piloter autre chose dans la maison.
+    """
+    entity = get_object_or_404(Entity, pk=pk)
+    if service not in {action.service for action in entity.actions}:
+        return HttpResponse(status=400)
+
+    try:
+        client = get_client()
+        if client is None:
+            return _render_card(request, entity, error="Home Assistant n'est pas configuré.")
+        client.call(entity.entity_id, service)
+    except (HomeAssistantError, EncryptionKeyError) as exc:
+        return _render_card(request, entity, error=f"Action impossible : {exc}")
+
+    state, error = _read_state(entity)
+    return _render_card(request, entity, state, error)
 
 
 @login_required

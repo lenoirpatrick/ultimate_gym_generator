@@ -930,6 +930,20 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
   geste, à la salle ; les deux si l'état est inconnu. Scène, script : « Activer » /
   « Lancer » ; bouton : « Appuyer » ; capteur et le reste : lecture seule.
 
+- Les entités cochées **« afficher sur la séance »** apparaissent en aperçu sur
+  l'écran de détail d'une séance, au-dessus de « Lancer la séance » (issue #133) —
+  pas de page dédiée : on regarde la maison au moment de s'entraîner. Carte
+  partagée `homeassistant/partials/entity_card.html` (`.ugg-ha-entity`) : libellé
+  discret, état en gros (« Allumé », « 21.5 °C »), puis l'action utile. Chaque
+  carte arrive vide et charge son état après coup (`hx-trigger="load"`) : une
+  instance lente ne retarde pas l'écran, une entité en panne n'empêche pas les
+  autres de s'afficher — elle porte son message et « Réessayer ». Une action
+  remplace la carte entière, état relu compris. Seuls les services du domaine de
+  l'entité sont acceptés côté serveur : un appel forgé ne pilote rien d'autre.
+- Rien ne s'affiche sans connexion configurée : `homeassistant.models._configured`
+  le vérifie **sans déchiffrer le jeton** — une clé de chiffrement absente ne doit
+  pas faire échouer l'écran de séance.
+
 ### Avatars
 
 - Photo déposée par l'utilisateur, ou **ses initiales** à défaut — jamais une
