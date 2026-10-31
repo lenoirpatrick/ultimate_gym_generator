@@ -83,6 +83,7 @@ MENU: tuple[NavGroup, ...] = (
                 "Configuration",
                 links=(
                     NavLink("IA", "aiproviders:list", staff_only=True),
+                    NavLink("Home Assistant", "homeassistant:settings", staff_only=True),
                     NavLink("Référentiel", "exercises:reload", staff_only=True),
                     NavLink("Comptes", "accounts:user_list", staff_only=True),
                 ),

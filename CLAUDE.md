@@ -28,6 +28,7 @@ accounts/         utilisateur (avatar, mesures), authentification, SSO, gestion 
 aiproviders/      credentials chiffrés, registre des fournisseurs, adaptateurs, /settings/ai/
 exercises/        catalogue d'exercices, import par lots, écran de chargement
 health/           données Apple HealthKit (poids, activités), import, API, page d'analyse
+homeassistant/    connexion Home Assistant, entités suivies, cartes d'entité
 core/             gabarit de base, composants, spinners, /healthz, /style-guide/
 docs/             INSTALL.md
 src/              exercises.json — catalogue livré avec l'application
@@ -103,7 +104,8 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
   l'ancien partage à deux niveaux « quotidien vs configuré une fois » : avec
   trois domaines de poids comparable, grouper par sujet se lit mieux que
   grouper par fréquence.
-- **Configuration** (IA, Référentiel, Comptes — réservé au personnel) est un
+- **Configuration** (IA, Home Assistant, Référentiel, Comptes — réservé au
+  personnel) est un
   **sous-groupe de Compte**, pas un niveau de menu séparé : une section
   repérée par son propre intitulé à l'intérieur du panneau Compte, jamais un
   second `<details>` imbriqué dans le premier — inutile de complexifier
@@ -908,6 +910,25 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
   entièrement du menu (voir « Navigation principale » ci-dessus) — la désactivation ne
   bloque pas pour autant l'accès direct aux pages `/sante/…` : c'est un réglage
   d'affichage, pas un verrou.
+
+### Home Assistant (issues #129, #132, #133, #134)
+
+- Application `homeassistant` : connexion à une instance Home Assistant (API REST,
+  `httpx`, délai court de 5 s — une instance domestique injoignable ne doit jamais
+  faire attendre l'application). **Commune à toute l'installation**, réglée par le
+  personnel dans Configuration → Home Assistant (`/maison/configuration/`), sur le
+  patron des credentials IA : jeton longue durée chiffré (`EncryptedTextField`),
+  jamais réaffiché, conservé quand le champ est laissé vide ; bouton « Tester la
+  connexion » sur la connexion enregistrée.
+- **5 entités au maximum** (`MAX_ENTITIES`) : au-delà, l'aperçu et surtout le
+  bandeau du minuteur cesseraient de se lire d'un coup d'œil. Chacune porte deux
+  cases indépendantes — où l'afficher.
+- Actions **déduites du domaine** de l'entité (`DOMAIN_ACTIONS`), jamais saisies :
+  un service mal orthographié ne doit pas pouvoir se configurer. Interrupteur,
+  lumière, ventilateur : **un seul bouton qui suit l'état** (« Allumer » éteint,
+  « Éteindre » allumé, `Entity.actions_for`) plutôt que trois — une action d'un
+  geste, à la salle ; les deux si l'état est inconnu. Scène, script : « Activer » /
+  « Lancer » ; bouton : « Appuyer » ; capteur et le reste : lecture seule.
 
 ### Avatars
 
