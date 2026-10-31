@@ -15,6 +15,11 @@ from .models import Workout, WorkoutExercise
 
 INTERLEAVED_FORMATS = (Workout.Format.HIIT, Workout.Format.CIRCUIT)
 
+#: Part minimale des pas d'effort réellement effectués — et non passés —
+#: pour qu'une séance menée au bout du minuteur compte comme exécutée
+#: (issue #120 suite).
+PERFORMED_MIN_RATIO = 0.5
+
 
 @dataclass(frozen=True)
 class TimerStep:
@@ -102,3 +107,16 @@ def build_timeline(workout: Workout) -> list[dict]:
                 steps.append(TimerStep(item.pk, "recovery", recovery, None, total_laps, total_laps))
 
     return [step.as_dict() for step in steps]
+
+
+def is_performed(workout: Workout, done_work_steps: int) -> bool:
+    """Vrai si `done_work_steps` efforts effectués suffisent à compter la séance.
+
+    Le décompte vient du minuteur (`workout_timer.js`), seul à savoir quels pas
+    ont été passés ; le total, lui, est recalculé ici depuis le déroulé, jamais
+    transmis par le client.
+    """
+    total = sum(1 for step in build_timeline(workout) if step["phase"] == "work")
+    if not total:
+        return False
+    return min(done_work_steps, total) >= total * PERFORMED_MIN_RATIO

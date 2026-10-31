@@ -10,8 +10,9 @@ import random
 
 import pytest
 
+from exercises.models import Exercise
 from workouts import generator, timer
-from workouts.models import Workout
+from workouts.models import Workout, WorkoutExercise
 
 pytestmark = pytest.mark.django_db
 
@@ -332,3 +333,40 @@ def test_la_pyramide_ne_marque_pas_de_repos_apres_le_dernier_round(user, rng):
     steps = timer.build_timeline(workout)
 
     assert steps[-1]["phase"] == "work"
+
+
+# --------------------------------------------------------------------------- #
+# Part minimale d'efforts effectués (issue #120 suite)
+# --------------------------------------------------------------------------- #
+
+
+def _circuit_a_quatre_efforts(user):
+    workout = Workout.objects.create(user=user, format=Workout.Format.CIRCUIT, duration_minutes=20)
+    WorkoutExercise.objects.create(
+        workout=workout,
+        position=1,
+        block_index=0,
+        block_label="Bloc 1",
+        exercise=Exercise.objects.first(),
+        rounds=4,
+        work_seconds=30,
+        rest_seconds=15,
+    )
+    return workout
+
+
+def test_la_moitie_des_efforts_suffit_a_compter_la_seance(user):
+    workout = _circuit_a_quatre_efforts(user)
+
+    assert timer.is_performed(workout, 2)
+    assert not timer.is_performed(workout, 1)
+
+
+def test_un_decompte_superieur_au_total_reste_borne(user):
+    assert timer.is_performed(_circuit_a_quatre_efforts(user), 99)
+
+
+def test_une_seance_sans_effort_n_est_jamais_comptee(user):
+    workout = Workout.objects.create(user=user, format=Workout.Format.HIIT, duration_minutes=20)
+
+    assert not timer.is_performed(workout, 5)

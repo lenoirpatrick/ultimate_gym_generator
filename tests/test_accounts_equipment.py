@@ -395,3 +395,15 @@ def test_reenregistrer_une_ligne_reglable_sans_y_toucher_reussit(logged_client, 
     assert response.status_code == 302
     item.refresh_from_db()
     assert item.min_kg == Decimal("2")
+
+
+def test_la_corde_a_sauter_est_declarable(logged_client, user):
+    """Issue #117 : proposée dans la liste, avec son icône, et enregistrable."""
+    content = logged_client.get(reverse("accounts:equipment")).content.decode()
+
+    assert "Corde à sauter" in content
+    assert "ugg-equipment__icon--jump-rope" in content
+
+    data = payload(**{"form-0-equipment": "jump rope", "form-0-mode": "bodyweight"})
+    assert logged_client.post(reverse("accounts:equipment"), data).status_code == 302
+    assert UserEquipment.objects.filter(user=user, equipment="jump rope").exists()

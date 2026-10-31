@@ -77,6 +77,10 @@
     let photoUrls = [];
     let photoIndex = 0;
     let wakeLock = null;
+    // Pas d'effort réellement effectués, transmis à la fin de la séance : le
+    // serveur ne la compte comme exécutée qu'au-delà d'une part minimale
+    // (workouts.timer.is_performed, issue #120 suite).
+    let workDone = 0;
 
     // Le web ne donne accès à aucun réglage de luminosité matérielle : le plus
     // proche disponible est d'empêcher l'écran de s'éteindre ou de s'assombrir
@@ -341,8 +345,18 @@
         );
     }
 
+    // Un effort chronométré compte s'il a tourné au moins la moitié de sa
+    // durée avant d'être passé ; un effort en répétitions compte toujours,
+    // « Passer » y étant la confirmation attendue, pas un abandon.
+    function countLeavingStep() {
+        const step = steps[index];
+        if (!step || step.phase !== "work") return;
+        if (step.seconds === null || total - remaining >= total / 2) workDone += 1;
+    }
+
     function goTo(nextIndex) {
         stopInterval();
+        countLeavingStep();
         if (needsPrep(nextIndex)) {
             runPrep(nextIndex);
             return;
@@ -418,11 +432,42 @@
         currentPanel.hidden = true;
         playCue("end");
         announceEl.textContent = "Séance terminée.";
+        recordPerformed();
+    }
+
+    // Une séance menée jusqu'au bout est enregistrée comme exécutée (issue
+    // #120). Échec silencieux : la séance est faite, une date manquante ne
+    // vaut pas d'interrompre l'écran de fin.
+    async function recordPerformed() {
+        const url = dialog.dataset.performedUrl;
+        if (!url) return;
+        try {
+            const body = new FormData();
+            body.append("done", String(workDone));
+            const response = await fetch(url, {
+                method: "POST",
+                headers: { "X-CSRFToken": dialog.dataset.csrfToken || "" },
+                credentials: "same-origin",
+                body,
+            });
+            if (!response.ok) return;
+            const html = await response.text();
+            const target = document.getElementById("derniere-execution");
+            if (target) target.outerHTML = html;
+            if (html.includes('data-counted="false"')) {
+                exerciseEl.textContent =
+                    "Séance non comptée : plus de la moitié des efforts ont été passés.";
+                announceEl.textContent = `Séance terminée. ${exerciseEl.textContent}`;
+            }
+        } catch {
+            // Hors connexion ou serveur indisponible : ignoré, voir plus haut.
+        }
     }
 
     function reset() {
         stopInterval();
         index = -1;
+        workDone = 0;
         pendingPrepIndex = null;
         pauseBtn.disabled = false;
         pauseBtn.textContent = "Pause";
@@ -493,6 +538,90 @@
         playCue("start");
         runPrep(0);
     });
+
+    // Séparateur des deux colonnes (issue #121) : déplacé à la souris, au
+    // doigt ou aux flèches du clavier, il pose `--ugg-timer-split` (part de
+    // la colonne de gauche) sur la modale. Invisible sous 40rem, où l'écran
+    // reste empilé. Persisté par appareil, comme le volume : la bonne
+    // répartition dépend de la taille d'écran, pas du compte.
+    const SPLIT_STORAGE_KEY = "ugg-timer-split";
+    const SPLIT_DEFAULT = 50;
+    const SPLIT_MIN = 30;
+    const SPLIT_MAX = 70;
+    const SPLIT_KEY_STEP = 5;
+    const splitter = document.getElementById("minuteur-separateur");
+
+    function clampSplit(value) {
+        return Math.min(SPLIT_MAX, Math.max(SPLIT_MIN, Math.round(value)));
+    }
+
+    function applySplit(value) {
+        const split = clampSplit(value);
+        dialog.style.setProperty("--ugg-timer-split", `${split}%`);
+        splitter.setAttribute("aria-valuenow", String(split));
+        return split;
+    }
+
+    function readStoredSplit() {
+        try {
+            const value = Number(window.localStorage.getItem(SPLIT_STORAGE_KEY));
+            return value ? clampSplit(value) : SPLIT_DEFAULT;
+        } catch {
+            return SPLIT_DEFAULT;
+        }
+    }
+
+    function writeStoredSplit(value) {
+        try {
+            window.localStorage.setItem(SPLIT_STORAGE_KEY, String(value));
+        } catch {
+            // Ignoré : voir readStoredVolume.
+        }
+    }
+
+    function splitFromPointer(event) {
+        const rect = dialog.getBoundingClientRect();
+        return ((event.clientX - rect.left) / rect.width) * 100;
+    }
+
+    if (splitter) {
+        let currentSplit = applySplit(readStoredSplit());
+
+        splitter.addEventListener("pointerdown", (event) => {
+            if (event.button !== 0) return;
+            event.preventDefault();
+            splitter.setPointerCapture(event.pointerId);
+            splitter.dataset.dragging = "";
+        });
+
+        splitter.addEventListener("pointermove", (event) => {
+            if (!splitter.hasPointerCapture(event.pointerId)) return;
+            currentSplit = applySplit(splitFromPointer(event));
+        });
+
+        const endDrag = (event) => {
+            if (!splitter.hasPointerCapture(event.pointerId)) return;
+            splitter.releasePointerCapture(event.pointerId);
+            delete splitter.dataset.dragging;
+            writeStoredSplit(currentSplit);
+        };
+        splitter.addEventListener("pointerup", endDrag);
+        splitter.addEventListener("pointercancel", endDrag);
+
+        splitter.addEventListener("keydown", (event) => {
+            const moves = {
+                ArrowLeft: currentSplit - SPLIT_KEY_STEP,
+                ArrowRight: currentSplit + SPLIT_KEY_STEP,
+                Home: SPLIT_MIN,
+                End: SPLIT_MAX,
+                Enter: SPLIT_DEFAULT,
+            };
+            if (!(event.key in moves)) return;
+            event.preventDefault();
+            currentSplit = applySplit(moves[event.key]);
+            writeStoredSplit(currentSplit);
+        });
+    }
 
     // Extraites en fonctions nommées pour être aussi déclenchables par les
     // touches multimédias du clavier sur poste de bureau (issue #55).

@@ -1,12 +1,14 @@
 """Écrans de séance : composition, historique, cloisonnement."""
 
 import re
+from datetime import datetime, timedelta
 
 import pytest
 from django.urls import reverse
+from django.utils import timezone
 
 from accounts.models import UserEquipment
-from exercises.models import Exercise
+from exercises.models import Exercise, Muscle, UnavailableExercise
 from workouts import generator
 from workouts.models import Workout, WorkoutExercise
 
@@ -727,6 +729,91 @@ def test_on_ne_rafraichit_pas_l_exercice_d_une_seance_d_un_autre(logged_client, 
 
 
 # --------------------------------------------------------------------------- #
+# Exercice écarté faute de matériel (issue #127)
+# --------------------------------------------------------------------------- #
+
+
+def test_le_deroule_propose_d_ecarter_un_exercice(logged_client, user):
+    squat = Exercise.objects.get(slug="Barbell_Squat")
+    workout = build_workout(user, squat)
+    item = workout.items.first()
+
+    content = logged_client.get(reverse("workouts:detail", args=[workout.pk])).content.decode()
+
+    assert reverse("workouts:exercise_unavailable", args=[workout.pk, item.pk]) in content
+
+
+def test_un_exercice_ecarte_est_remplace_et_ne_revient_plus(logged_client, user):
+    squat = Exercise.objects.get(slug="Barbell_Squat")
+    bench = Exercise.objects.get(slug="Dumbbell_Bench_Press")
+    UserEquipment.objects.create(user=user, equipment="dumbbell", mode="fixed", weights=[10])
+    workout = build_workout(user, squat)
+    workout.muscles.set(Muscle.objects.filter(slug="chest"))
+    item = workout.items.first()
+    url = reverse("workouts:exercise_unavailable", args=[workout.pk, item.pk])
+
+    response = logged_client.post(url)
+
+    item.refresh_from_db()
+    content = response.content.decode()
+    assert response.status_code == 200
+    assert item.exercise_id == bench.pk
+    assert UnavailableExercise.objects.filter(user=user, exercise=squat).exists()
+    assert "Barbell Squat » ne sera plus proposé" in content
+    assert reverse("accounts:equipment") in content
+
+
+def test_l_exclusion_est_enregistree_meme_sans_remplacant(logged_client, user):
+    """Rien d'autre à proposer : l'exercice reste affiché, mais ne reviendra plus."""
+    bench = Exercise.objects.get(slug="Dumbbell_Bench_Press")
+    UserEquipment.objects.create(user=user, equipment="dumbbell", mode="fixed", weights=[10])
+    workout = build_workout(user, bench)
+    workout.muscles.set(Muscle.objects.filter(slug="chest"))
+    item = workout.items.first()
+    url = reverse("workouts:exercise_unavailable", args=[workout.pk, item.pk])
+
+    response = logged_client.post(url)
+
+    item.refresh_from_db()
+    assert item.exercise_id == bench.pk
+    assert UnavailableExercise.objects.filter(user=user, exercise=bench).exists()
+    assert "Aucun autre exercice disponible" in response.content.decode()
+
+
+def test_ecarter_deux_fois_le_meme_exercice_ne_duplique_rien(logged_client, user):
+    bench = Exercise.objects.get(slug="Dumbbell_Bench_Press")
+    workout = build_workout(user, bench)
+    item = workout.items.first()
+    url = reverse("workouts:exercise_unavailable", args=[workout.pk, item.pk])
+
+    logged_client.post(url)
+    logged_client.post(url)
+
+    assert UnavailableExercise.objects.filter(user=user, exercise=bench).count() == 1
+
+
+def test_ecarter_un_exercice_refuse_la_methode_get(logged_client, user):
+    squat = Exercise.objects.get(slug="Barbell_Squat")
+    workout = build_workout(user, squat)
+    item = workout.items.first()
+    url = reverse("workouts:exercise_unavailable", args=[workout.pk, item.pk])
+
+    assert logged_client.get(url).status_code == 405
+
+
+def test_on_n_ecarte_pas_l_exercice_d_une_seance_d_un_autre(logged_client, staff_client, user):
+    squat = Exercise.objects.get(slug="Barbell_Squat")
+    workout = build_workout(user, squat)
+    item = workout.items.first()
+    url = reverse("workouts:exercise_unavailable", args=[workout.pk, item.pk])
+
+    response = staff_client.post(url)
+
+    assert response.status_code == 404
+    assert not UnavailableExercise.objects.exists()
+
+
+# --------------------------------------------------------------------------- #
 # Favoris dans le déroulé (issue #64)
 # --------------------------------------------------------------------------- #
 
@@ -1048,3 +1135,340 @@ def test_l_icone_corporelle_est_absente_sans_muscle_mappe(logged_client, user):
     content = logged_client.get(reverse("workouts:detail", args=[workout.pk])).content.decode()
 
     assert "ugg-body-map" not in content
+
+
+# --------------------------------------------------------------------------- #
+# Recherche et filtres rapides de l'historique (issue #116)
+# --------------------------------------------------------------------------- #
+
+
+@pytest.fixture
+def seances(user):
+    """Une séance « bras » nommée et une séance « jambes » sans nom."""
+    biceps = Muscle.objects.get_or_create(slug="biceps", defaults={"name": "Biceps"})[0]
+    quads = Muscle.objects.get_or_create(slug="quadriceps", defaults={"name": "Quadriceps"})[0]
+    bras = Workout.objects.create(
+        user=user, format=Workout.Format.CIRCUIT, name="Pompes du matin", duration_minutes=20
+    )
+    bras.muscles.add(biceps)
+    jambes = Workout.objects.create(user=user, format=Workout.Format.HIIT, duration_minutes=30)
+    jambes.muscles.add(quads)
+    return bras, jambes
+
+
+def _liste(client, **params) -> str:
+    return client.get(reverse("workouts:list"), params).content.decode()
+
+
+def _present(content: str, workout: Workout) -> bool:
+    return reverse("workouts:detail", args=[workout.pk]) in content
+
+
+def test_la_recherche_porte_sur_le_nom(logged_client, seances):
+    bras, jambes = seances
+
+    content = _liste(logged_client, q="pompes")
+
+    assert _present(content, bras)
+    assert not _present(content, jambes)
+
+
+def test_la_recherche_porte_sur_les_muscles(logged_client, seances):
+    bras, jambes = seances
+
+    content = _liste(logged_client, q="QUADRI")
+
+    assert _present(content, jambes)
+    assert not _present(content, bras)
+
+
+def test_la_recherche_porte_sur_le_libelle_du_format(logged_client, seances):
+    _, jambes = seances
+
+    content = _liste(logged_client, q=jambes.get_format_display())
+
+    assert _present(content, jambes)
+
+
+def test_une_zone_rapide_restreint_aux_seances_concernees(logged_client, seances):
+    bras, jambes = seances
+
+    content = _liste(logged_client, zone="bras")
+
+    assert _present(content, bras)
+    assert not _present(content, jambes)
+
+
+def test_plusieurs_zones_s_additionnent(logged_client, seances):
+    bras, jambes = seances
+
+    content = _liste(logged_client, zone=["bras", "jambes"])
+
+    assert _present(content, bras)
+    assert _present(content, jambes)
+
+
+def test_zone_et_recherche_se_cumulent(logged_client, seances):
+    bras, jambes = seances
+
+    content = _liste(logged_client, zone="bras", q="quadri")
+
+    assert not _present(content, bras)
+    assert not _present(content, jambes)
+
+
+def test_une_zone_inconnue_est_ignoree(logged_client, seances):
+    bras, jambes = seances
+
+    content = _liste(logged_client, zone="oreilles")
+
+    assert _present(content, bras)
+    assert _present(content, jambes)
+
+
+def test_une_recherche_sans_resultat_le_dit(logged_client, seances):
+    content = _liste(logged_client, q="introuvable")
+
+    assert "Aucune séance trouvée" in content
+
+
+def test_la_recherche_ne_voit_pas_les_seances_d_un_autre(logged_client, staff_client, seances):
+    bras, _ = seances
+
+    assert not _present(
+        staff_client.get(reverse("workouts:list"), {"q": "pompes"}).content.decode(), bras
+    )
+
+
+def test_le_formulaire_propose_recherche_et_zones(logged_client):
+    content = _liste(logged_client)
+
+    assert 'name="q"' in content
+    for zone in ("bras", "jambes", "dos", "abdos"):
+        assert f'name="zone" value="{zone}"' in content
+
+
+def test_la_selection_reste_cochee_apres_filtrage(logged_client, seances):
+    content = _liste(logged_client, zone="dos", q="x")
+
+    assert re.search(r'value="dos"\s+checked', content)
+    assert 'value="x"' in content
+
+
+# --------------------------------------------------------------------------- #
+# Tri de l'historique par durée (issue #119)
+# --------------------------------------------------------------------------- #
+
+
+@pytest.fixture
+def seances_de_durees(user):
+    """Trois séances créées dans l'ordre courte, longue, moyenne."""
+    return [
+        Workout.objects.create(
+            user=user, format=Workout.Format.CIRCUIT, duration_minutes=20, planned_seconds=seconds
+        )
+        for seconds in (600, 3000, 1800)
+    ]
+
+
+def _ordre(content: str, workouts: list[Workout]) -> list[Workout]:
+    return sorted(workouts, key=lambda w: content.index(reverse("workouts:detail", args=[w.pk])))
+
+
+def test_l_historique_reste_trie_par_date_par_defaut(logged_client, seances_de_durees):
+    courte, longue, moyenne = seances_de_durees
+
+    assert _ordre(_liste(logged_client), seances_de_durees) == [moyenne, longue, courte]
+
+
+def test_l_historique_se_trie_par_duree_croissante(logged_client, seances_de_durees):
+    courte, longue, moyenne = seances_de_durees
+
+    content = _liste(logged_client, tri="courtes")
+
+    assert _ordre(content, seances_de_durees) == [courte, moyenne, longue]
+
+
+def test_l_historique_se_trie_par_duree_decroissante(logged_client, seances_de_durees):
+    courte, longue, moyenne = seances_de_durees
+
+    content = _liste(logged_client, tri="longues")
+
+    assert _ordre(content, seances_de_durees) == [longue, moyenne, courte]
+
+
+def test_a_duree_egale_la_plus_recente_passe_en_tete(logged_client, user):
+    ancienne, recente = (
+        Workout.objects.create(
+            user=user, format=Workout.Format.HIIT, duration_minutes=20, planned_seconds=1200
+        )
+        for _ in range(2)
+    )
+
+    content = _liste(logged_client, tri="courtes")
+
+    assert _ordre(content, [ancienne, recente]) == [recente, ancienne]
+
+
+def test_un_tri_inconnu_retombe_sur_la_date(logged_client, seances_de_durees):
+    courte, longue, moyenne = seances_de_durees
+
+    content = _liste(logged_client, tri="alphabetique")
+
+    assert _ordre(content, seances_de_durees) == [moyenne, longue, courte]
+    assert re.search(r'value="recentes"\s+checked', content)
+
+
+def test_l_historique_se_trie_par_derniere_execution(logged_client, seances_de_durees):
+    courte, longue, moyenne = seances_de_durees
+    courte.last_performed_at = timezone.now() - timedelta(days=1)
+    longue.last_performed_at = timezone.now() - timedelta(days=5)
+    courte.save()
+    longue.save()
+
+    content = _liste(logged_client, tri="faites")
+
+    # Jamais exécutée : en fin de liste, quelle que soit sa date de création.
+    assert _ordre(content, seances_de_durees) == [courte, longue, moyenne]
+    assert re.search(r'value="faites"\s+checked', content)
+
+
+def test_le_tri_se_cumule_avec_les_zones(logged_client, user, seances):
+    bras, jambes = seances
+    bras.planned_seconds, jambes.planned_seconds = 2400, 600
+    bras.save()
+    jambes.save()
+
+    content = _liste(logged_client, tri="courtes", zone="bras")
+
+    assert _present(content, bras)
+    assert not _present(content, jambes)
+    assert re.search(r'value="courtes"\s+checked', content)
+
+
+# --------------------------------------------------------------------------- #
+# Date de dernière exécution (issue #120)
+# --------------------------------------------------------------------------- #
+
+
+def _performed_url(workout: Workout) -> str:
+    return reverse("workouts:performed", args=[workout.pk])
+
+
+def test_une_seance_neuve_n_a_jamais_ete_executee(logged_client, user):
+    workout = Workout.objects.create(user=user, format=Workout.Format.HIIT, duration_minutes=20)
+
+    content = logged_client.get(reverse("workouts:detail", args=[workout.pk])).content.decode()
+
+    assert workout.last_performed_at is None
+    assert "Jamais exécutée" in content
+
+
+def test_la_fin_du_minuteur_enregistre_la_date(logged_client, user):
+    workout = build_workout(user, Exercise.objects.first())  # trois efforts
+
+    response = logged_client.post(_performed_url(workout), {"done": 3})
+
+    workout.refresh_from_db()
+    assert response.status_code == 200
+    assert workout.last_performed_at is not None
+    assert 'id="derniere-execution"' in response.content.decode()
+    assert 'data-counted="true"' in response.content.decode()
+    assert "Dernière exécution" in response.content.decode()
+
+
+def test_une_nouvelle_execution_remplace_la_precedente(logged_client, user):
+    ancienne = timezone.now() - timedelta(days=3)
+    workout = build_workout(user, Exercise.objects.first())
+    workout.last_performed_at = ancienne
+    workout.save()
+
+    logged_client.post(_performed_url(workout), {"done": 3})
+
+    workout.refresh_from_db()
+    assert workout.last_performed_at > ancienne
+
+
+def test_une_seance_aux_efforts_majoritairement_passes_n_est_pas_comptee(logged_client, user):
+    workout = build_workout(user, Exercise.objects.first())  # trois efforts
+
+    response = logged_client.post(_performed_url(workout), {"done": 1})
+
+    workout.refresh_from_db()
+    assert workout.last_performed_at is None
+    assert 'data-counted="false"' in response.content.decode()
+    assert "Jamais exécutée" in response.content.decode()
+
+
+def test_une_execution_non_comptee_conserve_la_date_precedente(logged_client, user):
+    ancienne = timezone.now() - timedelta(days=3)
+    workout = build_workout(user, Exercise.objects.first())
+    workout.last_performed_at = ancienne
+    workout.save()
+
+    logged_client.post(_performed_url(workout), {"done": 0})
+
+    workout.refresh_from_db()
+    assert workout.last_performed_at == ancienne
+
+
+@pytest.mark.parametrize("done", ["", "abc", "-5"])
+def test_un_decompte_absent_ou_invalide_ne_compte_pas(logged_client, user, done):
+    workout = build_workout(user, Exercise.objects.first())
+
+    logged_client.post(_performed_url(workout), {"done": done})
+
+    workout.refresh_from_db()
+    assert workout.last_performed_at is None
+
+
+def test_l_execution_exige_un_post(logged_client, user):
+    workout = Workout.objects.create(user=user, format=Workout.Format.HIIT, duration_minutes=20)
+
+    assert logged_client.get(_performed_url(workout)).status_code == 405
+
+
+def test_l_execution_d_une_seance_d_un_autre_est_refusee(staff_client, user):
+    workout = Workout.objects.create(user=user, format=Workout.Format.HIIT, duration_minutes=20)
+
+    assert staff_client.post(_performed_url(workout), {"done": 3}).status_code == 404
+    workout.refresh_from_db()
+    assert workout.last_performed_at is None
+
+
+def test_le_minuteur_connait_l_adresse_d_enregistrement(logged_client, user):
+    exercise = Exercise.objects.first()
+    workout = build_workout(user, exercise)
+
+    content = logged_client.get(reverse("workouts:detail", args=[workout.pk])).content.decode()
+
+    assert f'data-performed-url="{_performed_url(workout)}"' in content
+
+
+def test_l_historique_affiche_la_date_de_derniere_execution(logged_client, user):
+    Workout.objects.create(
+        user=user,
+        format=Workout.Format.HIIT,
+        duration_minutes=20,
+        last_performed_at=timezone.make_aware(datetime(2026, 10, 3, 18, 0)),
+    )
+
+    assert "Faite le" in _liste(logged_client)
+    assert "3 octobre 2026" in _liste(logged_client)
+
+
+# --------------------------------------------------------------------------- #
+# Séparateur ajustable du minuteur (issue #121)
+# --------------------------------------------------------------------------- #
+
+
+def test_le_minuteur_porte_un_separateur_accessible(logged_client, user):
+    workout = build_workout(user, Exercise.objects.first())
+
+    content = logged_client.get(reverse("workouts:detail", args=[workout.pk])).content.decode()
+
+    separateur = re.search(r'<div class="ugg-timer__splitter"[^>]*>', content).group(0)
+    assert 'role="separator"' in separateur
+    assert 'tabindex="0"' in separateur
+    assert 'aria-controls="minuteur-colonne-principale"' in separateur
+    assert 'id="minuteur-colonne-principale"' in content

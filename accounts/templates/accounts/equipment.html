@@ -30,5 +30,19 @@
                 déclarer un matériel de plus.
             </p>
         </form>
+
+        {% comment %}
+        Hors du formulaire du matériel : rétablir un exercice est une action
+        immédiate, pas une valeur à enregistrer avec le reste (issue #127).
+        {% endcomment %}
+        <section id="exercices-ecartes" class="mt-12" aria-labelledby="exercices-ecartes-titre">
+            <h2 id="exercices-ecartes-titre" class="ugg-title text-xl">Exercices écartés</h2>
+            <p class="mt-2 text-muted">
+                Certaines fiches demandent un matériel qu'elles ne déclarent pas (une barre
+                de traction pour un Hanging Pike, par exemple). Ceux-ci ne te sont plus
+                proposés en séance.
+            </p>
+            {% include "exercises/partials/unavailable_list.html" %}
+        </section>
     </div>
 {% endblock %}

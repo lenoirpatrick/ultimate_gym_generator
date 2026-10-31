@@ -1,0 +1,35 @@
+{% comment %}
+Exercices écartés faute de matériel (issue #127), affichés sur l'écran Mon
+matériel. Bloc autonome : « Rétablir » le reswape en entier
+(exercises.views.restore_unavailable), état vide compris.
+
+Attend `unavailable` : les `UnavailableExercise` de l'utilisateur.
+{% endcomment %}
+<div id="exercices-ecartes-liste">
+    {% if unavailable %}
+        <ul class="mt-4 grid gap-3">
+            {% for entry in unavailable %}
+                <li class="ugg-card flex flex-wrap items-center justify-between gap-3 p-4">
+                    <div class="min-w-0">
+                        <p class="font-semibold">{{ entry.exercise.name }}</p>
+                        <p class="text-sm text-muted">
+                            Fiche : {{ entry.exercise.get_equipment_display|default:"Poids du corps" }}
+                        </p>
+                    </div>
+                    <button type="button"
+                            class="ugg-btn ugg-btn--ghost"
+                            hx-post="{% url 'exercises:restore_unavailable' entry.exercise_id %}"
+                            hx-target="#exercices-ecartes-liste"
+                            hx-swap="outerHTML">
+                        Rétablir
+                    </button>
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p class="mt-4 text-sm text-muted">
+            Aucun exercice écarté. Dans une séance, « Je n'ai pas le matériel » retire un
+            exercice de toutes les suivantes.
+        </p>
+    {% endif %}
+</div>

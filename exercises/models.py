@@ -56,6 +56,39 @@ class Favorite(models.Model):
         return f"{self.exercise} — {self.user}"
 
 
+class UnavailableExercise(models.Model):
+    """Exercice écarté par un utilisateur, faute du matériel qu'il demande (issue #127).
+
+    Le matériel déclaré d'une fiche n'est pas toujours fidèle : la source
+    classe « poids du corps » des exercices qui exigent une barre de traction
+    (`Hanging_Pike`, par exemple). Plutôt que de reclasser le catalogue fiche
+    par fiche, l'utilisateur écarte lui-même ce qu'il ne peut pas faire ; les
+    séances ne le proposent plus. Même table de liaison explicite que
+    `Favorite`, pour la même raison d'idempotence.
+    """
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="unavailable_exercises"
+    )
+    exercise = models.ForeignKey(
+        "Exercise", on_delete=models.CASCADE, related_name="unavailable_for"
+    )
+    created_at = models.DateTimeField("écarté le", auto_now_add=True)
+
+    class Meta:
+        verbose_name = "exercice écarté"
+        verbose_name_plural = "exercices écartés"
+        ordering = ("exercise__name",)
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user", "exercise"], name="unique_unavailable_exercise_per_user"
+            )
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.exercise} — {self.user}"
+
+
 class Exercise(models.Model):
     """Exercice du référentiel.
 
@@ -99,6 +132,7 @@ class Exercise(models.Model):
         MEDICINE_BALL = "medicine ball", "Médecine ball"
         EXERCISE_BALL = "exercise ball", "Ballon de gym"
         FOAM_ROLL = "foam roll", "Rouleau de massage"
+        JUMP_ROPE = "jump rope", "Corde à sauter"
         OTHER = "other", "Autre"
 
     slug = models.SlugField("identifiant", max_length=80, unique=True)

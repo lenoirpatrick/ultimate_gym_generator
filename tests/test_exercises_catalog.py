@@ -446,3 +446,25 @@ def test_body_regions_ecarte_un_muscle_non_mappe():
 def test_body_regions_vide_sans_muscle():
     assert catalog.body_regions([]) == []
     assert Exercise.objects.get(slug="Text_Only_Exercise").instructions_fr == []
+
+
+# --------------------------------------------------------------------------- #
+# Corde à sauter (issue #117)
+# --------------------------------------------------------------------------- #
+
+
+def test_une_correction_de_materiel_prime_sur_la_source(monkeypatch):
+    monkeypatch.setitem(catalog.EQUIPMENT_OVERRIDES, "Barbell_Squat", "jump rope")
+
+    catalog.import_all()
+
+    assert Exercise.objects.get(slug="Barbell_Squat").equipment == Exercise.Equipment.JUMP_ROPE
+
+
+def test_le_catalogue_livre_classe_la_corde_a_sauter():
+    """Garde-fou : la fiche existe toujours dans la source et reste reclassée."""
+    source = json.loads((catalog.settings.BASE_DIR / "src" / "exercises.json").read_text("utf-8"))
+    slugs = {entry["id"] for entry in source}
+
+    assert set(catalog.EQUIPMENT_OVERRIDES) <= slugs
+    assert catalog.EQUIPMENT_OVERRIDES["Rope_Jumping"] in Exercise.Equipment.values

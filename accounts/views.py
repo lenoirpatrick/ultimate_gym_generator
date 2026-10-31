@@ -8,6 +8,8 @@ from django.http import Http404, HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
+from exercises.models import UnavailableExercise
+
 from .forms import (
     DECLARABLE_EQUIPMENT_CHOICES,
     EquipmentFormSet,
@@ -131,6 +133,10 @@ def equipment(request: HttpRequest) -> HttpResponse:
         # selon la sélection en cours — voir `.ugg-equipment__icon` (CSS pur). Le poids
         # du corps n'en fait pas partie (voir `DECLARABLE_EQUIPMENT_CHOICES`).
         "equipment_choices": DECLARABLE_EQUIPMENT_CHOICES,
+        # Exercices écartés faute de matériel depuis une séance (issue #127).
+        "unavailable": UnavailableExercise.objects.filter(user=request.user).select_related(
+            "exercise"
+        ),
     }
     return render(request, "accounts/equipment.html", context)
 

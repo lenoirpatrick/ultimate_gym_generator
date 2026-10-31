@@ -2,13 +2,15 @@
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.db.models import F, OrderBy
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils import timezone
 from django.views.decorators.http import require_POST
 
 from aiproviders.clients import get_active_client
 from exercises import catalog
-from exercises.models import Favorite
+from exercises.models import Favorite, UnavailableExercise
 
 from . import coaching, generator, timer
 from .forms import WorkoutForm
@@ -31,23 +33,83 @@ def _annotate_equipment(workouts: list[Workout]) -> None:
         workout.equipment_labels = sorted(labels_by_workout[workout.pk])
 
 
+def _matches_search(workout: Workout, query: str) -> bool:
+    """Recherche texte (issue #116) : nom, format, muscles et matériel.
+
+    En Python plutôt qu'en SQL : le format est stocké sous son code, pas son
+    libellé affiché, et le matériel est calculé (`_annotate_equipment`). Un
+    historique personnel reste assez petit pour que ce soit sans conséquence.
+    """
+    haystack = " ".join(
+        [
+            workout.display_name,
+            workout.get_format_display(),
+            *(muscle.name for muscle in workout.muscles.all()),
+            *workout.equipment_labels,
+        ]
+    ).casefold()
+    return query.casefold() in haystack
+
+
+#: Tris proposés sur l'historique (issue #119), le premier par défaut. La
+#: durée triée est celle réellement planifiée — celle qu'affiche la carte —,
+#: pas la durée demandée ; à durée égale, la plus récente reste en tête.
+#: « Faites récemment » suit la date de dernière exécution (issue #120) ; les
+#: séances jamais menées au bout passent en fin de liste.
+SORT_ORDERS: dict[str, tuple[str, tuple[str | OrderBy, ...]]] = {
+    "recentes": ("Plus récentes", ("-created_at",)),
+    "faites": ("Faites récemment", (F("last_performed_at").desc(nulls_last=True), "-created_at")),
+    "courtes": ("Plus courtes", ("planned_seconds", "-created_at")),
+    "longues": ("Plus longues", ("-planned_seconds", "-created_at")),
+}
+DEFAULT_SORT = "recentes"
+
+
 @login_required
 def workout_list(request: HttpRequest) -> HttpResponse:
-    """Séances passées de l'utilisateur, la plus récente en tête.
+    """Séances passées de l'utilisateur, la plus récente en tête par défaut.
 
     Même vue pour la page entière et, en HTMX, le seul bloc de résultats — voir
     exercises.views.exercise_list pour le même principe.
     """
     favorites_only = request.GET.get("favoris") == "1"
+    search_query = request.GET.get("q", "").strip()
+    selected_zones = [z for z in request.GET.getlist("zone") if z in catalog.QUICK_ZONES]
+    sort = request.GET.get("tri", DEFAULT_SORT)
+    if sort not in SORT_ORDERS:
+        sort = DEFAULT_SORT
 
-    workouts_qs = Workout.objects.filter(user=request.user).prefetch_related("muscles")
+    workouts_qs = (
+        Workout.objects.filter(user=request.user)
+        .prefetch_related("muscles")
+        .order_by(*SORT_ORDERS[sort][1])
+    )
     if favorites_only:
         workouts_qs = workouts_qs.filter(is_favorite=True)
+    if selected_zones:
+        # Plusieurs zones s'additionnent (OU), comme les critères du catalogue.
+        slugs = [slug for z in selected_zones for slug in catalog.QUICK_ZONES[z][1]]
+        workouts_qs = workouts_qs.filter(muscles__slug__in=slugs).distinct()
 
     workouts = list(workouts_qs)
     _annotate_equipment(workouts)
+    if search_query:
+        workouts = [w for w in workouts if _matches_search(w, search_query)]
 
-    context = {"workouts": workouts, "favorites_only": favorites_only}
+    context = {
+        "workouts": workouts,
+        "favorites_only": favorites_only,
+        "search_query": search_query,
+        "selected_zones": selected_zones,
+        "zones": [
+            {"key": key, "label": label, "checked": key in selected_zones}
+            for key, (label, _slugs) in catalog.QUICK_ZONES.items()
+        ],
+        "sort_options": [
+            {"value": key, "label": label, "selected": key == sort}
+            for key, (label, _ordering) in SORT_ORDERS.items()
+        ],
+    }
 
     if request.headers.get("HX-Request"):
         return render(request, "workouts/partials/workout_results.html", context)
@@ -262,6 +324,74 @@ def workout_exercise_refresh(request: HttpRequest, pk: int, item_pk: int) -> Htt
             "can_translate": get_active_client() is not None,
             "refresh_failed": failed,
         },
+    )
+
+
+@login_required
+@require_POST
+def workout_exercise_unavailable(request: HttpRequest, pk: int, item_pk: int) -> HttpResponse:
+    """Écarte l'exercice faute de matériel, puis le remplace dans la séance (issue #127).
+
+    L'exclusion vaut pour toutes les séances à venir (`UnavailableExercise`),
+    pas seulement celle-ci ; elle se lève depuis l'écran Mon matériel. Si
+    aucun remplaçant n'existe, l'exercice reste affiché mais l'exclusion est
+    enregistrée quand même : la prochaine séance ne le proposera plus.
+    """
+    item = get_object_or_404(
+        WorkoutExercise.objects.select_related("workout", "exercise"),
+        pk=item_pk,
+        workout_id=pk,
+        workout__user=request.user,
+    )
+    excluded = item.exercise
+    UnavailableExercise.objects.get_or_create(user=request.user, exercise=excluded)
+    failed = False
+    try:
+        generator.refresh_exercise(item)
+    except generator.GenerationError:
+        failed = True
+    _annotate_favorites(request.user, [item])
+    _annotate_body_regions([item])
+
+    return render(
+        request,
+        "workouts/partials/exercise_item.html",
+        {
+            "item": item,
+            "can_translate": get_active_client() is not None,
+            "refresh_failed": failed,
+            "excluded_exercise": excluded,
+        },
+    )
+
+
+@login_required
+@require_POST
+def workout_performed(request: HttpRequest, pk: int) -> HttpResponse:
+    """Enregistre la fin d'une exécution complète de la séance (issue #120).
+
+    Appelée par le minuteur (`workout_timer.js`) quand le dernier pas est
+    atteint, avec `done` — le nombre de pas d'effort réellement effectués.
+    Une séance dont trop d'efforts ont été passés n'est pas comptée
+    (`timer.is_performed`, issue #120 suite). Rend dans tous les cas la
+    mention « Dernière exécution » de l'écran de détail resté derrière la
+    modale, `data-counted` indiquant au minuteur si la date a été posée.
+    """
+    workout = get_object_or_404(Workout, pk=pk, user=request.user)
+    try:
+        done = max(0, int(request.POST.get("done", "")))
+    except ValueError:
+        done = 0
+
+    counted = timer.is_performed(workout, done)
+    if counted:
+        workout.last_performed_at = timezone.now()
+        workout.save(update_fields=["last_performed_at"])
+
+    return render(
+        request,
+        "workouts/partials/last_performed.html",
+        {"workout": workout, "counted": counted},
     )
 
 

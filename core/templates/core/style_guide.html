@@ -106,6 +106,9 @@
             {% for demo in favorite_demos %}
                 {% include "exercises/partials/favorite_button.html" with exercise=demo %}
             {% endfor %}
+            {% for demo in favorite_demos %}
+                {% include "exercises/partials/unavailable_button.html" with exercise=demo %}
+            {% endfor %}
         </div>
     </section>
 

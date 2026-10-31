@@ -766,6 +766,18 @@
     color: var(--ugg-accent);
 }
 
+/* Bascule « Matériel absent » (issue #127) : même gabarit que le favori, mais
+   un état actif qui écarte plutôt qu'il ne met en avant — d'où le danger
+   plutôt que l'accent. L'icône pleine et `aria-pressed` portent l'état. */
+.ugg-favorite--danger:hover {
+    border-color: var(--ugg-danger);
+}
+
+.ugg-favorite--danger.ugg-favorite--on {
+    border-color: var(--ugg-danger);
+    color: var(--ugg-danger);
+}
+
 .ugg-favorite__icon {
     flex: none;
     width: 1rem;
@@ -1360,6 +1372,11 @@
     flex-direction: column;
     width: 100%;
     height: 100dvh;
+    /* L'agent utilisateur borne un <dialog> à `calc(100% - 2em - 6px)` : sans
+       cette remise à zéro, la modale laissait une bande de la page visible à
+       droite et en bas (relevé avec l'issue #121). */
+    max-width: none;
+    max-height: none;
     margin: 0;
     padding: 0;
     border: none;
@@ -1650,24 +1667,94 @@
     color: var(--ugg-text-muted);
 }
 
+/* Séparateur des deux colonnes (issue #121) : absent sur mobile, où l'écran
+   reste empilé — voir la règle `40rem` ci-dessous. */
+.ugg-timer__splitter {
+    display: none;
+}
+
 /* Deux colonnes à partir de `40rem` (issue #52) : plus de lisibilité qu'un
    empilement vertical sur grand écran. Colonne 1 (infos + commandes +
    timeline) et colonne 2 (l'ancien tiers bas, devenu une colonne entière) se
    partagent la largeur ; la colonne 2 passe en empilement vertical
    (photo pleine largeur au-dessus, détails en dessous) plutôt que de garder
-   la photo étroite du tiers bas. */
+   la photo étroite du tiers bas.
+
+   Le partage est ajustable (issue #121) : `--ugg-timer-split`, la part de
+   la colonne 1, est posée par `workout_timer.js` quand on déplace le
+   séparateur — 50 % tant qu'on n'y a pas touché. */
 @media (min-width: 40rem) {
     .ugg-timer {
         flex-direction: row;
     }
 
     .ugg-timer__column-primary {
-        flex: 1 1 50%;
+        flex: 0 0 var(--ugg-timer-split, 50%);
         min-width: 0;
+        /* Le chrono suit la largeur de sa colonne plutôt que celle de
+           l'écran : rétrécie par le séparateur, elle ne doit jamais le faire
+           déborder. */
+        container-type: inline-size;
+    }
+
+    .ugg-timer__clock {
+        font-size: clamp(3.5rem, 22cqi, 6rem);
+    }
+
+    .ugg-timer__reps {
+        font-size: clamp(2.5rem, 14cqi, 4rem);
+    }
+
+    /* Liseré visible d'un pixel, mais une cible de 44 px (`::before`) : le
+       séparateur se saisit au doigt sur tablette comme à la souris. */
+    .ugg-timer__splitter {
+        position: relative;
+        z-index: 1;
+        display: block;
+        flex: none;
+        width: 1px;
+        background: var(--ugg-border);
+        cursor: col-resize;
+        touch-action: none;
+    }
+
+    .ugg-timer__splitter::before {
+        content: "";
+        position: absolute;
+        inset: 0 calc((var(--ugg-touch-target) - 1px) / -2);
+    }
+
+    /* Poignée : trois points au centre, pour qu'on devine que le liseré se
+       déplace — un simple trait ne le dit pas. */
+    .ugg-timer__splitter::after {
+        content: "";
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 0.5rem;
+        height: 2.5rem;
+        transform: translate(-50%, -50%);
+        border: 1px solid var(--ugg-border);
+        border-radius: var(--ugg-radius-sm);
+        background:
+            radial-gradient(circle, var(--ugg-text-muted) 1.5px, transparent 2px) center / 100% 0.625rem
+            repeat-y,
+            var(--ugg-surface-raised);
+        transition: border-color var(--ugg-duration-fast) var(--ugg-ease);
+    }
+
+    .ugg-timer__splitter:hover::after,
+    .ugg-timer__splitter[data-dragging]::after {
+        border-color: var(--ugg-accent);
+    }
+
+    .ugg-timer__splitter:focus-visible {
+        outline: 3px solid var(--ugg-focus);
+        outline-offset: 2px;
     }
 
     .ugg-timer__column-secondary {
-        flex: 1 1 50%;
+        flex: 1 1 0;
         flex-direction: column;
         align-items: stretch;
         min-width: 0;
@@ -1675,7 +1762,13 @@
         max-height: none;
         overflow-y: auto;
         border-top: none;
-        border-left: 1px solid var(--ugg-border);
+        /* Conteneur de taille (issue #121) : photo et texte se dimensionnent
+           sur la place réellement laissée à la colonne (`cqi`/`cqb`), plus
+           sur la largeur de l'écran — qui ne dit plus rien de cette place
+           depuis que le séparateur se déplace. Possible ici seulement : la
+           colonne a une hauteur définie (ligne flex d'un `<dialog>` en
+           100dvh), contrairement au tiers bas mobile. */
+        container-type: size;
     }
 
     .ugg-timer__current-photo {
@@ -1683,12 +1776,22 @@
         width: 100%;
         max-width: 100%;
         height: auto;
-        max-height: 50%;
+        max-height: 55cqb;
         aspect-ratio: 4 / 3;
+    }
+
+    .ugg-timer__current-name {
+        font-size: clamp(1.375rem, 5cqi, 2.5rem);
+        line-height: 1.15;
+    }
+
+    .ugg-timer__current-tags .ugg-tag {
+        font-size: clamp(0.75rem, 1.8cqi, 1rem);
     }
 
     .ugg-timer__current-instructions {
         max-height: none;
+        font-size: clamp(0.9375rem, 2.6cqi, 1.375rem);
     }
 }
 
@@ -1761,6 +1864,7 @@
 .ugg-equipment-row:has(select[name$="-equipment"] option[value="medicine ball"]:checked) .ugg-equipment__icon--medicine-ball,
 .ugg-equipment-row:has(select[name$="-equipment"] option[value="exercise ball"]:checked) .ugg-equipment__icon--exercise-ball,
 .ugg-equipment-row:has(select[name$="-equipment"] option[value="foam roll"]:checked) .ugg-equipment__icon--foam-roll,
+.ugg-equipment-row:has(select[name$="-equipment"] option[value="jump rope"]:checked) .ugg-equipment__icon--jump-rope,
 .ugg-equipment-row:has(select[name$="-equipment"] option[value="other"]:checked) .ugg-equipment__icon--other {
     display: block;
 }

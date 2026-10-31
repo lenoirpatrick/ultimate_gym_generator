@@ -84,6 +84,11 @@ class Workout(models.Model):
     #: booléen suffit à la retrouver dans l'historique.
     is_favorite = models.BooleanField("favori", default=False)
 
+    #: Dernière fois que le minuteur a été mené jusqu'au bout (issue #120) —
+    #: `None` tant que la séance n'a jamais été terminée. Une séance arrêtée en
+    #: cours de route ne compte pas : seule une exécution complète l'actualise.
+    last_performed_at = models.DateTimeField("dernière exécution", null=True, blank=True)
+
     #: Rédigés par l'IA après coup, et mémorisés pour ne pas rappeler le
     #: fournisseur à chaque consultation.
     coaching_notes = models.TextField("conseils", blank=True)

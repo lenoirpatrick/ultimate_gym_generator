@@ -446,6 +446,36 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
   puis matériel utilisé (`workout.equipment_labels`, posé par
   `workouts.views._annotate_equipment` — une requête pour tout l'historique plutôt
   qu'une par séance, même mécanique que `_annotate_favorites`).
+- L'**historique** se filtre par **recherche texte** (`.ugg-search`, champ `q`, issue
+  #116 — nom, format, muscles et matériel, sans casse) et par **zones rapides**
+  Bras / Jambes / Dos / Abdos (`exercises.catalog.QUICK_ZONES`, puces
+  `.ugg-filter__option--standalone` cumulables en OU, ET avec la recherche et les
+  favoris). Même patron dynamique que le catalogue : un seul formulaire, second
+  déclencheur HTMX débouncé (`keyup changed delay:400ms`), adresse réécrite. Découpage
+  volontairement plus grossier que les régions de composition (`MUSCLE_REGIONS`) : un
+  filtre d'historique se manie au pouce. Une recherche sans résultat a son propre état
+  vide, distinct de « Aucun favori » et de « Aucune séance ».
+- L'historique se **trie** (issue #119) — Plus récentes (défaut) / Faites récemment /
+  Plus courtes / Plus longues — par un contrôle segmenté (`.ugg-segmented`, choix fermé) dans le même
+  formulaire, champ `tri` (`workouts.views.SORT_ORDERS`). La durée triée est celle
+  **planifiée** (`planned_seconds`, celle qu'affiche la carte), jamais la durée
+  demandée ; à durée égale, la plus récente reste en tête. Une valeur inconnue retombe
+  sur le tri par date. « Faites récemment » suit `last_performed_at` (issue #120) ; une
+  séance jamais menée au bout passe en fin de liste plutôt que d'être écartée.
+- La **date de dernière exécution** (`Workout.last_performed_at`, issue #120) n'est
+  posée que lorsque le minuteur arrive **au bout** de la séance (`finish()` dans
+  `workout_timer.js`, POST vers `workouts:performed`) — une séance arrêtée en cours de
+  route ne compte pas, ni une séance dont **plus de la moitié des efforts ont été
+  passés** (`workouts.timer.is_performed`, `PERFORMED_MIN_RATIO`, issue #120 suite) : le
+  minuteur transmet le nombre d'efforts réellement effectués (`done`) — un effort
+  chronométré compte s'il a tourné au moins la moitié de sa durée, un effort en
+  répétitions toujours (« Passer » y est la confirmation attendue) —, le total est
+  recalculé côté serveur, jamais transmis. Une séance non comptée le dit sur l'écran de
+  fin, sans écraser la date précédente (`data-counted` sur le partiel). Affichée sous le titre de l'écran de détail
+  (`workouts/partials/last_performed.html`, « Jamais exécutée jusqu'au bout » à défaut,
+  remplacée sans rechargement à la fin du minuteur) et sur la carte d'historique
+  (« Faite le … », absente plutôt qu'un « jamais » répété sur chaque carte). Échec
+  d'enregistrement silencieux : la séance est faite, l'écran de fin ne s'interrompt pas.
 - Une séance peut être **nommée** (`Workout.name`, facultatif), soit dès la composition
   (`WorkoutForm.name`, issue #44), soit ensuite depuis l'écran de détail. Le nom remplace
   alors l'intitulé du format en tête d'écran (`Workout.display_name`), et le format
@@ -513,6 +543,25 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
   empilement vertical plutôt que la photo étroite du mobile). Markup et JS inchangés par
   ailleurs : `workout_timer.js` cible des `id`, jamais la structure de leurs parents, ce
   qui a permis d'envelopper sans y toucher.
+- Le **séparateur** entre les deux colonnes se déplace (issue #121) : élément
+  `.ugg-timer__splitter` (patron ARIA « window splitter » — `role="separator"`,
+  focusable, `aria-valuenow` en pourcentage), glissé à la souris ou au doigt (Pointer
+  Events), ou au clavier (flèches gauche/droite par pas de 5 %, Début/Fin pour les
+  bornes, Entrée pour revenir à 50 %). Il pose `--ugg-timer-split` (part de la colonne
+  de gauche) sur la modale, bornée entre 30 et 70 % pour qu'aucune colonne ne devienne
+  inutilisable, et persistée en `localStorage` comme le volume des bips — une
+  préférence d'appareil. Liseré visible d'un pixel, mais cible de saisie de 44 px
+  (`::before`) et une poignée à points pour signaler qu'il se déplace. Absent sous
+  `40rem`, où l'écran reste empilé.
+- La colonne de droite est un **conteneur CSS** (`container-type: size`, issue #121) :
+  photo (`max-height` en `cqb`), nom, étiquettes et consignes (`clamp()` en `cqi`) se
+  dimensionnent sur la place qui lui reste, plus sur la largeur de l'écran. La colonne
+  de gauche l'est aussi en largeur (`inline-size`) pour que le chrono, rétréci avec
+  elle, ne déborde jamais. Seulement à partir de `40rem` : le tiers bas mobile n'a pas
+  de hauteur définie, une containment de taille l'écraserait.
+- La modale neutralise le `max-width`/`max-height` que l'agent utilisateur impose à un
+  `<dialog>` (`calc(100% - 2em - 6px)`) : sans quoi elle laissait une bande de la page
+  visible à droite et en bas, en contradiction avec le plein écran ci-dessus.
 - L'ordre chronologique réel — un tour de circuit ou HIIT enchaîne tous ses exercices
   avant de le répéter (round-robin), un Tabata ou une pyramide épuisent un exercice avant
   de passer au suivant — est calculé côté serveur par `workouts.timer.build_timeline`,
@@ -646,6 +695,13 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
   par `workout_detail` et `workout_exercise_refresh` — ce dernier remplace l'exercice,
   l'état favori doit suivre le remplaçant) ; le partiel n'introduit aucune route
   propre, il réutilise `exercises:toggle_favorite` tel quel.
+- La bascule **« Matériel absent »** d'une carte du catalogue
+  (`exercises/partials/unavailable_button.html`, issue #127) suit les mêmes règles :
+  libellé constant, état par `aria-pressed` et par le remplissage de l'icône (cercle
+  barré au contour, ou disque plein dont la barre est découpée par un masque SVG — pas
+  par une couleur de fond supposée), auto-remplacement `outerHTML`. Même gabarit que le
+  favori (`.ugg-favorite`), modificateur `.ugg-favorite--danger` : l'état actif écarte
+  au lieu de mettre en avant, d'où `--ugg-danger` plutôt que l'accent.
 
 ### Formulaire de composition d'une séance
 
@@ -732,6 +788,28 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
   disponible, quelle que soit la configuration de l'utilisateur — le proposer ici
   laisserait croire qu'il faut le cocher comme le reste. Exclu à la fois du `<select>`
   (`EquipmentForm.__init__`) et des icônes (même constante partagée).
+- La **corde à sauter** (`Exercise.Equipment.JUMP_ROPE`, issue #117) est un matériel
+  à part entière, avec son pictogramme (poignées + arc) : le catalogue livré n'a qu'une
+  fiche qui l'emploie (`Rope_Jumping`, classée « other » par la source), reclassée par
+  `exercises.catalog.EQUIPMENT_OVERRIDES` plutôt que par édition du JSON vendoré, et par
+  la migration `exercises.0004` pour une base déjà chargée. Mode de charge « Sans
+  charge » en pratique : une corde n'a pas de poids à régler.
+- Le matériel déclaré d'une fiche n'est pas toujours fidèle (`Hanging_Pike`, classé
+  « poids du corps » par la source, exige une barre de traction). Plutôt que de reclasser
+  le catalogue fiche par fiche, l'utilisateur **écarte lui-même un exercice** (issue
+  #127) : bouton **« Je n'ai pas le matériel »** (`.ugg-btn--ghost`, `hx-confirm`) à côté
+  de « Changer l'exercice » dans le déroulé, qui enregistre un `UnavailableExercise` et
+  remplace aussitôt l'exercice (`workouts.views.workout_exercise_unavailable`).
+  L'exclusion est filtrée dans `generator.eligible_exercises` — seul point de passage,
+  génération comme remplacement — et enregistrée même sans remplaçant disponible. Elle
+  se lève depuis une section **« Exercices écartés »** de cet écran, hors du formulaire
+  du matériel (`exercises/partials/unavailable_list.html`, bouton « Rétablir » qui
+  reswape la liste, état vide compris) : c'est là que mène le lien du message de
+  confirmation. Chaque carte du catalogue porte aussi une bascule **« Matériel
+  absent »** (voir « Bascules d'état ») pour écarter un exercice sans attendre qu'il
+  apparaisse en séance ; le catalogue continue, lui, de lister les exercices écartés
+  (`exercises.filters.filter_exercises` les annote de `is_unavailable` sans les
+  retirer).
 - Les lignes s'affichent **dans l'ordre où elles ont été déclarées**, pas alphabétique
   (`UserEquipment.Meta.ordering = ("id",)`) : c'est dans cet ordre qu'elles existent
   pour l'utilisateur qui les a saisies.

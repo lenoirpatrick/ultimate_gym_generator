@@ -10,7 +10,7 @@ from decimal import Decimal
 import pytest
 
 from accounts.models import UserEquipment
-from exercises.models import Exercise, Favorite, Muscle
+from exercises.models import Exercise, Favorite, Muscle, UnavailableExercise
 from workouts import generator
 from workouts.models import Workout, WorkoutExercise
 
@@ -325,6 +325,23 @@ def test_les_etirements_sont_ecartes(user, halteres):
 
 
 def test_les_muscles_demandes_restreignent_la_selection(user, halteres):
+    retenus = generator.eligible_exercises(user, ["chest"])
+
+    assert [e.slug for e in retenus] == ["Dumbbell_Bench_Press"]
+
+
+def test_un_exercice_ecarte_n_est_plus_retenu(user, halteres):
+    """Écarté faute de matériel (issue #127), même si sa fiche ne déclare rien d'absent."""
+    bench = Exercise.objects.get(slug="Dumbbell_Bench_Press")
+    UnavailableExercise.objects.create(user=user, exercise=bench)
+
+    assert not generator.eligible_exercises(user, ["chest"]).exists()
+
+
+def test_l_exclusion_d_un_exercice_ne_vaut_que_pour_son_utilisateur(user, staff, halteres):
+    bench = Exercise.objects.get(slug="Dumbbell_Bench_Press")
+    UnavailableExercise.objects.create(user=staff, exercise=bench)
+
     retenus = generator.eligible_exercises(user, ["chest"])
 
     assert [e.slug for e in retenus] == ["Dumbbell_Bench_Press"]

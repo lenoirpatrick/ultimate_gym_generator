@@ -97,7 +97,9 @@ def test_les_favoris_sont_cloisonnes_par_utilisateur(logged_client, staff_client
 def test_chaque_carte_porte_la_bascule(logged_client):
     content = logged_client.get(reverse("exercises:list")).content.decode()
 
-    assert content.count("aria-pressed=") == Exercise.objects.count()
+    # La carte porte aussi la bascule « Matériel absent » (issue #127) : on ne
+    # compte que les bascules favori.
+    assert content.count("/favori/") == Exercise.objects.count()
 
 
 def test_l_etat_favori_apparait_dans_le_catalogue(logged_client, squat):

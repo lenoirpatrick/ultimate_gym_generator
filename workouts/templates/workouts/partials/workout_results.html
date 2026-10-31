@@ -17,6 +17,11 @@ liste de muscles longue — puis, sur sa propre ligne, ce qui a été travaillé
                     <p class="mt-1 text-sm text-muted">
                         {{ workout.created_at|date:"j F Y, H:i" }}
                     </p>
+                    {% if workout.last_performed_at %}
+                        <p class="text-sm text-muted">
+                            Faite le <time datetime="{{ workout.last_performed_at|date:'c' }}">{{ workout.last_performed_at|date:"j F Y" }}</time>
+                        </p>
+                    {% endif %}
                 </a>
                 <div class="mt-2 flex flex-wrap items-center gap-2">
                     {% include "workouts/partials/favorite_button.html" with workout=workout %}
@@ -39,7 +44,10 @@ liste de muscles longue — puis, sur sa propre ligne, ce qui a été travaillé
             </p>
         </article>
     {% empty %}
-        {% if favorites_only %}
+        {% if search_query or selected_zones %}
+            {% url 'workouts:list' as all_url %}
+            {% include "core/components/empty_state.html" with title="Aucune séance trouvée" body="Aucune séance ne correspond à cette recherche. Retire un filtre ou change de mot." action_url=all_url action_label="Voir toutes les séances" %}
+        {% elif favorites_only %}
             {% url 'workouts:list' as all_url %}
             {% include "core/components/empty_state.html" with title="Aucun favori" body="Marque une séance en favori pour la retrouver ici." action_url=all_url action_label="Voir toutes les séances" %}
         {% else %}
