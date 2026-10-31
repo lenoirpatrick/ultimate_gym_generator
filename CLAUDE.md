@@ -672,6 +672,14 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
   Pause/Passer. Aucune API web ne permet de piloter une application tierce (lecteur de
   musique du système) — barrière de sécurité du navigateur, pas une limite du projet ;
   rien n'est affiché à l'écran, et rien n'est enregistré sur mobile.
+- Changer un exercice du déroulé (« Changer l'exercice », « Je n'ai pas le
+  matériel ») remplace aussi, **hors cible**, la timeline de la modale
+  (`workouts/partials/exercise_item_response.html`, `hx-swap-oob` sur
+  `#minuteur-timeline`, issue #130) : `workout_timer.js` y relit nom, photo,
+  matériel et consignes ; rendue avec la page, elle gardait l'ancien exercice
+  et la séance lancée juste après aussi. Le JSON du minuteur ne porte que
+  l'identifiant de chaque ligne — inchangé par un remplacement, il n'est pas
+  renvoyé.
 
 ### Bascules d'état (favori)
 

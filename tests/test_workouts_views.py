@@ -689,6 +689,54 @@ def test_un_exercice_de_seance_se_rafraichit(logged_client, user):
     assert f'id="seance-exercice-{item.pk}"' in response.content.decode()
 
 
+def _timeline_oob(content: str) -> str:
+    """Timeline du minuteur renvoyée hors cible (issue #130)."""
+    match = re.search(
+        r'<ol[^>]*id="minuteur-timeline"[^>]*hx-swap-oob="true".*?</ol>', content, re.S
+    )
+    assert match, "timeline du minuteur absente de la réponse"
+    return match.group(0)
+
+
+def test_changer_l_exercice_met_a_jour_la_timeline_du_minuteur(logged_client, user):
+    """Lancée juste après, la séance doit dérouler le remplaçant, pas l'ancien (issue #130)."""
+    squat = Exercise.objects.get(slug="Barbell_Squat")
+    UserEquipment.objects.create(user=user, equipment="dumbbell", mode="fixed", weights=[10])
+    workout = build_workout(user, squat)
+    workout.muscles.set(Muscle.objects.filter(slug="chest"))
+    item = workout.items.first()
+
+    response = logged_client.post(reverse("workouts:exercise_refresh", args=[workout.pk, item.pk]))
+
+    timeline = _timeline_oob(response.content.decode())
+    assert "Dumbbell Bench Press" in timeline
+    assert "Barbell Squat" not in timeline
+
+
+def test_ecarter_l_exercice_met_a_jour_la_timeline_du_minuteur(logged_client, user):
+    squat = Exercise.objects.get(slug="Barbell_Squat")
+    UserEquipment.objects.create(user=user, equipment="dumbbell", mode="fixed", weights=[10])
+    workout = build_workout(user, squat)
+    workout.muscles.set(Muscle.objects.filter(slug="chest"))
+    item = workout.items.first()
+
+    url = reverse("workouts:exercise_unavailable", args=[workout.pk, item.pk])
+    timeline = _timeline_oob(logged_client.post(url).content.decode())
+
+    assert "Dumbbell Bench Press" in timeline
+
+
+def test_la_timeline_de_la_page_n_est_pas_hors_cible(logged_client, user):
+    """Rendue avec la page, la timeline est à sa place : pas de swap hors cible."""
+    squat = Exercise.objects.get(slug="Barbell_Squat")
+    workout = build_workout(user, squat)
+
+    content = logged_client.get(reverse("workouts:detail", args=[workout.pk])).content.decode()
+
+    assert 'id="minuteur-timeline"' in content
+    assert "hx-swap-oob" not in content
+
+
 def test_le_rafraichissement_signale_l_absence_d_alternative(logged_client, user):
     from exercises.models import Muscle
 

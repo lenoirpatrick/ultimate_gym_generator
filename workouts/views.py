@@ -294,6 +294,32 @@ def workout_recovery(request: HttpRequest, pk: int) -> HttpResponse:
     return redirect("workouts:detail", pk=workout.pk)
 
 
+def _render_exercise_item(
+    request: HttpRequest, item: WorkoutExercise, **extra: object
+) -> HttpResponse:
+    """Ligne du déroulé remplacée, avec le minuteur remis à jour hors cible (issue #130).
+
+    La séance est relue depuis la base : la timeline du minuteur doit refléter
+    l'exercice remplaçant, pas le déroulé chargé avec la page.
+    """
+    _annotate_favorites(request.user, [item])
+    _annotate_body_regions([item])
+    workout = Workout.objects.prefetch_related(
+        "items__exercise", "items__exercise__primary_muscles"
+    ).get(pk=item.workout_id)
+
+    return render(
+        request,
+        "workouts/partials/exercise_item_response.html",
+        {
+            "item": item,
+            "can_translate": get_active_client() is not None,
+            "workout": workout,
+            **extra,
+        },
+    )
+
+
 @login_required
 @require_POST
 def workout_exercise_refresh(request: HttpRequest, pk: int, item_pk: int) -> HttpResponse:
@@ -313,18 +339,7 @@ def workout_exercise_refresh(request: HttpRequest, pk: int, item_pk: int) -> Htt
         generator.refresh_exercise(item)
     except generator.GenerationError:
         failed = True
-    _annotate_favorites(request.user, [item])
-    _annotate_body_regions([item])
-
-    return render(
-        request,
-        "workouts/partials/exercise_item.html",
-        {
-            "item": item,
-            "can_translate": get_active_client() is not None,
-            "refresh_failed": failed,
-        },
-    )
+    return _render_exercise_item(request, item, refresh_failed=failed)
 
 
 @login_required
@@ -350,19 +365,7 @@ def workout_exercise_unavailable(request: HttpRequest, pk: int, item_pk: int) ->
         generator.refresh_exercise(item)
     except generator.GenerationError:
         failed = True
-    _annotate_favorites(request.user, [item])
-    _annotate_body_regions([item])
-
-    return render(
-        request,
-        "workouts/partials/exercise_item.html",
-        {
-            "item": item,
-            "can_translate": get_active_client() is not None,
-            "refresh_failed": failed,
-            "excluded_exercise": excluded,
-        },
-    )
+    return _render_exercise_item(request, item, refresh_failed=failed, excluded_exercise=excluded)
 
 
 @login_required

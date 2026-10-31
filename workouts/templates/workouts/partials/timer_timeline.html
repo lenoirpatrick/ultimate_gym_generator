@@ -19,9 +19,11 @@ le même principe : `.ugg-timer__step-instructions`, cachée ici, est clonée
 dans le panneau par `updateCurrentExercisePanel()` — une seule source, pas de
 duplication dans le JSON.
 
-Attend `workout`.
+Attend `workout`. `oob` (facultatif, issue #130) : rendue hors cible après un
+changement d'exercice, pour remplacer la timeline de la modale sans recharger
+l'écran — voir partials/exercise_item_response.html.
 {% endcomment %}
-<ol class="ugg-timer__timeline">
+<ol class="ugg-timer__timeline" id="minuteur-timeline"{% if oob %} hx-swap-oob="true"{% endif %}>
     {% for block in workout.blocks %}
         {% for item in block.items %}
             <li class="ugg-timer__step" data-item-id="{{ item.pk }}"

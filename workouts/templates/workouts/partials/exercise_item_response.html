@@ -1,0 +1,13 @@
+{% comment %}
+Réponse d'un changement d'exercice du déroulé (« Changer l'exercice », « Je
+n'ai pas le matériel »). Outre la ligne remplacée, elle renvoie hors cible la
+timeline de la modale du minuteur (issue #130) : `workout_timer.js` y relit
+nom, photo, matériel et consignes de l'exercice en cours ; rendue avec la
+page, elle gardait l'ancien exercice et la séance lancée juste après aussi.
+Le JSON du minuteur, lui, ne porte que l'identifiant de chaque ligne — inchangé
+par un remplacement.
+
+Attend le contexte de partials/exercise_item.html, plus `workout`.
+{% endcomment %}
+{% include "workouts/partials/exercise_item.html" %}
+{% include "workouts/partials/timer_timeline.html" with workout=workout oob=True %}
