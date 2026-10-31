@@ -1,4 +1,4 @@
-"""Home Assistant : cartes d'entité et configuration (issue #129)."""
+"""Home Assistant : cartes d'entité, bandeau du minuteur et configuration (issue #129)."""
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, user_passes_test
@@ -11,7 +11,7 @@ from aiproviders.fields import EncryptionKeyError
 
 from .client import EntityState, HomeAssistantError, get_client
 from .forms import ConnectionForm, EntityFormSet
-from .models import MAX_ENTITIES, Connection, Entity
+from .models import MAX_ENTITIES, Connection, Entity, timer_enabled
 
 # La connexion vaut pour toute l'installation : réservée au personnel.
 staff_required = user_passes_test(lambda user: user.is_staff)
@@ -22,6 +22,22 @@ def _encryption_key_missing(request: HttpRequest, exc: EncryptionKeyError) -> Ht
     return render(
         request, "aiproviders/encryption_key_missing.html", {"error": str(exc)}, status=503
     )
+
+
+@login_required
+def timer_band(request: HttpRequest) -> HttpResponse:
+    """Bandeau du minuteur de séance (issue #134), chargé à l'ouverture de la modale.
+
+    Comme l'aperçu de l'écran de séance, chaque carte charge ensuite son
+    propre état : une instance lente ou en panne ne ralentit ni ne bloque le
+    minuteur.
+    """
+    entities = list(Entity.objects.filter(show_in_timer=True)) if timer_enabled() else []
+    if not entities:
+        # Réponse vide, pas même un retour à la ligne : `.ugg-timer__home:empty`
+        # masque alors le bandeau, sans message.
+        return HttpResponse("")
+    return render(request, "homeassistant/partials/timer_band.html", {"entities": entities})
 
 
 def _render_card(

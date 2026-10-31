@@ -1541,6 +1541,20 @@
     margin-top: var(--ugg-space-4);
 }
 
+/* Bandeau Maison (issue #134) : cartes compactes d'entités Home Assistant,
+   qui s'enroulent sous les commandes — jamais au-dessus du chrono. Vide tant
+   qu'il n'est pas chargé : aucune place réservée. */
+.ugg-timer__home {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr));
+    gap: var(--ugg-space-2);
+    margin-top: var(--ugg-space-4);
+}
+
+.ugg-timer__home:empty {
+    display: none;
+}
+
 /* Curseur de volume des bips (issue #99) : premier `<input type="range">`
    du projet — une valeur continue ne correspond à aucun composant existant
    (`.ugg-ruler` est à crans fixes, `.ugg-segmented` à choix fermé). Aucune

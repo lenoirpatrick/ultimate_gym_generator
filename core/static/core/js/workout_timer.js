@@ -533,6 +533,9 @@
 
         reset();
         dialog.showModal();
+        // Bandeau Maison (issue #134) : HTMX le charge sur cet évènement, pour
+        // relire l'état des entités à chaque ouverture plutôt qu'au chargement.
+        document.body.dispatchEvent(new CustomEvent("minuteur-ouvert"));
         requestWakeLock();
         setupMediaSession();
         playCue("start");
@@ -695,5 +698,9 @@
         stopPhotoRotation();
         releaseWakeLock();
         teardownMediaSession();
+        // Vide le bandeau Maison : ses cartes se relisent toutes les minutes
+        // pendant la séance (issue #134), HTMX cesse avec leur retrait du DOM.
+        const homeBand = document.getElementById("minuteur-maison");
+        if (homeBand) homeBand.replaceChildren();
     });
 })();

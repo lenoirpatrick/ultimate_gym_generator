@@ -129,3 +129,8 @@ def workout_entities() -> list[Entity]:
     if not _configured():
         return []
     return list(Entity.objects.filter(show_on_workout=True))
+
+
+def timer_enabled() -> bool:
+    """Vrai quand le minuteur de séance doit proposer le bandeau Maison (issue #134)."""
+    return _configured() and Entity.objects.filter(show_in_timer=True).exists()

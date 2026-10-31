@@ -27,7 +27,7 @@ suivent la place qu'il lui laisse.
 Une séance menée jusqu'au bout est enregistrée comme exécutée (issue #120) :
 `data-performed-url` reçoit un POST à l'appel de `finish()`.
 
-Attend `workout`, `timeline` (workouts.timer.build_timeline, sérialisée ici).
+Attend `workout`, `timeline`, `home_assistant_in_timer` (facultatif) (workouts.timer.build_timeline, sérialisée ici).
 {% endcomment %}
 {{ timeline|json_script:"minuteur-donnees" }}
 <dialog id="minuteur-modal" class="ugg-timer" aria-label="Suivi de la séance"
@@ -65,6 +65,18 @@ Attend `workout`, `timeline` (workouts.timer.build_timeline, sérialisée ici).
                 <input type="range" id="minuteur-volume" min="0" max="100" step="5" value="80">
                 <span id="minuteur-volume-valeur" class="ugg-timer__volume-value" aria-hidden="true">80&nbsp;%</span>
             </div>
+
+            {% if home_assistant_in_timer %}
+                {% comment %}
+                Bandeau Maison (issue #134) : chargé à l'ouverture du minuteur
+                (évènement `minuteur-ouvert`, workout_timer.js), jamais avec la
+                page — aucune requête vers Home Assistant pour une séance qu'on
+                ne lance pas.
+                {% endcomment %}
+                <section class="ugg-timer__home" id="minuteur-maison" aria-label="Maison"
+                         hx-get="{% url 'homeassistant:timer' %}"
+                         hx-trigger="minuteur-ouvert from:body"></section>
+            {% endif %}
 
             <p class="sr-only" id="minuteur-annonce" aria-live="polite"></p>
         </div>

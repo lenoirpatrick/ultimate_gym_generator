@@ -193,8 +193,10 @@ def workout_detail(request: HttpRequest, pk: int) -> HttpResponse:
         "can_translate": get_active_client() is not None,
         # Déroulé chronométré du minuteur de suivi (issue #35).
         "timeline": timer.build_timeline(workout),
-        # Aperçu des entités Home Assistant avant de lancer la séance (issue #133).
+        # Aperçu des entités Home Assistant avant de lancer la séance (issue
+        # #133), et bandeau Maison dans le minuteur (issue #134).
         "home_assistant_entities": home_assistant.workout_entities(),
+        "home_assistant_in_timer": home_assistant.timer_enabled(),
         **_recovery_ruler_context(workout),
     }
     return render(request, "workouts/workout_detail.html", context)

@@ -180,3 +180,16 @@ def test_la_carte_compacte_garde_sa_variante(
     content = logged_client.get(url).content.decode()
 
     assert "ugg-ha-entity--compact" in content
+    assert f'id="ha-entite-{ventilateur.pk}-minuteur"' in content
+    # Pendant une séance, la carte se relit d'elle-même toutes les minutes.
+    assert 'hx-trigger="every 60s"' in content
+
+
+def test_la_carte_de_l_apercu_ne_se_relit_pas_seule(
+    logged_client, ha_connection, ventilateur, home_assistant
+):
+    content = logged_client.get(
+        reverse("homeassistant:entity", args=[ventilateur.pk])
+    ).content.decode()
+
+    assert "every 60s" not in content

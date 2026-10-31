@@ -7,7 +7,9 @@ le suffixe `-minuteur` en version compacte.
 Trois états : `loading` (l'état arrive après coup en HTMX — une instance lente
 ne retarde pas l'écran), `error` (message et « Réessayer », sans toucher aux
 autres cartes), et l'état lu avec ses actions. Une action remplace la carte
-entière (`outerHTML`), état relu compris.
+entière (`outerHTML`), état relu compris. En version compacte, pendant une
+séance, la carte se relit d'elle-même toutes les minutes (issue #134) ; elle
+cesse quand la modale se ferme et vide le bandeau (workout_timer.js).
 
 Attend `entity`, et selon le cas `loading`, `error`, ou `state` + `actions`
 (voir homeassistant.views._render_card). `compact` (facultatif).
@@ -15,7 +17,8 @@ Attend `entity`, et selon le cas `loading`, `error`, ou `state` + `actions`
 {% url 'homeassistant:entity' entity.pk as card_url %}
 <article class="ugg-card ugg-ha-entity{% if compact %} ugg-ha-entity--compact{% endif %}"
          id="ha-entite-{{ entity.pk }}{% if compact %}-minuteur{% endif %}"
-         {% if loading %}hx-get="{{ card_url }}{% if compact %}?compact=1{% endif %}" hx-trigger="load" hx-swap="outerHTML"{% endif %}>
+         {% if loading %}hx-get="{{ card_url }}{% if compact %}?compact=1{% endif %}" hx-trigger="load" hx-swap="outerHTML"
+         {% elif compact %}hx-get="{{ card_url }}?compact=1" hx-trigger="every 60s" hx-swap="outerHTML"{% endif %}>
     <p class="ugg-ha-entity__label">{{ entity.label }}</p>
 
     {% if loading %}

@@ -944,6 +944,16 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
   le vérifie **sans déchiffrer le jeton** — une clé de chiffrement absente ne doit
   pas faire échouer l'écran de séance.
 
+- Les entités cochées **« afficher dans le minuteur »** forment un bandeau compact
+  (`.ugg-timer__home`, même carte en variante `--compact`, id suffixé `-minuteur`
+  pour ne pas doubler celui de l'aperçu sur la même page) sous les commandes du
+  minuteur (issue #134). Chargé **à l'ouverture** de la modale (évènement
+  `minuteur-ouvert` émis par `workout_timer.js`), jamais avec la page : aucune
+  requête vers Home Assistant pour une séance qu'on ne lance pas. Pendant la
+  séance, chaque carte se relit **toutes les minutes** (`hx-trigger="every 60s"`) ;
+  la fermeture de la modale vide le bandeau, ce qui arrête les relectures. Sans
+  entité à montrer, la réponse est réellement vide et `:empty` masque le bandeau.
+
 ### Avatars
 
 - Photo déposée par l'utilisateur, ou **ses initiales** à défaut — jamais une

@@ -1,0 +1,11 @@
+{% comment %}
+Contenu du bandeau Maison du minuteur (issue #134) : les entités cochées
+« afficher dans le minuteur », en cartes compactes qui chargent chacune leur
+état. Jamais rendu sans entité : la vue renvoie alors une réponse vide, et le
+bandeau disparaît sans message (`.ugg-timer__home:empty`).
+
+Attend `entities`.
+{% endcomment %}
+{% for entity in entities %}
+    {% include "homeassistant/partials/entity_card.html" with entity=entity loading=True compact=True %}
+{% endfor %}
