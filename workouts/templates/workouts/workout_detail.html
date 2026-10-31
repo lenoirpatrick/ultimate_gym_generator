@@ -23,6 +23,9 @@
             {% if workout.name %}
                 <span class="ugg-tag">{{ workout.get_format_display }}</span>
             {% endif %}
+            {% if workout.low_ceiling %}
+                <span class="ugg-tag">Plafond bas</span>
+            {% endif %}
             {% for muscle in workout.muscles.all %}
                 <span class="ugg-tag">{{ muscle.name }}</span>
             {% empty %}

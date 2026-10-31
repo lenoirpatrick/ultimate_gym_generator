@@ -93,6 +93,12 @@ class WorkoutForm(forms.Form):
         initial=Workout.Duration.THIRTY,
         widget=forms.RadioSelect,
     )
+    low_ceiling = forms.BooleanField(
+        label="Plafond bas (moins de 1,80 m)",
+        required=False,
+        help_text="Écarte les sauts, les charges au-dessus de la tête et la barre de traction.",
+        widget=forms.CheckboxInput(attrs={"aria-describedby": "plafond-bas-aide"}),
+    )
     workout_format = forms.ChoiceField(
         label="Type de travail",
         choices=Workout.Format.choices,

@@ -54,6 +54,21 @@
                 <p class="mt-3 text-sm">
                     <a href="{% url 'accounts:equipment' %}">Modifier mon matériel</a>
                 </p>
+
+                {% comment %}
+                Lieu de la séance (issue #131) : un garage bas de plafond un jour,
+                l'extérieur le lendemain — un choix par séance, à côté du matériel
+                qui dépend lui aussi de l'endroit.
+                {% endcomment %}
+                <div class="mt-4 border-t border-line pt-4">
+                    <label class="ugg-filter__option ugg-filter__option--standalone">
+                        {{ form.low_ceiling }}
+                        <span>{{ form.low_ceiling.label }}</span>
+                    </label>
+                    <p class="ugg-field__help mt-2" id="plafond-bas-aide">
+                        {{ form.low_ceiling.help_text }}
+                    </p>
+                </div>
             </div>
 
             <fieldset>

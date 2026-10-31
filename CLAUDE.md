@@ -768,6 +768,17 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
   pas. Champ construit dynamiquement dans `WorkoutForm.__init__` (nécessite `user`),
   transmis à `workouts.generator.generate` qui l'intersecte avec le matériel réellement
   possédé — la liste soumise ne peut jamais accorder un matériel non configuré.
+- **Plafond bas (moins de 1,80 m)** (`WorkoutForm.low_ceiling`, issue #131) : une
+  case du formulaire, dans l'encart du matériel — un choix **de séance**, pas de
+  compte : le lieu change d'une séance à l'autre (garage bas de plafond un jour,
+  extérieur le lendemain). Enregistré sur `Workout.low_ceiling` pour que
+  « Changer l'exercice » respecte la même contrainte, et rappelé par une étiquette
+  sur l'écran de détail. Il écarte les fiches de `exercises.catalog.LOW_CEILING_EXCLUDED`
+  — sauts, charges tenues au-dessus de la tête (debout ou assis ; allongé et à
+  genoux restent permis), exercices suspendus à une barre de traction — liste
+  **relue fiche par fiche**, jamais déduite des noms : un motif comme « hop »
+  attrape « Wood Chop », « overhead » des extensions faites allongé, et manque
+  windmill ou get-up. Un test vérifie que chaque identifiant existe au catalogue.
 
 ### Matériel de l'utilisateur (`accounts:equipment`, issue #37)
 

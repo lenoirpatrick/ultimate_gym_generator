@@ -135,6 +135,7 @@ def workout_create(request: HttpRequest) -> HttpResponse:
                     recovery_seconds=form.cleaned_data["recovery_seconds"],
                     equipment=form.cleaned_data.get("equipment"),
                     name=form.cleaned_data.get("name", ""),
+                    low_ceiling=form.cleaned_data["low_ceiling"],
                 )
             except generator.GenerationError as exc:
                 # Le catalogue ne peut rien produire pour ces critères : c'est la
