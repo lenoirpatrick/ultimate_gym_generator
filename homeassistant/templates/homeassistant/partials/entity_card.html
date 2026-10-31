@@ -1,0 +1,51 @@
+{% comment %}
+Carte d'une entité Home Assistant, partagée par l'aperçu de l'écran de séance
+(issue #133) et le bandeau du minuteur (`compact`, issue #134) — un seul
+gabarit pour les deux affichages, présents sur la même page : l'id porte donc
+le suffixe `-minuteur` en version compacte.
+
+Trois états : `loading` (l'état arrive après coup en HTMX — une instance lente
+ne retarde pas l'écran), `error` (message et « Réessayer », sans toucher aux
+autres cartes), et l'état lu avec ses actions. Une action remplace la carte
+entière (`outerHTML`), état relu compris. En version compacte, pendant une
+séance, la carte se relit d'elle-même toutes les minutes (issue #134) ; elle
+cesse quand la modale se ferme et vide le bandeau (workout_timer.js).
+
+Attend `entity`, et selon le cas `loading`, `error`, ou `state` + `actions`
+(voir homeassistant.views._render_card). `compact` (facultatif).
+{% endcomment %}
+{% url 'homeassistant:entity' entity.pk as card_url %}
+<article class="ugg-card ugg-ha-entity{% if compact %} ugg-ha-entity--compact{% endif %}"
+         id="ha-entite-{{ entity.pk }}{% if compact %}-minuteur{% endif %}"
+         {% if loading %}hx-get="{{ card_url }}{% if compact %}?compact=1{% endif %}" hx-trigger="load" hx-swap="outerHTML"
+         {% elif compact %}hx-get="{{ card_url }}?compact=1" hx-trigger="every 60s" hx-swap="outerHTML"{% endif %}>
+    <p class="ugg-ha-entity__label">{{ entity.label }}</p>
+
+    {% if loading %}
+        {% include "core/components/spinner.html" with variant="kettlebell" size="sm" label="Lecture de l'état" %}
+    {% elif error %}
+        <p class="ugg-ha-entity__error" role="status">{{ error }}</p>
+        <button type="button" class="ugg-btn ugg-btn--ghost"
+                hx-get="{{ card_url }}{% if compact %}?compact=1{% endif %}"
+                hx-target="#ha-entite-{{ entity.pk }}{% if compact %}-minuteur{% endif %}" hx-swap="outerHTML">
+            Réessayer
+        </button>
+    {% else %}
+        <p class="ugg-ha-entity__state" role="status">{{ state.label }}</p>
+        {% if actions %}
+            <div class="ugg-ha-entity__actions">
+                {% for action in actions %}
+                    <button type="button" class="ugg-btn ugg-btn--ghost"
+                            hx-post="{% url 'homeassistant:action' entity.pk action.service %}{% if compact %}?compact=1{% endif %}"
+                            hx-target="#ha-entite-{{ entity.pk }}{% if compact %}-minuteur{% endif %}" hx-swap="outerHTML"
+                            hx-indicator="#ha-entite-{{ entity.pk }}{% if compact %}-minuteur{% endif %}-action">
+                        {{ action.label }}
+                    </button>
+                {% endfor %}
+                <span id="ha-entite-{{ entity.pk }}{% if compact %}-minuteur{% endif %}-action" class="ugg-indicator">
+                    {% include "core/components/spinner.html" with variant="kettlebell" size="sm" label="Action en cours" %}
+                </span>
+            </div>
+        {% endif %}
+    {% endif %}
+</article>

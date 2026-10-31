@@ -12,6 +12,7 @@ urlpatterns = [
     path("seances/", include("workouts.urls")),
     path("sante/", include("health.urls")),
     path("settings/ai/", include("aiproviders.urls")),
+    path("maison/", include("homeassistant.urls")),
     path(settings.ADMIN_URL, admin.site.urls),
 ]
 

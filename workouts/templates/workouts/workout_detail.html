@@ -23,6 +23,9 @@
             {% if workout.name %}
                 <span class="ugg-tag">{{ workout.get_format_display }}</span>
             {% endif %}
+            {% if workout.low_ceiling %}
+                <span class="ugg-tag">Plafond bas</span>
+            {% endif %}
             {% for muscle in workout.muscles.all %}
                 <span class="ugg-tag">{{ muscle.name }}</span>
             {% empty %}
@@ -37,6 +40,21 @@
                 Demandé : {{ workout.duration_minutes }} min. Ce format se remplit par
                 blocs entiers — le reliquat sert d'échauffement ou de retour au calme.
             </p>
+        {% endif %}
+
+        {% if home_assistant_entities %}
+            {% comment %}
+            Aperçu de la maison avant de lancer la séance (issue #133) : chaque
+            carte charge son état après l'affichage de l'écran.
+            {% endcomment %}
+            <section class="mt-6" aria-labelledby="seance-maison-titre">
+                <h2 id="seance-maison-titre" class="ugg-eyebrow">Maison</h2>
+                <div class="mt-2 grid gap-3 sm:grid-cols-2">
+                    {% for entity in home_assistant_entities %}
+                        {% include "homeassistant/partials/entity_card.html" with entity=entity loading=True %}
+                    {% endfor %}
+                </div>
+            </section>
         {% endif %}
 
         {% if timeline %}

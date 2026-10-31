@@ -784,6 +784,54 @@
     height: 1rem;
 }
 
+/* Carte d'une entité Home Assistant (issue #133) : libellé discret, état en
+   gros — il se lit à bout de bras, comme le temps d'effort d'une séance —, puis
+   l'action utile dans cet état. `--compact` resserre la carte pour le bandeau
+   du minuteur (issue #134). */
+.ugg-ha-entity {
+    display: flex;
+    flex-direction: column;
+    gap: var(--ugg-space-2);
+    padding: var(--ugg-space-4);
+}
+
+.ugg-ha-entity__label {
+    color: var(--ugg-text-muted);
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: var(--ugg-tracking-label);
+    text-transform: uppercase;
+}
+
+.ugg-ha-entity__state {
+    font-family: var(--ugg-font-display);
+    font-size: 1.75rem;
+    font-weight: 800;
+    line-height: 1.1;
+    font-variant-numeric: tabular-nums;
+}
+
+.ugg-ha-entity__error {
+    color: var(--ugg-danger);
+    font-size: 0.875rem;
+}
+
+.ugg-ha-entity__actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--ugg-space-2);
+}
+
+.ugg-ha-entity--compact {
+    gap: var(--ugg-space-1);
+    padding: var(--ugg-space-2) var(--ugg-space-3);
+}
+
+.ugg-ha-entity--compact .ugg-ha-entity__state {
+    font-size: 1.25rem;
+}
+
 /* Étiquette de caractéristique sur une carte de catalogue. */
 .ugg-tag {
     display: inline-flex;
@@ -1491,6 +1539,20 @@
     flex-wrap: wrap;
     gap: var(--ugg-space-3);
     margin-top: var(--ugg-space-4);
+}
+
+/* Bandeau Maison (issue #134) : cartes compactes d'entités Home Assistant,
+   qui s'enroulent sous les commandes — jamais au-dessus du chrono. Vide tant
+   qu'il n'est pas chargé : aucune place réservée. */
+.ugg-timer__home {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr));
+    gap: var(--ugg-space-2);
+    margin-top: var(--ugg-space-4);
+}
+
+.ugg-timer__home:empty {
+    display: none;
 }
 
 /* Curseur de volume des bips (issue #99) : premier `<input type="range">`

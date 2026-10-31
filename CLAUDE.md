@@ -28,6 +28,7 @@ accounts/         utilisateur (avatar, mesures), authentification, SSO, gestion 
 aiproviders/      credentials chiffrés, registre des fournisseurs, adaptateurs, /settings/ai/
 exercises/        catalogue d'exercices, import par lots, écran de chargement
 health/           données Apple HealthKit (poids, activités), import, API, page d'analyse
+homeassistant/    connexion Home Assistant, entités suivies, cartes d'entité
 core/             gabarit de base, composants, spinners, /healthz, /style-guide/
 docs/             INSTALL.md
 src/              exercises.json — catalogue livré avec l'application
@@ -103,7 +104,8 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
   l'ancien partage à deux niveaux « quotidien vs configuré une fois » : avec
   trois domaines de poids comparable, grouper par sujet se lit mieux que
   grouper par fréquence.
-- **Configuration** (IA, Référentiel, Comptes — réservé au personnel) est un
+- **Configuration** (IA, Home Assistant, Référentiel, Comptes — réservé au
+  personnel) est un
   **sous-groupe de Compte**, pas un niveau de menu séparé : une section
   repérée par son propre intitulé à l'intérieur du panneau Compte, jamais un
   second `<details>` imbriqué dans le premier — inutile de complexifier
@@ -672,6 +674,14 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
   Pause/Passer. Aucune API web ne permet de piloter une application tierce (lecteur de
   musique du système) — barrière de sécurité du navigateur, pas une limite du projet ;
   rien n'est affiché à l'écran, et rien n'est enregistré sur mobile.
+- Changer un exercice du déroulé (« Changer l'exercice », « Je n'ai pas le
+  matériel ») remplace aussi, **hors cible**, la timeline de la modale
+  (`workouts/partials/exercise_item_response.html`, `hx-swap-oob` sur
+  `#minuteur-timeline`, issue #130) : `workout_timer.js` y relit nom, photo,
+  matériel et consignes ; rendue avec la page, elle gardait l'ancien exercice
+  et la séance lancée juste après aussi. Le JSON du minuteur ne porte que
+  l'identifiant de chaque ligne — inchangé par un remplacement, il n'est pas
+  renvoyé.
 
 ### Bascules d'état (favori)
 
@@ -760,6 +770,17 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
   pas. Champ construit dynamiquement dans `WorkoutForm.__init__` (nécessite `user`),
   transmis à `workouts.generator.generate` qui l'intersecte avec le matériel réellement
   possédé — la liste soumise ne peut jamais accorder un matériel non configuré.
+- **Plafond bas (moins de 1,80 m)** (`WorkoutForm.low_ceiling`, issue #131) : une
+  case du formulaire, dans l'encart du matériel — un choix **de séance**, pas de
+  compte : le lieu change d'une séance à l'autre (garage bas de plafond un jour,
+  extérieur le lendemain). Enregistré sur `Workout.low_ceiling` pour que
+  « Changer l'exercice » respecte la même contrainte, et rappelé par une étiquette
+  sur l'écran de détail. Il écarte les fiches de `exercises.catalog.LOW_CEILING_EXCLUDED`
+  — sauts, charges tenues au-dessus de la tête (debout ou assis ; allongé et à
+  genoux restent permis), exercices suspendus à une barre de traction — liste
+  **relue fiche par fiche**, jamais déduite des noms : un motif comme « hop »
+  attrape « Wood Chop », « overhead » des extensions faites allongé, et manque
+  windmill ou get-up. Un test vérifie que chaque identifiant existe au catalogue.
 
 ### Matériel de l'utilisateur (`accounts:equipment`, issue #37)
 
@@ -889,6 +910,49 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
   entièrement du menu (voir « Navigation principale » ci-dessus) — la désactivation ne
   bloque pas pour autant l'accès direct aux pages `/sante/…` : c'est un réglage
   d'affichage, pas un verrou.
+
+### Home Assistant (issues #129, #132, #133, #134)
+
+- Application `homeassistant` : connexion à une instance Home Assistant (API REST,
+  `httpx`, délai court de 5 s — une instance domestique injoignable ne doit jamais
+  faire attendre l'application). **Commune à toute l'installation**, réglée par le
+  personnel dans Configuration → Home Assistant (`/maison/configuration/`), sur le
+  patron des credentials IA : jeton longue durée chiffré (`EncryptedTextField`),
+  jamais réaffiché, conservé quand le champ est laissé vide ; bouton « Tester la
+  connexion » sur la connexion enregistrée.
+- **5 entités au maximum** (`MAX_ENTITIES`) : au-delà, l'aperçu et surtout le
+  bandeau du minuteur cesseraient de se lire d'un coup d'œil. Chacune porte deux
+  cases indépendantes — où l'afficher.
+- Actions **déduites du domaine** de l'entité (`DOMAIN_ACTIONS`), jamais saisies :
+  un service mal orthographié ne doit pas pouvoir se configurer. Interrupteur,
+  lumière, ventilateur : **un seul bouton qui suit l'état** (« Allumer » éteint,
+  « Éteindre » allumé, `Entity.actions_for`) plutôt que trois — une action d'un
+  geste, à la salle ; les deux si l'état est inconnu. Scène, script : « Activer » /
+  « Lancer » ; bouton : « Appuyer » ; capteur et le reste : lecture seule.
+
+- Les entités cochées **« afficher sur la séance »** apparaissent en aperçu sur
+  l'écran de détail d'une séance, au-dessus de « Lancer la séance » (issue #133) —
+  pas de page dédiée : on regarde la maison au moment de s'entraîner. Carte
+  partagée `homeassistant/partials/entity_card.html` (`.ugg-ha-entity`) : libellé
+  discret, état en gros (« Allumé », « 21.5 °C »), puis l'action utile. Chaque
+  carte arrive vide et charge son état après coup (`hx-trigger="load"`) : une
+  instance lente ne retarde pas l'écran, une entité en panne n'empêche pas les
+  autres de s'afficher — elle porte son message et « Réessayer ». Une action
+  remplace la carte entière, état relu compris. Seuls les services du domaine de
+  l'entité sont acceptés côté serveur : un appel forgé ne pilote rien d'autre.
+- Rien ne s'affiche sans connexion configurée : `homeassistant.models._configured`
+  le vérifie **sans déchiffrer le jeton** — une clé de chiffrement absente ne doit
+  pas faire échouer l'écran de séance.
+
+- Les entités cochées **« afficher dans le minuteur »** forment un bandeau compact
+  (`.ugg-timer__home`, même carte en variante `--compact`, id suffixé `-minuteur`
+  pour ne pas doubler celui de l'aperçu sur la même page) sous les commandes du
+  minuteur (issue #134). Chargé **à l'ouverture** de la modale (évènement
+  `minuteur-ouvert` émis par `workout_timer.js`), jamais avec la page : aucune
+  requête vers Home Assistant pour une séance qu'on ne lance pas. Pendant la
+  séance, chaque carte se relit **toutes les minutes** (`hx-trigger="every 60s"`) ;
+  la fermeture de la modale vide le bandeau, ce qui arrête les relectures. Sans
+  entité à montrer, la réponse est réellement vide et `:empty` masque le bandeau.
 
 ### Avatars
 

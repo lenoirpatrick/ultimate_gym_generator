@@ -74,6 +74,10 @@ class Workout(models.Model):
     recovery_seconds = models.PositiveSmallIntegerField(
         "repos entre les tours (s)", null=True, blank=True
     )
+    #: Séance composée pour un lieu bas de plafond (issue #131) : propre à la
+    #: séance, pas au compte — on ne s'entraîne pas toujours au même endroit.
+    #: Conservé pour que « Changer l'exercice » respecte la même contrainte.
+    low_ceiling = models.BooleanField("plafond bas", default=False)
 
     #: Durée réellement occupée par le déroulé. Elle n'atteint pas toujours la
     #: durée demandée : un format se remplit par blocs entiers.

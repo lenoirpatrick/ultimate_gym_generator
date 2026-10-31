@@ -113,6 +113,20 @@
     </section>
 
     <section class="mt-12">
+        <h2 class="ugg-title text-xl">Entité Home Assistant</h2>
+        <p class="mt-2 text-muted">
+            Libellé discret, état en gros, puis la seule action utile dans cet état. Une
+            panne reste sur sa carte, avec « Réessayer ». La variante compacte sert au
+            bandeau du minuteur.
+        </p>
+        <div class="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {% for demo in ha_demos %}
+                {% include "homeassistant/partials/entity_card.html" with entity=demo.entity state=demo.state actions=demo.actions error=demo.error compact=demo.compact %}
+            {% endfor %}
+        </div>
+    </section>
+
+    <section class="mt-12">
         <h2 class="ugg-title text-xl">Filtre repliable</h2>
         <p class="mt-2 text-muted">
             Jamais de <code class="font-mono">select multiple</code>, impraticable au pouce.

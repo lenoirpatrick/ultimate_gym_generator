@@ -1,0 +1,101 @@
+{% extends "core/base.html" %}
+
+{% block title %}Home Assistant — {{ site_name }}{% endblock %}
+
+{% block content %}
+    <div class="mx-auto max-w-3xl">
+        <p class="ugg-eyebrow">Configuration</p>
+        <h1 class="ugg-title mt-2 text-3xl">Home Assistant</h1>
+        <p class="mt-3 text-muted">
+            Relie l'application à ton instance Home Assistant pour suivre jusqu'à
+            {{ max_entities }} entités — une température, un ventilateur, une lumière — et
+            les piloter depuis l'écran d'une séance, avant de la lancer comme pendant
+            le minuteur.
+        </p>
+
+        {% for error in formset.non_form_errors %}
+            {% include "core/components/alert.html" with level="error" text=error %}
+        {% endfor %}
+
+        <form method="post" class="mt-8 grid gap-8">
+            {% csrf_token %}
+
+            <section class="grid gap-5" aria-labelledby="ha-connexion-titre">
+                <h2 id="ha-connexion-titre" class="ugg-title text-xl">Connexion</h2>
+                {% include "core/components/field.html" with field=form.base_url %}
+                {% include "core/components/field.html" with field=form.token %}
+
+                {% if connection and connection.is_configured %}
+                    {# Teste la connexion enregistrée, pas la saisie en cours : rien n'est envoyé avant Enregistrer. #}
+                    <div class="flex flex-wrap items-center gap-3">
+                        <button type="button"
+                                class="ugg-btn ugg-btn--ghost"
+                                hx-post="{% url 'homeassistant:test' %}"
+                                hx-target="#ha-test-resultat"
+                                hx-indicator="#ha-test-chargement">
+                            Tester la connexion
+                        </button>
+                        <span id="ha-test-chargement" class="ugg-indicator">
+                            {% include "core/components/spinner.html" with variant="dumbbell" size="sm" label="Test de la connexion" %}
+                        </span>
+                    </div>
+                    <div id="ha-test-resultat" aria-live="polite"></div>
+                {% endif %}
+            </section>
+
+            <section class="grid gap-4" aria-labelledby="ha-entites-titre">
+                <div>
+                    <h2 id="ha-entites-titre" class="ugg-title text-xl">Entités suivies</h2>
+                    <p class="mt-2 text-sm text-muted">
+                        {{ max_entities }} au maximum. Les actions proposées dépendent du type
+                        d'entité : un interrupteur, une lumière ou un ventilateur s'allument et
+                        s'éteignent, une scène ou un script se lancent, un capteur se lit seulement.
+                    </p>
+                </div>
+
+                {{ formset.management_form }}
+                {% for entity_form in formset %}
+                    <fieldset class="ugg-card grid gap-4 p-4">
+                        <legend class="sr-only">Entité {{ forloop.counter }}</legend>
+                        {{ entity_form.id }}
+                        {% for error in entity_form.non_field_errors %}
+                            <p class="ugg-field__error">{{ error }}</p>
+                        {% endfor %}
+
+                        <div class="grid gap-4 sm:grid-cols-2">
+                            {% include "core/components/field.html" with field=entity_form.entity_id %}
+                            {% include "core/components/field.html" with field=entity_form.label %}
+                        </div>
+                        <div class="flex flex-wrap gap-x-6 gap-y-2">
+                            {% include "core/components/field.html" with field=entity_form.show_on_workout %}
+                            {% include "core/components/field.html" with field=entity_form.show_in_timer %}
+                        </div>
+
+                        {% if entity_form.instance.pk %}
+                            <p class="text-sm text-muted">
+                                {% if entity_form.instance.actions %}
+                                    Actions :
+                                    {% for action in entity_form.instance.actions %}{{ action.label }}{% if not forloop.last %} · {% endif %}{% endfor %}
+                                {% else %}
+                                    Lecture seule
+                                {% endif %}
+                            </p>
+                            {% include "core/components/field.html" with field=entity_form.DELETE %}
+                        {% endif %}
+                    </fieldset>
+                {% endfor %}
+
+                {% if formset.total_form_count < max_entities %}
+                    <p class="text-sm text-muted">
+                        Une ligne vide s'ajoute après chaque enregistrement, jusqu'à
+                        {{ max_entities }} entités.
+                    </p>
+                {% endif %}
+            </section>
+
+            <div class="flex flex-wrap gap-3">
+                <button type="submit" class="ugg-btn ugg-btn--primary">Enregistrer</button>
+            </div>
+        </form>
+    </div>
+{% endblock %}

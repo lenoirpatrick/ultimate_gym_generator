@@ -11,6 +11,7 @@ from django.views.decorators.http import require_POST
 from aiproviders.clients import get_active_client
 from exercises import catalog
 from exercises.models import Favorite, UnavailableExercise
+from homeassistant import models as home_assistant
 
 from . import coaching, generator, timer
 from .forms import WorkoutForm
@@ -135,6 +136,7 @@ def workout_create(request: HttpRequest) -> HttpResponse:
                     recovery_seconds=form.cleaned_data["recovery_seconds"],
                     equipment=form.cleaned_data.get("equipment"),
                     name=form.cleaned_data.get("name", ""),
+                    low_ceiling=form.cleaned_data["low_ceiling"],
                 )
             except generator.GenerationError as exc:
                 # Le catalogue ne peut rien produire pour ces critères : c'est la
@@ -191,6 +193,10 @@ def workout_detail(request: HttpRequest, pk: int) -> HttpResponse:
         "can_translate": get_active_client() is not None,
         # Déroulé chronométré du minuteur de suivi (issue #35).
         "timeline": timer.build_timeline(workout),
+        # Aperçu des entités Home Assistant avant de lancer la séance (issue
+        # #133), et bandeau Maison dans le minuteur (issue #134).
+        "home_assistant_entities": home_assistant.workout_entities(),
+        "home_assistant_in_timer": home_assistant.timer_enabled(),
         **_recovery_ruler_context(workout),
     }
     return render(request, "workouts/workout_detail.html", context)
@@ -294,6 +300,32 @@ def workout_recovery(request: HttpRequest, pk: int) -> HttpResponse:
     return redirect("workouts:detail", pk=workout.pk)
 
 
+def _render_exercise_item(
+    request: HttpRequest, item: WorkoutExercise, **extra: object
+) -> HttpResponse:
+    """Ligne du déroulé remplacée, avec le minuteur remis à jour hors cible (issue #130).
+
+    La séance est relue depuis la base : la timeline du minuteur doit refléter
+    l'exercice remplaçant, pas le déroulé chargé avec la page.
+    """
+    _annotate_favorites(request.user, [item])
+    _annotate_body_regions([item])
+    workout = Workout.objects.prefetch_related(
+        "items__exercise", "items__exercise__primary_muscles"
+    ).get(pk=item.workout_id)
+
+    return render(
+        request,
+        "workouts/partials/exercise_item_response.html",
+        {
+            "item": item,
+            "can_translate": get_active_client() is not None,
+            "workout": workout,
+            **extra,
+        },
+    )
+
+
 @login_required
 @require_POST
 def workout_exercise_refresh(request: HttpRequest, pk: int, item_pk: int) -> HttpResponse:
@@ -313,18 +345,7 @@ def workout_exercise_refresh(request: HttpRequest, pk: int, item_pk: int) -> Htt
         generator.refresh_exercise(item)
     except generator.GenerationError:
         failed = True
-    _annotate_favorites(request.user, [item])
-    _annotate_body_regions([item])
-
-    return render(
-        request,
-        "workouts/partials/exercise_item.html",
-        {
-            "item": item,
-            "can_translate": get_active_client() is not None,
-            "refresh_failed": failed,
-        },
-    )
+    return _render_exercise_item(request, item, refresh_failed=failed)
 
 
 @login_required
@@ -350,19 +371,7 @@ def workout_exercise_unavailable(request: HttpRequest, pk: int, item_pk: int) ->
         generator.refresh_exercise(item)
     except generator.GenerationError:
         failed = True
-    _annotate_favorites(request.user, [item])
-    _annotate_body_regions([item])
-
-    return render(
-        request,
-        "workouts/partials/exercise_item.html",
-        {
-            "item": item,
-            "can_translate": get_active_client() is not None,
-            "refresh_failed": failed,
-            "excluded_exercise": excluded,
-        },
-    )
+    return _render_exercise_item(request, item, refresh_failed=failed, excluded_exercise=excluded)
 
 
 @login_required

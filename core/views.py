@@ -65,6 +65,8 @@ def style_guide(request: HttpRequest) -> HttpResponse:
     from exercises.filters import FilterGroup, Option
     from exercises.models import Exercise
     from health.analytics import Kpi
+    from homeassistant.client import EntityState
+    from homeassistant.models import Entity
     from workouts.forms import WorkoutForm
 
     user_model = get_user_model()
@@ -75,6 +77,31 @@ def style_guide(request: HttpRequest) -> HttpResponse:
     favorite_demos[1].is_favorite = True
     favorite_demos[0].is_unavailable = False
     favorite_demos[1].is_unavailable = True
+
+    # Carte d'entité Home Assistant (issue #133), sans appel à l'instance.
+    # Un pk distinct par carte : chacune porte un id dérivé de son entité.
+    sensor = Entity(pk=1, entity_id="sensor.salle_temperature", label="Température")
+    fan = Entity(pk=2, entity_id="switch.ventilateur", label="Ventilateur")
+    light = Entity(pk=3, entity_id="light.salle", label="Lumière")
+    compact_fan = Entity(pk=4, entity_id="switch.ventilateur", label="Ventilateur")
+    ha_demos = [
+        {"entity": sensor, "state": EntityState(sensor.entity_id, "21.5", "°C"), "actions": ()},
+        {
+            "entity": fan,
+            "state": EntityState(fan.entity_id, "off"),
+            "actions": fan.actions_for("off"),
+        },
+        {
+            "entity": light,
+            "error": "Home Assistant est injoignable. Vérifie l'adresse et le réseau.",
+        },
+        {
+            "entity": compact_fan,
+            "state": EntityState(compact_fan.entity_id, "on"),
+            "actions": compact_fan.actions_for("on"),
+            "compact": True,
+        },
+    ]
     return render(
         request,
         "core/style_guide.html",
@@ -87,6 +114,7 @@ def style_guide(request: HttpRequest) -> HttpResponse:
                 user_model(email="coach@example.test"),
             ],
             "favorite_demos": favorite_demos,
+            "ha_demos": ha_demos,
             "filter_demos": [
                 FilterGroup(
                     name="type",

@@ -17,6 +17,7 @@ from django.db import transaction
 from django.db.models import Q, QuerySet
 
 from accounts.models import UserEquipment
+from exercises import catalog
 from exercises.models import Exercise, Favorite, Muscle
 
 from .models import Workout, WorkoutExercise
@@ -337,7 +338,7 @@ def build_blueprint(
 
 
 def eligible_exercises(
-    user, muscles: list[str], equipment: list[str] | None = None
+    user, muscles: list[str], equipment: list[str] | None = None, low_ceiling: bool = False
 ) -> QuerySet[Exercise]:
     """Exercices réalisables par cet utilisateur, ciblant les muscles demandés.
 
@@ -349,6 +350,9 @@ def eligible_exercises(
 
     Les exercices que l'utilisateur a écartés faute de matériel (issue #127)
     n'en font jamais partie, quel que soit le matériel déclaré de leur fiche.
+    `low_ceiling` (issue #131) écarte sauts, charges au-dessus de la tête et
+    barre de traction (`catalog.LOW_CEILING_EXCLUDED`) — un choix de séance,
+    pas de compte.
     """
     owned = set(UserEquipment.objects.filter(user=user).values_list("equipment", flat=True))
     if equipment is not None:
@@ -362,6 +366,8 @@ def eligible_exercises(
         .exclude(category__in=EXCLUDED_CATEGORIES)
         .exclude(unavailable_for__user=user)
     )
+    if low_ceiling:
+        queryset = queryset.exclude(slug__in=catalog.LOW_CEILING_EXCLUDED)
 
     if muscles:
         queryset = queryset.filter(
@@ -378,6 +384,7 @@ def select_exercises(
     ratio: int,
     rng,
     equipment: list[str] | None = None,
+    low_ceiling: bool = False,
 ) -> list[Exercise]:
     """Tire les exercices de la séance, en y glissant la part de favoris demandée.
 
@@ -385,7 +392,7 @@ def select_exercises(
     réclamée, ni plus ni moins. C'est ce qui évite une séance entièrement
     composée de mouvements inconnus.
     """
-    pool = list(eligible_exercises(user, muscles, equipment))
+    pool = list(eligible_exercises(user, muscles, equipment, low_ceiling))
     if not pool:
         raise GenerationError(
             "Aucun exercice ne correspond à ce matériel et à ces parties du corps. "
@@ -479,6 +486,7 @@ def generate(
     recovery_seconds: int | None = None,
     equipment: list[str] | None = None,
     name: str = "",
+    low_ceiling: bool = False,
     rng: random.Random | None = None,
 ) -> Workout:
     """Compose et enregistre une séance.
@@ -498,7 +506,9 @@ def generate(
     blueprint = build_blueprint(
         workout_format, duration_minutes, work_seconds, rest_seconds, peak_reps, recovery_seconds
     )
-    exercises = select_exercises(user, muscles, blueprint.needed, favorites_ratio, rng, equipment)
+    exercises = select_exercises(
+        user, muscles, blueprint.needed, favorites_ratio, rng, equipment, low_ceiling
+    )
     options = load_options(user, equipment)
 
     workout = Workout.objects.create(
@@ -507,6 +517,7 @@ def generate(
         duration_minutes=duration_minutes,
         format=workout_format,
         favorites_ratio=favorites_ratio,
+        low_ceiling=low_ceiling,
         work_seconds=work_seconds,
         rest_seconds=rest_seconds,
         peak_reps=peak_reps,
@@ -566,7 +577,11 @@ def refresh_exercise(item: WorkoutExercise, rng: random.Random | None = None) ->
     workout = item.workout
     muscles = list(workout.muscles.values_list("slug", flat=True))
 
-    pool = list(eligible_exercises(workout.user, muscles).exclude(pk=item.exercise_id))
+    pool = list(
+        eligible_exercises(workout.user, muscles, low_ceiling=workout.low_ceiling).exclude(
+            pk=item.exercise_id
+        )
+    )
     if not pool:
         raise GenerationError(
             "Aucun autre exercice ne correspond à ton matériel et à ces parties du "
