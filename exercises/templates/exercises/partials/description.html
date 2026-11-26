@@ -16,11 +16,13 @@ et le premier absorberait à tort l'agrandissement de photo du second.
 
 Attend `exercise`, `can_translate` (fournisseur IA actif ou non — calculé une
 fois par écran plutôt qu'une fois par fiche), `translation_failed`
-(facultatif, mis par exercises.views.translate_exercise) et `dom_id`
-(facultatif).
+(facultatif, mis par exercises.views.translate_exercise), `dom_id`
+(facultatif) et `oob` (facultatif, issue #155) : rendu hors cible par la
+traduction automatique d'une séance — htmx remplace alors **chaque** élément
+qui porte cet id, donc toutes les occurrences de l'exercice dans le déroulé.
 {% endcomment %}
 {% with dom_id=dom_id|default:exercise.pk %}
-<div id="exercise-{{ dom_id }}-description">
+<div id="exercise-{{ dom_id }}-description"{% if oob %} hx-swap-oob="true"{% endif %}>
     {% if exercise.image_urls %}
         <div class="ugg-exercise__gallery mt-3">
             {% for url in exercise.image_urls %}

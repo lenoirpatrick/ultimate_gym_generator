@@ -1,0 +1,15 @@
+{% comment %}
+Réponse d'une étape de la traduction automatique (issue #155) : la file
+suivante en cible (absente quand plus rien ne reste à traduire), puis, hors
+cible, le rappel de l'exercice traduit et ses consignes dans la timeline du
+minuteur — une fois par ligne de séance qui l'emploie.
+
+Attend `workout`, `queue` (ou `None`), `exercise` et `items`.
+{% endcomment %}
+{% if queue %}
+    {% include "workouts/partials/translation_queue.html" with workout=workout queue=queue %}
+{% endif %}
+{% include "exercises/partials/description.html" with exercise=exercise can_translate=True oob=True %}
+{% for item in items %}
+    {% include "workouts/partials/timer_step_instructions.html" with item=item oob=True %}
+{% endfor %}
