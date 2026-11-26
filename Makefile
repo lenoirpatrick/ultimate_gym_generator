@@ -8,7 +8,7 @@ help: ## Affiche cette aide
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-14s\033[0m %s\n", $$1, $$2}'
 
 install: ## Installe les dépendances de développement
-	$(PYTHON) -m pip install -r requirements/dev.txt
+	$(PYTHON) -m pip install -r requirements.txt
 
 css: ## Compile la feuille de style
 	tailwindcss -i $(CSS_IN) -o $(CSS_OUT) --minify

@@ -44,7 +44,7 @@ jobs:
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: pip
-          cache-dependency-path: requirements/*.txt
+          cache-dependency-path: requirements.txt
 
       - name: Installer ruff
         run: pip install "ruff>=0.9"
@@ -69,10 +69,10 @@ jobs:
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: pip
-          cache-dependency-path: requirements/*.txt
+          cache-dependency-path: requirements.txt
 
       - name: Installer les dépendances
-        run: pip install -r requirements/dev.txt
+        run: pip install -r requirements.txt
 
       - name: Vérifier qu'aucune migration ne manque
         run: python manage.py makemigrations --check --dry-run

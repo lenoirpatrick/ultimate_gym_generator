@@ -63,7 +63,7 @@ tailwindcss --version
 ```
 
 ```bash
-pip install -r requirements/dev.txt
+pip install -r requirements.txt
 
 cp .env.example .env
 # Générer DJANGO_SECRET_KEY et CREDENTIALS_ENCRYPTION_KEY.
@@ -297,7 +297,7 @@ la propriété de l'utilisateur : une reconnexion SSO ne les écrase jamais.
 
 ```bash
 git pull
-pip install -r requirements/dev.txt
+pip install -r requirements.txt
 python manage.py migrate
 make css
 python manage.py collectstatic --noinput
