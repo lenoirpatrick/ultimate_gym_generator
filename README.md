@@ -15,7 +15,7 @@ implémentée.
 | Runtime | Python 3.13+ · Django 6.1 |
 | Base | SQLite, fichier local (`DJANGO_DB_PATH`) |
 | Interface | Gabarits Django + HTMX 2 (vendoré) + Tailwind CSS 4 (CLI autonome, zéro Node) |
-| Fournisseurs IA | Anthropic (SDK officiel), Gemini / Mistral / Ollama (REST via httpx) |
+| Fournisseurs IA | Anthropic (SDK officiel), Claude Gateway / Gemini / Mistral / Ollama (REST via httpx) |
 | Comptes | Mono-utilisateur par défaut, multi-utilisateurs pris en charge ; SSO OpenID Connect facultatif |
 | Serveur | Gunicorn + WhiteNoise |
 

@@ -135,6 +135,16 @@ publié sous licence Unlicense (domaine public).
 3. Utiliser **Tester la connexion** pour valider les credentials avant de
    compter dessus.
 
+**Claude Gateway** est une passerelle HTTP installée sur le réseau local, qui
+fait tourner Claude Code sans interface. Sa fiche demande l'adresse de la
+passerelle (par exemple `http://192.168.1.10:8765`) et son jeton, la valeur de
+`GATEWAY_TOKEN` dans `/etc/claude-gateway.env` sur la machine qui l'héberge.
+Son API se consulte à cette adresse, suivie de `/docs`. Un appel peut durer
+jusqu'à 180 s, et la passerelle n'en traite qu'un à la fois. Derrière
+Gunicorn, relever le délai des workers en conséquence
+(`gunicorn --timeout 200 …`) : avec la valeur par défaut de 30 s, le worker
+serait tué en plein appel.
+
 Les clés saisies sont chiffrées avant d'atteindre la base et ne sont jamais
 réaffichées : seul un masque de la forme `••••••••f3a9` apparaît.
 

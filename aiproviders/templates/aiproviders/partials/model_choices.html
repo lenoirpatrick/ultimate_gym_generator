@@ -46,8 +46,8 @@ empêcher d'enregistrer une configuration.
         </p>
     {% elif models %}
         <p class="ugg-field__help">
-            {{ models|length }} modèle{{ models|pluralize }} lu{{ models|pluralize }} depuis ton
-            compte {{ spec.name }}. « Par défaut » utilise {{ spec.default_model }}.
+            {{ models|length }} modèle{{ models|pluralize }} proposé{{ models|pluralize }} par
+            {{ spec.name }}. « Par défaut » utilise {{ spec.default_model }}.
         </p>
     {% else %}
         <p class="ugg-field__help">

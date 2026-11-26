@@ -7,9 +7,10 @@ from aiproviders.registry import PROVIDERS, get_spec
 
 
 @pytest.mark.parametrize("spec", PROVIDERS, ids=lambda spec: spec.slug)
-def test_chaque_fournisseur_expose_ses_liens(spec):
-    assert spec.credential_url.startswith("https://")
-    assert spec.docs_url.startswith("https://")
+def test_chaque_fournisseur_dit_ou_trouver_son_secret(spec):
+    """Un lien vers la page du fournisseur, ou une explication s'il n'en a pas."""
+    assert spec.credential_url.startswith("https://") or spec.credential_help
+    assert not spec.docs_url or spec.docs_url.startswith("https://")
     assert spec.credential_label
 
 
@@ -29,7 +30,8 @@ def test_la_liste_affiche_le_lien_de_creation_de_cle(staff_client):
     content = staff_client.get(reverse("aiproviders:list")).content.decode()
 
     for spec in PROVIDERS:
-        assert spec.credential_url in content
+        if spec.credential_url:
+            assert spec.credential_url in content
 
 
 @pytest.mark.django_db

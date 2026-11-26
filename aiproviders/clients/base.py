@@ -77,9 +77,15 @@ class HttpBaseClient(BaseClient):
     #: `httpx.MockTransport` pour exercer les adaptateurs sans accès réseau.
     transport: httpx.BaseTransport | None = None
 
-    def _request(self, method: str, path: str, **kwargs) -> httpx.Response:
+    #: Délai d'attente par appel, en secondes. Un adaptateur dont le fournisseur
+    #: répond lentement par nature le relève pour lui seul.
+    timeout: float = DEFAULT_TIMEOUT
+
+    def _request(
+        self, method: str, path: str, *, timeout: float | None = None, **kwargs
+    ) -> httpx.Response:
         url = f"{self.base_url.rstrip('/')}{path}"
-        with httpx.Client(timeout=DEFAULT_TIMEOUT, transport=self.transport) as client:
+        with httpx.Client(timeout=timeout or self.timeout, transport=self.transport) as client:
             return client.request(method, url, **kwargs)
 
     @staticmethod

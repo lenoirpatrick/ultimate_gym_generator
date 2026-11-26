@@ -2,12 +2,14 @@
 
 from .anthropic_client import AnthropicClient
 from .base import BaseClient, PingResult, ProviderError
+from .claude_gateway import ClaudeGatewayClient
 from .gemini import GeminiClient
 from .mistral import MistralClient
 from .ollama import OllamaClient
 
 _CLIENTS: dict[str, type[BaseClient]] = {
     "anthropic": AnthropicClient,
+    "claude_gateway": ClaudeGatewayClient,
     "gemini": GeminiClient,
     "mistral": MistralClient,
     "ollama": OllamaClient,
