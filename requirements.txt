@@ -4,7 +4,7 @@ cryptography>=50.0.2
 Pillow>=13.0.0
 
 # SSO OpenID Connect, activé uniquement si OIDC_ENABLED=True.
-mozilla-django-oidc>=5.0,<6.0
+mozilla-django-oidc>=5.0.2,<6.0
 
 # Fournisseurs d'IA appelés en REST.
 httpx>=0.28.1,<1.0
