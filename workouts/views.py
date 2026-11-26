@@ -1,5 +1,7 @@
 """Séances : historique, composition, consultation."""
 
+import logging
+
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db.models import F, OrderBy
@@ -9,13 +11,15 @@ from django.utils import timezone
 from django.views.decorators.http import require_POST
 
 from aiproviders.clients import get_active_client
-from exercises import catalog
-from exercises.models import Favorite, UnavailableExercise
+from exercises import catalog, translation
+from exercises.models import Exercise, Favorite, UnavailableExercise
 from homeassistant import models as home_assistant
 
 from . import coaching, generator, timer
 from .forms import WorkoutForm
 from .models import Workout, WorkoutExercise
+
+logger = logging.getLogger(__name__)
 
 
 def _annotate_equipment(workouts: list[Workout]) -> None:
@@ -186,11 +190,15 @@ def workout_detail(request: HttpRequest, pk: int) -> HttpResponse:
     items = list(workout.items.all())
     _annotate_favorites(request.user, items)
     _annotate_body_regions(items)
+    can_translate = get_active_client() is not None
+    pending = len(_untranslated_exercises(items)) if can_translate else 0
     context = {
         "workout": workout,
         # Bouton de traduction unitaire du rappel d'exercice (issue #31) :
         # un seul calcul par écran plutôt qu'un par exercice du déroulé.
-        "can_translate": get_active_client() is not None,
+        "can_translate": can_translate,
+        # Traduction automatique des consignes encore en anglais (issue #155).
+        "translation_queue": {"done": 0, "total": pending} if pending else None,
         # Déroulé chronométré du minuteur de suivi (issue #35).
         "timeline": timer.build_timeline(workout),
         # Aperçu des entités Home Assistant avant de lancer la séance (issue
@@ -200,6 +208,64 @@ def workout_detail(request: HttpRequest, pk: int) -> HttpResponse:
         **_recovery_ruler_context(workout),
     }
     return render(request, "workouts/workout_detail.html", context)
+
+
+def _untranslated_exercises(items: list[WorkoutExercise]) -> list[Exercise]:
+    """Exercices du déroulé aux consignes encore en anglais, dans l'ordre, sans doublon."""
+    pending: dict[int, Exercise] = {}
+    for item in items:
+        exercise = item.exercise
+        if exercise.instructions and not exercise.instructions_fr:
+            pending.setdefault(exercise.pk, exercise)
+    return list(pending.values())
+
+
+def _queue_counter(raw: str | None) -> int:
+    try:
+        return max(0, int(raw or 0))
+    except ValueError:
+        return 0
+
+
+@login_required
+@require_POST
+def workout_translate_next(request: HttpRequest, pk: int) -> HttpResponse:
+    """Traduit le prochain exercice de la séance encore en anglais (issue #155).
+
+    Une fiche par requête, la suivante partant à l'arrivée de la réponse. Un
+    habillage, comme les conseils : sans rien à traduire, sans fournisseur ou
+    au premier échec, la réponse est vide et la file s'arrête sans message —
+    le bouton « Traduire cette fiche » reste là pour réessayer à la main.
+    """
+    workout = get_object_or_404(Workout, pk=pk, user=request.user)
+    items = list(workout.items.select_related("exercise"))
+    pending = _untranslated_exercises(items)
+    if not pending:
+        return HttpResponse("")
+
+    exercise = pending[0]
+    try:
+        exercise.instructions_fr = translation.translate_or_raise(exercise.instructions)
+    except translation.TranslationError:
+        logger.info("Traduction automatique interrompue sur %s", exercise.slug, exc_info=True)
+        return HttpResponse("")
+    exercise.save(update_fields=["instructions_fr"])
+
+    done = _queue_counter(request.POST.get("done")) + 1
+    remaining = len(pending) - 1
+    # Le total suit la séance : un exercice changé en cours de route peut
+    # ajouter une fiche à traduire.
+    total = max(_queue_counter(request.POST.get("total")), done + remaining)
+    return render(
+        request,
+        "workouts/partials/translation_step.html",
+        {
+            "workout": workout,
+            "queue": {"done": done, "total": total} if remaining else None,
+            "exercise": exercise,
+            "items": [item for item in items if item.exercise_id == exercise.pk],
+        },
+    )
 
 
 @login_required

@@ -436,6 +436,19 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
   le bouton de traduction d'un exercice) plutôt que silencieux : un message informe que
   les conseils sont indisponibles, et les précédents restent affichés, jamais effacés par
   un rafraîchissement raté.
+- Les consignes encore en anglais se **traduisent automatiquement** à l'affichage d'une
+  séance (issue #155) — un habillage, comme les conseils : une file
+  (`workouts/partials/translation_queue.html`) traduit **une fiche par requête**
+  (`workouts.views.workout_translate_next`), dans l'ordre du déroulé, et ne part qu'après
+  le chargement des conseils (`htmx:afterRequest from:#conseils-seance once`) : jamais
+  deux appels IA en parallèle, Claude Gateway n'en traitant qu'un à la fois. Chaque
+  réponse remplace hors cible le rappel de l'exercice — htmx remplace **tous** les
+  éléments qui portent l'id, donc chaque occurrence dans le déroulé — et ses consignes
+  dans la timeline du minuteur (`timer_step_instructions.html`, id par ligne de séance),
+  sans toucher la ligne elle-même : un minuteur lancé garde sa surbrillance. Une ligne
+  discrète (spinner `runner` + `2 / 5`) suit l'avancement puis disparaît. Sans
+  fournisseur ou sans rien à traduire, rien ne s'affiche ; au premier échec, la file
+  s'arrête sans message et le bouton « Traduire cette fiche » reste disponible.
 - Une séance se marque en **favori** au même titre qu'un exercice (voir « Bascules
   d'état » ci-dessous) ; l'historique propose alors le même critère « Mes favoris
   uniquement » que le catalogue.

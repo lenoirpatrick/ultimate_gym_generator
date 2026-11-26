@@ -47,13 +47,7 @@ l'écran — voir partials/exercise_item_response.html.
                         {% endif %}
                     </span>
                 </span>
-                {% with steps=item.exercise.instructions_fr|default:item.exercise.instructions %}
-                    {% if steps %}
-                        <ol class="ugg-timer__step-instructions" hidden>
-                            {% for step in steps %}<li>{{ step }}</li>{% endfor %}
-                        </ol>
-                    {% endif %}
-                {% endwith %}
+                {% include "workouts/partials/timer_step_instructions.html" with item=item %}
             </li>
         {% endfor %}
     {% endfor %}

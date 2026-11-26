@@ -1,0 +1,25 @@
+{% comment %}
+File de traduction automatique des consignes d'une séance (issue #155).
+
+Une fiche par requête : chaque réponse traduit un exercice, remplace hors
+cible son rappel et les consignes du minuteur, puis renvoie cette file, qui
+déclenche la fiche suivante — jamais deux appels IA en parallèle, Claude
+Gateway n'en traitant qu'un à la fois. Rendue depuis l'écran, la file attend
+la fin du chargement des conseils du coach (`first`), qui sollicitent le
+même fournisseur ; ensuite, elle repart dès son arrivée (`load`).
+
+Habillage, comme les conseils : rien ne s'affiche quand il n'y a rien à
+traduire, et un échec arrête la file sans message (workouts.views.
+workout_translate_next renvoie une réponse vide).
+
+Attend `workout`, `queue` (`done`, `total`) et `first` (facultatif).
+{% endcomment %}
+<div id="seance-traduction"
+     class="flex items-center gap-2 text-sm text-muted"
+     hx-post="{% url 'workouts:translate_next' workout.pk %}"
+     hx-vals='{"done": {{ queue.done }}, "total": {{ queue.total }}}'
+     hx-trigger="{% if first %}htmx:afterRequest from:#conseils-seance once{% else %}load{% endif %}"
+     hx-swap="outerHTML">
+    {% include "core/components/spinner.html" with variant="runner" size="sm" label="Traduction des consignes en français" %}
+    <span aria-hidden="true">Traduction des consignes en français · {{ queue.done }} / {{ queue.total }}</span>
+</div>

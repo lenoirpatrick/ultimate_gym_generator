@@ -8,6 +8,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from accounts.models import UserEquipment
+from exercises import translation
 from exercises.models import Exercise, Muscle, UnavailableExercise
 from workouts import generator
 from workouts.models import Workout, WorkoutExercise
@@ -1520,3 +1521,184 @@ def test_le_minuteur_porte_un_separateur_accessible(logged_client, user):
     assert 'tabindex="0"' in separateur
     assert 'aria-controls="minuteur-colonne-principale"' in separateur
     assert 'id="minuteur-colonne-principale"' in content
+
+
+# --------------------------------------------------------------------------- #
+# Traduction automatique des consignes à l'affichage (issue #155)
+# --------------------------------------------------------------------------- #
+
+
+def _avec_fournisseur(monkeypatch):
+    stub = type("Stub", (), {"generate": lambda self, prompt, **kwargs: "[]"})()
+    monkeypatch.setattr("workouts.views.get_active_client", lambda: stub)
+
+
+def _traduire_avec(monkeypatch, reponse):
+    """Remplace l'appel IA : `reponse` est une liste, ou une exception à lever."""
+    appels = []
+
+    def traduire(instructions):
+        appels.append(instructions)
+        if isinstance(reponse, Exception):
+            raise reponse
+        return reponse
+
+    monkeypatch.setattr("workouts.views.translation.translate_or_raise", traduire)
+    return appels
+
+
+def seance_a_traduire(user):
+    """Squat deux fois (deux lignes) puis développé couché, tous en anglais."""
+    squat = Exercise.objects.get(slug="Barbell_Squat")
+    bench = Exercise.objects.get(slug="Dumbbell_Bench_Press")
+    workout = build_workout(user, squat)
+    for position, exercise in ((2, bench), (3, squat)):
+        WorkoutExercise.objects.create(
+            workout=workout,
+            position=position,
+            block_index=0,
+            block_label="Bloc 1",
+            exercise=exercise,
+            rounds=3,
+            reps=[10, 10, 10],
+            rest_seconds=60,
+        )
+    return workout, squat, bench
+
+
+def _etape(client, workout, **etat) -> str:
+    return client.post(reverse("workouts:translate_next", args=[workout.pk]), etat).content.decode()
+
+
+def test_la_file_de_traduction_attend_les_conseils(logged_client, user, monkeypatch):
+    """Jamais deux appels IA à la fois : la file part après les conseils du coach."""
+    _avec_fournisseur(monkeypatch)
+    workout, _squat, _bench = seance_a_traduire(user)
+
+    content = logged_client.get(reverse("workouts:detail", args=[workout.pk])).content.decode()
+
+    assert reverse("workouts:translate_next", args=[workout.pk]) in content
+    assert 'hx-trigger="htmx:afterRequest from:#conseils-seance once"' in content
+    assert 'id="conseils-seance"' in content
+    # Deux exercices distincts, même si le squat revient deux fois.
+    assert '"done": 0, "total": 2' in content
+    assert "0 / 2" in content
+
+
+def test_sans_fournisseur_aucune_file_de_traduction(logged_client, user):
+    workout, _squat, _bench = seance_a_traduire(user)
+
+    content = logged_client.get(reverse("workouts:detail", args=[workout.pk])).content.decode()
+
+    assert reverse("workouts:translate_next", args=[workout.pk]) not in content
+
+
+def test_une_seance_deja_traduite_n_a_pas_de_file(logged_client, user, monkeypatch):
+    _avec_fournisseur(monkeypatch)
+    workout, _squat, _bench = seance_a_traduire(user)
+    Exercise.objects.exclude(instructions=[]).update(instructions_fr=["Déjà traduit."])
+
+    content = logged_client.get(reverse("workouts:detail", args=[workout.pk])).content.decode()
+
+    assert reverse("workouts:translate_next", args=[workout.pk]) not in content
+
+
+def test_une_etape_traduit_un_seul_exercice_dans_l_ordre_du_deroule(
+    logged_client, user, monkeypatch
+):
+    workout, squat, _bench = seance_a_traduire(user)
+    appels = _traduire_avec(monkeypatch, ["Un.", "Deux.", "Trois."])
+
+    _etape(logged_client, workout, done=0, total=2)
+
+    assert appels == [squat.instructions]
+    squat.refresh_from_db()
+    assert squat.instructions_fr == ["Un.", "Deux.", "Trois."]
+
+
+def test_l_etape_remplace_le_rappel_et_les_consignes_du_minuteur(logged_client, user, monkeypatch):
+    workout, squat, _bench = seance_a_traduire(user)
+    _traduire_avec(monkeypatch, ["Un.", "Deux.", "Trois."])
+    lignes = list(workout.items.filter(exercise=squat))
+
+    content = " ".join(_etape(logged_client, workout, done=0, total=2).split())
+
+    assert f'<div id="exercise-{squat.pk}-description" hx-swap-oob="true">' in content
+    assert "<li>Un.</li>" in content
+    # Une fois par ligne de séance qui emploie l'exercice traduit.
+    for ligne in lignes:
+        assert f'id="minuteur-consignes-{ligne.pk}" hidden hx-swap-oob="true"' in content
+    # Plus de bouton manuel sur une fiche désormais traduite.
+    assert "Traduire cette fiche" not in content
+
+
+def test_l_etape_relance_la_file_tant_qu_il_reste_a_traduire(logged_client, user, monkeypatch):
+    workout, _squat, _bench = seance_a_traduire(user)
+    _traduire_avec(monkeypatch, ["Un.", "Deux.", "Trois."])
+
+    content = _etape(logged_client, workout, done=0, total=2)
+
+    assert 'hx-trigger="load"' in content
+    assert '"done": 1, "total": 2' in content
+    assert "1 / 2" in content
+
+
+def test_la_derniere_etape_retire_la_file(logged_client, user, monkeypatch):
+    workout, squat, bench = seance_a_traduire(user)
+    squat.instructions_fr = ["Déjà traduit."]
+    squat.save()
+    _traduire_avec(monkeypatch, ["Traduit."])
+
+    content = _etape(logged_client, workout, done=1, total=2)
+
+    assert f'id="exercise-{bench.pk}-description" hx-swap-oob="true"' in content
+    assert reverse("workouts:translate_next", args=[workout.pk]) not in content
+
+
+def test_un_echec_arrete_la_file_sans_message(logged_client, user, monkeypatch):
+    """Un habillage, comme les conseils : aucune alerte devant une séance prête."""
+    workout, squat, _bench = seance_a_traduire(user)
+    _traduire_avec(monkeypatch, translation.TranslationError("Passerelle occupée."))
+
+    response = logged_client.post(reverse("workouts:translate_next", args=[workout.pk]))
+
+    assert response.status_code == 200
+    assert response.content == b""
+    squat.refresh_from_db()
+    assert squat.instructions_fr == []
+
+
+def test_plus_rien_a_traduire_ne_sollicite_pas_l_ia(logged_client, user, monkeypatch):
+    workout, _squat, _bench = seance_a_traduire(user)
+    Exercise.objects.exclude(instructions=[]).update(instructions_fr=["Déjà traduit."])
+    appels = _traduire_avec(monkeypatch, ["Traduit."])
+
+    response = logged_client.post(reverse("workouts:translate_next", args=[workout.pk]))
+
+    assert appels == []
+    assert response.content == b""
+
+
+def test_la_traduction_automatique_refuse_la_methode_get(logged_client, user):
+    workout, _squat, _bench = seance_a_traduire(user)
+
+    response = logged_client.get(reverse("workouts:translate_next", args=[workout.pk]))
+
+    assert response.status_code == 405
+
+
+def test_on_ne_traduit_pas_la_seance_d_un_autre(logged_client, staff, user):
+    workout, _squat, _bench = seance_a_traduire(staff)
+
+    response = logged_client.post(reverse("workouts:translate_next", args=[workout.pk]))
+
+    assert response.status_code == 404
+
+
+def test_la_timeline_du_minuteur_porte_un_id_par_ligne(logged_client, user):
+    workout, _squat, _bench = seance_a_traduire(user)
+
+    content = logged_client.get(reverse("workouts:detail", args=[workout.pk])).content.decode()
+
+    for ligne in workout.items.all():
+        assert f'id="minuteur-consignes-{ligne.pk}"' in content
