@@ -100,7 +100,7 @@ class ProfileForm(AvatarFieldMixin):
 
     class Meta:
         model = User
-        fields = ("email", "first_name", "last_name", "avatar", *BODY_FIELDS, "health_enabled")
+        fields = ("email", "first_name", "last_name", "avatar", *BODY_FIELDS)
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)

@@ -33,7 +33,6 @@ qui documente chaque variable.
 | `DJANGO_CSRF_TRUSTED_ORIGINS` | vide | Requis derrière un reverse proxy HTTPS |
 | `DJANGO_TIME_ZONE` | `Europe/Paris` | |
 | `DJANGO_DB_PATH` | fichier du projet | Chemin de la base SQLite ; à définir seulement pour la déplacer (voir § 2) |
-| `APPLE_HEALTH_IMPORT_MAX_BYTES` | `4294967296` (4 Go) | Taille maximale d'un export Apple Health importé ; à relever encore au besoin (issues #70, #74) |
 
 ---
 
@@ -304,3 +303,8 @@ python manage.py collectstatic --noinput
 ```
 
 Redémarrer le serveur applicatif ensuite.
+
+> ⚠️ Le module Apple Santé a été retiré (issue #168) : la migration
+> `accounts.0008_remove_apple_health` supprime **définitivement** ses tables
+> (poids, activités, pas, clés API d'ingestion). Copier le fichier de base
+> (`DJANGO_DB_PATH`) avant `migrate` pour en garder une trace.

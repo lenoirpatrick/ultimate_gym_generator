@@ -8,22 +8,14 @@ pour l'ouverture/fermeture. Masqué sous 40rem au profit du tiroir unique
 Attend `group` (core.nav.NavGroup) et `current_view`.
 
 `name="ugg-nav-group"` (attribut natif des `<details>`, sans JavaScript) rend
-les trois panneaux de la barre mutuellement exclusifs : en ouvrir un referme
-les autres (issue #103) — jusque-là, UGG / Apple Santé / Compte pouvaient
-rester ouverts ensemble et se chevaucher. Ne s'applique qu'entre dropdowns de
+les panneaux de la barre mutuellement exclusifs : en ouvrir un referme les
+autres (issue #103) — jusque-là, ils pouvaient rester ouverts ensemble et se
+chevaucher. Ne s'applique qu'entre dropdowns de
 la barre : le tiroir mobile (`.ugg-nav--drawer`, base.html) n'est jamais
 visible en même temps qu'eux, aucun groupe à y exclure.
 {% endcomment %}
 <details class="ugg-nav ugg-nav--dropdown" name="ugg-nav-group">
     <summary class="ugg-nav__toggle">
-        {% if group.icon == "apple-health" %}
-            <svg class="ugg-nav__icon" viewBox="0 0 24 24" aria-hidden="true"
-                 fill="none" stroke="currentColor" stroke-width="2"
-                 stroke-linecap="round" stroke-linejoin="round">
-                <path d="M12 21s-7.5-4.6-10-9.1C.6 8.7 2 5 5.6 5c2 0 3.4 1.1 4.4 2.6C11 6.1 12.4 5 14.4 5 18 5 19.4 8.7 22 11.9 19.5 16.4 12 21 12 21z" />
-                <path d="M4 12h3l1.5-3 2 6 1.5-3H20" />
-            </svg>
-        {% endif %}
         <span>{{ group.label }}</span>
     </summary>
     <div class="ugg-nav__panel">
