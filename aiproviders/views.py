@@ -8,6 +8,7 @@ from django.shortcuts import redirect, render
 from django.views.decorators.http import require_POST
 
 from .clients import ProviderError, get_client
+from .clients.base import ModelOption
 from .fields import EncryptionKeyError
 from .forms import ProviderCredentialForm
 from .models import ProviderCredential
@@ -80,12 +81,8 @@ def credential_edit(request: HttpRequest, provider: str) -> HttpResponse:
             "form": form,
             "spec": spec,
             "credential": instance,
-            # Le menu déroulant des modèles suppose des credentials utilisables :
-            # sans clé enregistrée, le catalogue est hors de portée et le champ
-            # reste une saisie libre.
-            "offers_model_picker": spec.supports_model_listing
-            and instance is not None
-            and instance.is_configured,
+            # Décidé par le formulaire, qui adapte le champ en conséquence.
+            "offers_model_picker": form.offers_model_picker,
         },
     )
 
@@ -143,6 +140,11 @@ def credential_models(request: HttpRequest, provider: str) -> HttpResponse:
     except EncryptionKeyError as exc:
         error = str(exc)
 
+    # Un catalogue connu d'avance vaut mieux qu'une saisie libre (issue #156).
+    fallback = bool(spec.fixed_models and (error or not models))
+    if fallback:
+        models = [ModelOption(identifier, label) for identifier, label in spec.fixed_models]
+
     return render(
         request,
         "aiproviders/partials/model_choices.html",
@@ -151,5 +153,6 @@ def credential_models(request: HttpRequest, provider: str) -> HttpResponse:
             "models": models,
             "error": error,
             "selected": credential.default_model if credential else "",
+            "fallback": fallback,
         },
     )

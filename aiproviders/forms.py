@@ -31,7 +31,13 @@ class ProviderCredentialForm(forms.ModelForm):
             if spec.default_base_url
             else "Laisser vide pour l'URL officielle du fournisseur."
         )
-        if spec.fixed_models:
+        #: Catalogue distant chargé en HTMX : il suppose des credentials
+        #: utilisables, donc une configuration déjà enregistrée.
+        self.offers_model_picker = bool(
+            spec.supports_model_listing and self.instance.pk and self.instance.is_configured
+        )
+
+        if spec.fixed_models and not self.offers_model_picker:
             self.fields["default_model"] = self._fixed_model_field(spec)
         # Quand le fournisseur sait publier son catalogue, ce champ est remplacé
         # par un menu déroulant dès qu'une clé est enregistrée — l'aide annonce
@@ -59,7 +65,12 @@ class ProviderCredentialForm(forms.ModelForm):
             label="Modèle par défaut",
             choices=[("", f"Par défaut ({spec.default_model})"), *spec.fixed_models],
             required=False,
-            help_text=f"« Par défaut » utilise {spec.default_model}.",
+            help_text=f"« Par défaut » utilise {spec.default_model}."
+            + (
+                " Une fois la configuration enregistrée, la liste sera lue sur le fournisseur."
+                if spec.supports_model_listing
+                else ""
+            ),
         )
 
     def clean_secret(self) -> str:

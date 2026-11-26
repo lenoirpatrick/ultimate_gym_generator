@@ -10,7 +10,7 @@ import pytest
 from django.urls import reverse
 
 from aiproviders.clients import get_client
-from aiproviders.clients.base import ProviderError
+from aiproviders.clients.base import ModelOption, ProviderError
 from aiproviders.clients.claude_gateway import (
     GENERATE_TIMEOUT,
     PING_TIMEOUT,
@@ -32,15 +32,28 @@ def build(responder, **fields) -> ClaudeGatewayClient:
     return client
 
 
-def gateway(*, health=200, generate=(200, {"text": "Réponse."}), seen=None):
-    """Simule la passerelle : `/health` puis `/v1/generate`, en notant les requêtes reçues."""
+#: Réponse de `/v1/models`, telle que la passerelle la renvoie (issue #156).
+MODELS_PAYLOAD = {
+    "default": "sonnet",
+    "models": [
+        {"id": "haiku", "description": "Le plus rapide.", "resolved": "claude-haiku-5-5"},
+        {"id": "sonnet", "description": "Équilibré.", "default": True, "resolved": None},
+        {"id": "opus", "description": "Le plus capable.", "resolved": "claude-opus-5-5"},
+    ],
+}
+
+
+def gateway(
+    *, health=200, generate=(200, {"text": "Réponse."}), models=(200, MODELS_PAYLOAD), seen=None
+):
+    """Simule la passerelle (`/health`, `/v1/models`, `/v1/generate`), en notant les requêtes."""
 
     def respond(request: httpx.Request) -> httpx.Response:
         if seen is not None:
             seen.append(request)
         if request.url.path == "/health":
             return httpx.Response(health, json={"status": "ok", "claude": "2.1.311 (Claude Code)"})
-        status, payload = generate
+        status, payload = models if request.url.path == "/v1/models" else generate
         return httpx.Response(status, json=payload)
 
     return respond
@@ -133,20 +146,37 @@ def test_une_passerelle_injoignable_est_signalee():
 # --------------------------------------------------------------------------- #
 
 
-def test_le_ping_valide_le_jeton_sans_lancer_claude_code():
-    """Un corps vide est refusé en 400 après le jeton : rien n'est consommé."""
+def test_le_ping_valide_le_jeton_par_la_liste_des_modeles():
+    """`/v1/models` est authentifiée et ne lance pas Claude Code : rien n'est consommé."""
     seen: list[httpx.Request] = []
 
-    result = build(gateway(generate=(400, {"error": "prompt manquant"}), seen=seen)).ping()
+    result = build(gateway(seen=seen), default_model="opus").ping()
 
     assert result.ok is True
     assert "2.1.311" in result.message
-    assert [request.url.path for request in seen] == ["/health", "/v1/generate"]
-    assert json.loads(seen[1].content) == {}
+    assert "opus (claude-opus-5-5)" in result.message
+    assert [request.url.path for request in seen] == ["/health", "/v1/models"]
+    assert seen[1].headers["authorization"] == f"Bearer {TOKEN}"
+
+
+def test_le_ping_signale_un_modele_que_la_passerelle_ne_propose_plus():
+    payload = {"models": [{"id": "haiku"}]}
+
+    result = build(gateway(models=(200, payload)), default_model="opus").ping()
+
+    assert result.ok is False
+    assert "ne propose pas le modèle « opus »" in result.message
+
+
+def test_le_ping_d_une_passerelle_sans_route_des_modeles_invite_a_la_mettre_a_jour():
+    result = build(gateway(models=(404, {"error": "introuvable"}))).ping()
+
+    assert result.ok is False
+    assert "mets-la à jour" in result.message
 
 
 def test_le_ping_distingue_un_jeton_refuse():
-    result = build(gateway(generate=(401, {"error": "jeton invalide"}))).ping()
+    result = build(gateway(models=(401, {"error": "jeton invalide"}))).ping()
 
     assert result.ok is False
     assert "Jeton refusé" in result.message
@@ -174,13 +204,37 @@ def test_le_ping_signale_une_passerelle_en_erreur():
 # --------------------------------------------------------------------------- #
 
 
-def test_les_modeles_proposes_sont_ceux_de_la_passerelle():
-    def interdit(request):
-        raise AssertionError("la liste des modèles ne doit pas appeler la passerelle")
+def test_les_modeles_proposes_sont_lus_sur_la_passerelle():
+    seen: list[httpx.Request] = []
 
-    models = build(interdit).list_models()
+    models = build(gateway(seen=seen)).list_models()
 
     assert [model.identifier for model in models] == ["haiku", "sonnet", "opus"]
+    assert models[0].label == "Claude Haiku — claude-haiku-5-5"
+    # `resolved` à null tant que la passerelle n'a pas résolu l'alias.
+    assert models[1].label == "Claude Sonnet"
+    assert seen[0].headers["authorization"] == f"Bearer {TOKEN}"
+
+
+def test_un_nouvel_alias_de_la_passerelle_apparait_sans_toucher_a_l_application():
+    payload = {"models": [{"id": "fable", "resolved": "claude-fable-5-2"}, {"description": "?"}]}
+
+    models = build(gateway(models=(200, payload))).list_models()
+
+    assert [model.identifier for model in models] == ["fable"]
+
+
+@pytest.mark.parametrize(
+    ("models", "attendu"),
+    [
+        ((401, {"error": "jeton invalide"}), "Jeton refusé"),
+        ((404, {"error": "introuvable"}), "/v1/models absente"),
+        ((200, {"models": "pas une liste"}), "illisible"),
+    ],
+)
+def test_une_liste_des_modeles_inexploitable_est_expliquee(models, attendu):
+    with pytest.raises(ProviderError, match=attendu):
+        build(gateway(models=models)).list_models()
 
 
 @pytest.mark.django_db
@@ -272,7 +326,8 @@ def test_le_modele_se_choisit_dans_un_menu_des_le_premier_affichage(staff_client
 
 
 @pytest.mark.django_db
-def test_le_modele_enregistre_revient_preselectionne(staff_client):
+def test_une_fois_configuree_la_liste_se_charge_depuis_la_passerelle(staff_client):
+    """Issue #156 : le catalogue distant arrive en différé, comme celui de Gemini."""
     ProviderCredential.objects.create(
         provider="claude_gateway", secret=TOKEN, base_url=BASE_URL, default_model="haiku"
     )
@@ -280,7 +335,72 @@ def test_le_modele_enregistre_revient_preselectionne(staff_client):
     content = staff_client.get(reverse("aiproviders:edit", args=["claude_gateway"])).content
     content = " ".join(content.decode().split())
 
-    assert '<option value="haiku" selected>' in content
+    assert reverse("aiproviders:models", args=["claude_gateway"]) in content
+    assert 'hx-trigger="load"' in content
+
+
+def _menu(staff_client, monkeypatch, list_models) -> str:
+    ProviderCredential.objects.create(
+        provider="claude_gateway", secret=TOKEN, base_url=BASE_URL, default_model="haiku"
+    )
+    monkeypatch.setattr(ClaudeGatewayClient, "list_models", list_models)
+    content = staff_client.get(reverse("aiproviders:models", args=["claude_gateway"])).content
+    return " ".join(content.decode().split())
+
+
+@pytest.mark.django_db
+def test_le_menu_charge_propose_le_modele_reel_et_preselectionne(staff_client, monkeypatch):
+    content = _menu(
+        staff_client,
+        monkeypatch,
+        lambda self: [
+            ModelOption("haiku", "Claude Haiku — claude-haiku-5-5"),
+            ModelOption("fable", "Claude Fable — claude-fable-5-2"),
+        ],
+    )
+
+    assert '<select name="default_model"' in content
+    assert '<option value="haiku" selected> Claude Haiku — claude-haiku-5-5 </option>' in content
+    assert 'value="fable"' in content
+
+
+@pytest.mark.django_db
+def test_une_panne_retombe_sur_les_modeles_connus(staff_client, monkeypatch):
+    """Mieux qu'une saisie libre : le catalogue de repli reste un menu."""
+
+    def tombe_en_panne(self):
+        raise ProviderError("Passerelle occupée.")
+
+    content = _menu(staff_client, monkeypatch, tombe_en_panne)
+
+    assert "Passerelle occupée." in content
+    assert '<select name="default_model"' in content
+    for identifier in ("haiku", "sonnet", "opus"):
+        assert f'value="{identifier}"' in content
+    assert "Les modèles connus sont proposés à la place" in content
+    assert "Réessayer" in content
+
+
+@pytest.mark.django_db
+def test_une_liste_vide_retombe_aussi_sur_les_modeles_connus(staff_client, monkeypatch):
+    content = _menu(staff_client, monkeypatch, lambda self: [])
+
+    assert '<select name="default_model"' in content
+    assert "n'a renvoyé aucun modèle" in content
+
+
+@pytest.mark.django_db
+def test_un_alias_lu_sur_la_passerelle_s_enregistre(staff_client):
+    """Une fois configurée, le champ accepte les alias que publie la passerelle."""
+    ProviderCredential.objects.create(provider="claude_gateway", secret=TOKEN, base_url=BASE_URL)
+
+    response = staff_client.post(
+        reverse("aiproviders:edit", args=["claude_gateway"]),
+        {"secret": "", "base_url": BASE_URL, "default_model": "fable", "is_active": "on"},
+    )
+
+    assert response.status_code == 302
+    assert ProviderCredential.objects.get(provider="claude_gateway").default_model == "fable"
 
 
 @pytest.mark.django_db

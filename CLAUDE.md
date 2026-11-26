@@ -436,6 +436,19 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
   le bouton de traduction d'un exercice) plutôt que silencieux : un message informe que
   les conseils sont indisponibles, et les précédents restent affichés, jamais effacés par
   un rafraîchissement raté.
+- Les consignes encore en anglais se **traduisent automatiquement** à l'affichage d'une
+  séance (issue #155) — un habillage, comme les conseils : une file
+  (`workouts/partials/translation_queue.html`) traduit **une fiche par requête**
+  (`workouts.views.workout_translate_next`), dans l'ordre du déroulé, et ne part qu'après
+  le chargement des conseils (`htmx:afterRequest from:#conseils-seance once`) : jamais
+  deux appels IA en parallèle, Claude Gateway n'en traitant qu'un à la fois. Chaque
+  réponse remplace hors cible le rappel de l'exercice — htmx remplace **tous** les
+  éléments qui portent l'id, donc chaque occurrence dans le déroulé — et ses consignes
+  dans la timeline du minuteur (`timer_step_instructions.html`, id par ligne de séance),
+  sans toucher la ligne elle-même : un minuteur lancé garde sa surbrillance. Une ligne
+  discrète (spinner `runner` + `2 / 5`) suit l'avancement puis disparaît. Sans
+  fournisseur ou sans rien à traduire, rien ne s'affiche ; au premier échec, la file
+  s'arrête sans message et le bouton « Traduire cette fiche » reste disponible.
 - Une séance se marque en **favori** au même titre qu'un exercice (voir « Bascules
   d'état » ci-dessous) ; l'historique propose alors le même critère « Mes favoris
   uniquement » que le catalogue.
@@ -983,19 +996,29 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
   la fermeture de la modale vide le bandeau, ce qui arrête les relectures. Sans
   entité à montrer, la réponse est réellement vide et `:empty` masque le bandeau.
 
-### Fournisseurs IA (`/settings/ai/`, issues #150, #151)
+### Fournisseurs IA (`/settings/ai/`, issues #150, #151, #156)
 
 - Le **modèle** d'un fournisseur se choisit dans un menu déroulant (`<select>`), jamais
-  à la saisie quand le catalogue est connaissable. Deux cas : un catalogue **fermé**
-  (`ProviderSpec.fixed_models`, Claude Gateway : haiku / sonnet / opus) est rendu
-  directement dans le formulaire, dès le premier affichage ; un catalogue **distant**
-  (`supports_model_listing`, Gemini) arrive en HTMX une fois la clé enregistrée, avec
-  repli en saisie libre si l'appel échoue. Dans les deux cas, « Par défaut (…) » en tête
-  laisse le champ vide en base, pour suivre le modèle par défaut du registre. Exception
-  assumée à la règle « choix fermé → contrôle segmenté » : un libellé de modèle est trop
-  long pour une puce au pouce, et le catalogue distant peut compter des dizaines
-  d'entrées — les deux cas gardent ainsi le même contrôle.
+  à la saisie quand le catalogue est connaissable. Une fois la configuration
+  enregistrée, le catalogue **distant** (`supports_model_listing` : Gemini, et Claude
+  Gateway via sa route `/v1/models`) arrive en HTMX, avec le modèle réel en clair
+  (« Claude Haiku — claude-haiku-5-5 ») : un alias ajouté côté passerelle apparaît sans
+  toucher à l'application. Avant l'enregistrement, ou si la lecture échoue, un
+  fournisseur qui déclare un catalogue **connu d'avance** (`ProviderSpec.fixed_models`,
+  Claude Gateway : haiku / sonnet / opus) garde un menu sur cette liste, l'erreur
+  affichée au-dessus avec « Réessayer » ; sans catalogue de repli, le champ redevient
+  une saisie libre. « Par défaut (…) » en tête laisse le champ vide en base, pour
+  suivre le modèle par défaut du registre. C'est
+  `ProviderCredentialForm.offers_model_picker` qui tranche entre menu différé et menu
+  fixe — la vue ne fait que relire sa décision. Exception assumée à la règle « choix
+  fermé → contrôle segmenté » : un libellé de modèle est trop long pour une puce au
+  pouce, et le catalogue distant peut compter des dizaines d'entrées — les deux cas
+  gardent ainsi le même contrôle.
+- Le test de connexion de Claude Gateway vérifie le jeton par `/v1/models`
+  (authentifiée, sans lancer Claude Code), affiche le modèle réel retenu, et signale un
+  modèle enregistré que la passerelle ne propose plus.
 
+### Avatars
 
 - Photo déposée par l'utilisateur, ou **ses initiales** à défaut — jamais une
   silhouette générique ni un service d'avatar distant.
