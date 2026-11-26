@@ -14,7 +14,7 @@ mozilla-django-oidc>=5.0,<6.0
 
 # Fournisseurs d'IA appelés en REST.
 httpx>=0.28.1,<1.0
-gunicorn>=23.0
+gunicorn>=27.0.1
 whitenoise[brotli]>=6.12.0
 
 # --- Développement, tests et qualité -------------------------------------------
