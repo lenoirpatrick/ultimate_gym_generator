@@ -88,14 +88,13 @@ def entetes_de_menu(content: str) -> list[str]:
     return re.findall(r'<p class="ugg-nav__heading">\s*([^<]+?)\s*</p>', content)
 
 
-def test_les_trois_groupes_sont_toujours_presents(logged_client):
-    """UGG, Apple Santé et Compte sont visibles quel que soit le compte —
-    seul le sous-groupe Configuration, sous Compte, dépend du personnel."""
+def test_les_deux_groupes_sont_toujours_presents(logged_client):
+    """UGG et Compte sont visibles quel que soit le compte — seul le
+    sous-groupe Configuration, sous Compte, dépend du personnel."""
     content = logged_client.get(reverse("workouts:list")).content.decode()
 
-    assert entetes_de_menu(content) == ["UGG", "Apple Santé", "Compte"]
+    assert entetes_de_menu(content) == ["UGG", "Compte"]
     assert reverse("workouts:list") in content
-    assert reverse("health:dashboard") in content
     assert reverse("accounts:profile") in content
 
 
@@ -149,33 +148,21 @@ def test_les_entrees_sont_rendues_en_barre_et_dans_le_tiroir(logged_client):
 def test_les_menus_de_la_barre_sont_mutuellement_exclusifs(logged_client):
     """Issue #103 : ouvrir un menu de la barre doit refermer les autres.
 
-    `name` (natif, sans JavaScript) sur les trois `<details>` de la barre
+    `name` (natif, sans JavaScript) sur les `<details>` de la barre
     uniquement — jamais sur le tiroir mobile, seul de son espèce.
     """
     content = logged_client.get(reverse("workouts:list")).content.decode()
 
-    assert content.count('class="ugg-nav ugg-nav--dropdown" name="ugg-nav-group"') == 3
+    assert content.count('class="ugg-nav ugg-nav--dropdown" name="ugg-nav-group"') == 2
     assert 'ugg-nav--drawer" name=' not in content
 
 
-def test_le_groupe_apple_sante_porte_son_icone(logged_client):
-    """Issue #76 : un repère visuel dédié, pas seulement le libellé."""
+def test_le_module_apple_sante_a_disparu(logged_client):
+    """Issue #168 : ni groupe de menu, ni route `/sante/`."""
     content = logged_client.get(reverse("workouts:list")).content.decode()
 
-    assert "Apple Santé" in content
-    assert "M12 21s-7.5-4.6-10-9.1" in content
-
-
-def test_le_groupe_apple_sante_disparait_quand_il_est_desactive(logged_client, user):
-    """Issue #104 : masqué entièrement, pas un intitulé vide — même principe
-    que Configuration pour un compte non-personnel."""
-    user.health_enabled = False
-    user.save()
-
-    content = logged_client.get(reverse("workouts:list")).content.decode()
-
-    assert "Apple Santé" not in entetes_de_menu(content)
-    assert reverse("health:dashboard") not in content
+    assert "Apple Santé" not in content
+    assert logged_client.get("/sante/").status_code == 404
 
 
 def test_l_ecran_courant_est_marque(logged_client):

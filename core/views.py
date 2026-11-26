@@ -64,7 +64,6 @@ def style_guide(request: HttpRequest) -> HttpResponse:
 
     from exercises.filters import FilterGroup, Option
     from exercises.models import Exercise
-    from health.analytics import Kpi
     from homeassistant.client import EntityState
     from homeassistant.models import Entity
     from workouts.forms import WorkoutForm
@@ -158,17 +157,6 @@ def style_guide(request: HttpRequest) -> HttpResponse:
                 ["Bas du corps"],
                 ["Dos", "Bas du corps"],
                 [],
-            ],
-            # Indicateur clé (issue #72) : les trois formes de tendance possibles.
-            "kpi_demos": [
-                Kpi(
-                    label="Poids actuel",
-                    value="80.20 kg",
-                    trend="down",
-                    trend_label="-1.1 kg sur la période",
-                ),
-                Kpi(label="Activités", value="6", trend_label="4 h 12"),
-                Kpi(label="Allure moyenne (course)", value="—", trend_label="aucune course"),
             ],
         },
     )

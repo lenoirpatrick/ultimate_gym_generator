@@ -256,8 +256,7 @@ def body_regions(muscles) -> list[str]:
     l'iconographie corporelle du déroulé de séance — qui n'a besoin que de
     savoir lesquelles éclairer, pas le détail des muscles qu'elles couvrent.
     `Autres` (muscle non mappé) n'a pas de zone dans l'icône : mieux vaut ne
-    rien éclairer qu'un rapprochement hasardeux (même principe que le rappel
-    d'exercice associé à une activité Apple Santé, issue #82).
+    rien éclairer qu'un rapprochement hasardeux.
     """
     return [region for region in group_by_region(muscles) if region != OTHER_REGION]
 

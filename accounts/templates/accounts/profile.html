@@ -37,10 +37,6 @@
                 <input type="radio" name="profil-onglet" id="profil-tab-mesures"
                        class="ugg-tabs__input" {% if active_tab == "mesures" %}checked{% endif %}>
                 <label for="profil-tab-mesures" class="ugg-tabs__tab" role="tab">Mesures</label>
-
-                <input type="radio" name="profil-onglet" id="profil-tab-options"
-                       class="ugg-tabs__input" {% if active_tab == "options" %}checked{% endif %}>
-                <label for="profil-tab-options" class="ugg-tabs__tab" role="tab">Options</label>
             </div>
 
             <form method="post" enctype="multipart/form-data" class="mt-5 grid gap-5">
@@ -63,11 +59,6 @@
                     {% include "core/components/field.html" with field=form.gender %}
                     {% include "core/components/field.html" with field=form.height_cm %}
                     {% include "core/components/field.html" with field=form.weight_kg %}
-                </fieldset>
-
-                <fieldset class="ugg-tabs__panel grid gap-5" data-tab="options">
-                    <legend class="sr-only">Options</legend>
-                    {% include "core/components/field.html" with field=form.health_enabled %}
                 </fieldset>
 
                 <div class="flex flex-wrap gap-3">

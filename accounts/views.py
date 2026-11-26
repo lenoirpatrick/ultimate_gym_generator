@@ -75,7 +75,6 @@ def register(request: HttpRequest) -> HttpResponse:
 PROFILE_TABS = {
     "identite": ("first_name", "last_name", "email", "avatar"),
     "mesures": ("gender", "height_cm", "weight_kg"),
-    "options": ("health_enabled",),
 }
 
 

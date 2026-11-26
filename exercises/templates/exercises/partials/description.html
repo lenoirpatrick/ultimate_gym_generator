@@ -8,20 +8,16 @@ seul le déclencheur qui l'ouvre diffère selon l'écran.
 
 Le bloc s'enveloppe dans un id stable pour pouvoir se remplacer lui-même une
 fois traduit (issue #31, hx-swap="outerHTML" depuis le bouton ci-dessous).
-Cet id se construit sur `dom_id` (facultatif, replié sur `exercise.pk`) plutôt
-que sur le seul `exercise.pk` : un même exercice peut apparaître dans
-plusieurs rappels d'une même page (plusieurs activités du même type sur la
-page d'analyse, issue #82) — sans quoi deux rappels dupliqueraient le même id,
-et le premier absorberait à tort l'agrandissement de photo du second.
+Cet id se construit sur `exercise.pk`.
 
 Attend `exercise`, `can_translate` (fournisseur IA actif ou non — calculé une
 fois par écran plutôt qu'une fois par fiche), `translation_failed`
-(facultatif, mis par exercises.views.translate_exercise), `dom_id`
-(facultatif) et `oob` (facultatif, issue #155) : rendu hors cible par la
+(facultatif, mis par exercises.views.translate_exercise) et `oob`
+(facultatif, issue #155) : rendu hors cible par la
 traduction automatique d'une séance — htmx remplace alors **chaque** élément
 qui porte cet id, donc toutes les occurrences de l'exercice dans le déroulé.
 {% endcomment %}
-{% with dom_id=dom_id|default:exercise.pk %}
+{% with dom_id=exercise.pk %}
 <div id="exercise-{{ dom_id }}-description"{% if oob %} hx-swap-oob="true"{% endif %}>
     {% if exercise.image_urls %}
         <div class="ugg-exercise__gallery mt-3">

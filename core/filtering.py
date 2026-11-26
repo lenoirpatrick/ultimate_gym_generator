@@ -1,7 +1,6 @@
 """Filtrage par panneau repliable, partagé entre les domaines qui en ont besoin.
 
-Extrait d'`exercises.filters` au moment où `health` en a eu besoin à son tour
-(#73) : deux usages valent une abstraction, un seul ne la justifiait pas.
+Extrait d'`exercises.filters` quand un second domaine en a eu besoin (#73).
 Sémantique constante partout où c'est utilisé : plusieurs valeurs d'un même
 critère s'additionnent (OU), deux critères se cumulent (ET).
 """
