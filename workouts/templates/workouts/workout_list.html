@@ -13,9 +13,10 @@
 
     {% comment %}
     Un seul formulaire pour tous les critères (issue #116) : favoris, zones
-    rapides et recherche texte, même patron que le catalogue d'exercices —
-    second déclencheur HTMX débouncé sur le champ de recherche, sans script.
-    Les zones sont des puces `--standalone` cumulables (OU entre elles).
+    rapides, durée (issue #153) et recherche texte, même patron que le
+    catalogue d'exercices — second déclencheur HTMX débouncé sur le champ de
+    recherche, sans script. Zones et durées sont des puces `--standalone`
+    cumulables (OU au sein d'un même critère, ET entre critères).
     {% endcomment %}
     <form method="get"
           action="{% url 'workouts:list' %}"
@@ -49,6 +50,15 @@
                 <input type="checkbox" name="favoris" value="1" {% if favorites_only %}checked{% endif %}>
                 <span>Mes favoris uniquement</span>
             </label>
+        </div>
+
+        <div class="mt-2 flex flex-wrap gap-2" role="group" aria-label="Durée">
+            {% for duration in durations %}
+                <label class="ugg-filter__option ugg-filter__option--standalone">
+                    <input type="checkbox" name="duree" value="{{ duration.key }}" {% if duration.checked %}checked{% endif %}>
+                    <span>{{ duration.label }}</span>
+                </label>
+            {% endfor %}
         </div>
 
         {% comment %}

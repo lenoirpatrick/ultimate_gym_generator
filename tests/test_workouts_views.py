@@ -360,6 +360,46 @@ def test_la_carte_de_seance_liste_le_materiel_utilise(logged_client, user):
         assert label in content
 
 
+def test_le_materiel_de_la_carte_est_un_pictogramme(logged_client, user):
+    """Issue #154 : une icône par matériel, son nom en infobulle et pour les lecteurs d'écran."""
+    composer(logged_client)
+    workout = Workout.objects.get(user=user)
+    used = {item.exercise.equipment or "body only" for item in workout.items.all()}
+
+    content = " ".join(logged_client.get(reverse("workouts:list")).content.decode().split())
+
+    assert 'aria-label="Matériel utilisé"' in content
+    assert content.count('class="ugg-equipment-badge"') == len(used)
+    for value in used:
+        label = Exercise.Equipment(value).label
+        assert f'title="{label}"' in content
+        assert f'<span class="sr-only">{label}</span>' in content
+        # Plus d'étiquette en toutes lettres pour le matériel.
+        assert f'<span class="ugg-tag">{label}</span>' not in content
+
+
+def test_une_fiche_sans_materiel_compte_au_poids_du_corps(logged_client, user):
+    exercise = Exercise.objects.first()
+    exercise.equipment = ""
+    exercise.save()
+    workout = Workout.objects.create(user=user, format=Workout.Format.HIIT, duration_minutes=20)
+    WorkoutExercise.objects.create(workout=workout, exercise=exercise, position=0)
+
+    content = logged_client.get(reverse("workouts:list")).content.decode()
+
+    assert 'title="Poids du corps"' in content
+
+
+def test_la_recherche_trouve_encore_une_seance_par_son_materiel(logged_client, user):
+    exercise = Exercise.objects.exclude(equipment="").exclude(equipment="body only").first()
+    workout = Workout.objects.create(user=user, format=Workout.Format.HIIT, duration_minutes=20)
+    WorkoutExercise.objects.create(workout=workout, exercise=exercise, position=0)
+
+    content = _liste(logged_client, q=exercise.get_equipment_display())
+
+    assert _present(content, workout)
+
+
 def test_la_seance_d_un_autre_utilisateur_est_introuvable(logged_client, staff_client, user):
     """Une séance ne se partage pas : elle n'est même pas visible."""
     composer(logged_client)
@@ -1521,6 +1561,79 @@ def test_le_minuteur_porte_un_separateur_accessible(logged_client, user):
     assert 'tabindex="0"' in separateur
     assert 'aria-controls="minuteur-colonne-principale"' in separateur
     assert 'id="minuteur-colonne-principale"' in content
+
+
+# --------------------------------------------------------------------------- #
+# Filtres rapides par durée (issue #153)
+# --------------------------------------------------------------------------- #
+
+
+def test_l_historique_propose_les_tranches_de_duree(logged_client, seances_de_durees):
+    content = _liste(logged_client)
+
+    for label in ("≤ 20 min", "21 à 40 min", "&gt; 40 min"):
+        assert label in content
+    assert 'name="duree"' in content
+
+
+def test_une_tranche_de_duree_restreint_l_historique(logged_client, seances_de_durees):
+    courte, longue, moyenne = seances_de_durees
+
+    content = _liste(logged_client, duree="moyenne")
+
+    assert _present(content, moyenne)
+    assert not _present(content, courte)
+    assert not _present(content, longue)
+
+
+def test_plusieurs_tranches_s_additionnent(logged_client, seances_de_durees):
+    courte, longue, moyenne = seances_de_durees
+
+    content = _liste(logged_client, duree=["courte", "longue"])
+
+    assert _present(content, courte)
+    assert _present(content, longue)
+    assert not _present(content, moyenne)
+
+
+@pytest.mark.parametrize(
+    ("seconds", "tranche"),
+    [(1200, "courte"), (1210, "courte"), (1240, "moyenne"), (2400, "moyenne"), (2460, "longue")],
+)
+def test_les_bornes_suivent_la_duree_affichee(logged_client, user, seconds, tranche):
+    """20 min 10 s s'affiche « 20 min » : la séance doit tomber dans « ≤ 20 min »."""
+    workout = Workout.objects.create(
+        user=user, format=Workout.Format.HIIT, duration_minutes=20, planned_seconds=seconds
+    )
+
+    for key in ("courte", "moyenne", "longue"):
+        assert _present(_liste(logged_client, duree=key), workout) is (key == tranche)
+
+
+def test_duree_et_zone_se_cumulent(logged_client, seances):
+    bras, jambes = seances
+    bras.planned_seconds, jambes.planned_seconds = 2400, 600
+    bras.save()
+    jambes.save()
+
+    content = _liste(logged_client, zone="bras", duree="courte")
+
+    assert not _present(content, bras)
+    assert not _present(content, jambes)
+    assert "Aucune séance trouvée" in content
+
+
+def test_une_tranche_inconnue_est_ignoree(logged_client, seances_de_durees):
+    content = _liste(logged_client, duree="eternelle")
+
+    for workout in seances_de_durees:
+        assert _present(content, workout)
+
+
+def test_la_tranche_choisie_reste_cochee(logged_client, seances_de_durees):
+    content = " ".join(_liste(logged_client, duree="longue").split())
+
+    assert 'value="longue" checked' in content
 
 
 # --------------------------------------------------------------------------- #

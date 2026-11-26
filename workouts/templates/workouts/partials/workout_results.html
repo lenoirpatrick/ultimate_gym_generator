@@ -4,9 +4,10 @@ voir workouts.views.workout_list.
 
 Deux parties (issue #107) : titre/date/favori/durée d'abord — le bouton
 favori reste toujours sous le nom et la date, jamais poussé à droite par une
-liste de muscles longue — puis, sur sa propre ligne, ce qui a été travaillé
-(muscles et matériel, `workout.equipment_labels` posé par
-`workouts.views._annotate_equipment`).
+liste de muscles longue — puis, sur sa propre ligne, ce qui a été travaillé :
+muscles en étiquettes, puis matériel en pictogrammes (issue #154,
+`workout.equipment` posé par `workouts.views._annotate_equipment`), dont le
+nom voyage en infobulle et en texte pour les lecteurs d'écran.
 {% endcomment %}
 <div class="grid gap-3">
     {% for workout in workouts %}
@@ -32,19 +33,26 @@ liste de muscles longue — puis, sur sa propre ligne, ce qui a été travaillé
                 </div>
             </div>
 
-            <p class="flex flex-wrap gap-2">
+            <div class="flex flex-wrap items-center gap-2">
                 {% for muscle in workout.muscles.all %}
                     <span class="ugg-tag">{{ muscle.name }}</span>
                 {% empty %}
                     <span class="ugg-tag">Tout le corps</span>
                 {% endfor %}
-                {% for label in workout.equipment_labels %}
-                    <span class="ugg-tag">{{ label }}</span>
-                {% endfor %}
-            </p>
+                {% if workout.equipment %}
+                    <ul class="flex flex-wrap gap-1" role="list" aria-label="Matériel utilisé">
+                        {% for value, label in workout.equipment %}
+                            <li class="ugg-equipment-badge" title="{{ label }}">
+                                {% include "core/components/equipment_icon.html" with equipment=value %}
+                                <span class="sr-only">{{ label }}</span>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+            </div>
         </article>
     {% empty %}
-        {% if search_query or selected_zones %}
+        {% if search_query or selected_zones or selected_durations %}
             {% url 'workouts:list' as all_url %}
             {% include "core/components/empty_state.html" with title="Aucune séance trouvée" body="Aucune séance ne correspond à cette recherche. Retire un filtre ou change de mot." action_url=all_url action_label="Voir toutes les séances" %}
         {% elif favorites_only %}

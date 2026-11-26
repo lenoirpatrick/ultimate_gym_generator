@@ -847,6 +847,25 @@
     white-space: nowrap;
 }
 
+/* Pictogramme de matériel à la place d'une étiquette en toutes lettres
+   (issue #154) : même cadre que `.ugg-tag`, à hauteur égale, pour s'aligner
+   sur la ligne des muscles. Le nom voyage en `title` et en texte `sr-only`. */
+.ugg-equipment-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--ugg-space-1);
+    border: 1px solid var(--ugg-border);
+    border-radius: var(--ugg-radius-sm);
+    background: var(--ugg-surface-sunken);
+    color: var(--ugg-text-muted);
+}
+
+.ugg-equipment-badge svg {
+    width: 1.125rem;
+    height: 1.125rem;
+}
+
 /* Une seule étiquette accentuée par carte — la catégorie, qui donne la nature
    du mouvement. Au-delà, plus rien ne ressort. */
 .ugg-tag--accent {

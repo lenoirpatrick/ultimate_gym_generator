@@ -458,9 +458,15 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
   qualifie. La première regroupe titre, date, bouton favori et durée (`.ugg-tag--accent`)
   — favori et durée sous le nom et la date, jamais à droite sur la même ligne. La
   seconde, sur sa propre ligne, ce qui a été travaillé : muscles (ou « Tout le corps »)
-  puis matériel utilisé (`workout.equipment_labels`, posé par
+  en étiquettes, puis le matériel utilisé en **pictogrammes** (issue #154) — une
+  pastille `.ugg-equipment-badge` par matériel, même cadre et même hauteur qu'un
+  `.ugg-tag`, icône `equipment_icon.html`, plutôt qu'une étiquette en toutes lettres
+  qui allongeait la ligne. Le nom voyage en infobulle (`title`) **et** en texte
+  `sr-only`, dans une liste `aria-label="Matériel utilisé"` ; une fiche sans matériel
+  renseigné compte au poids du corps. `workout.equipment` (couples valeur/libellé) et
+  `workout.equipment_labels` (pour la recherche) sont posés par
   `workouts.views._annotate_equipment` — une requête pour tout l'historique plutôt
-  qu'une par séance, même mécanique que `_annotate_favorites`).
+  qu'une par séance, même mécanique que `_annotate_favorites`.
 - L'**historique** se filtre par **recherche texte** (`.ugg-search`, champ `q`, issue
   #116 — nom, format, muscles et matériel, sans casse) et par **zones rapides**
   Bras / Jambes / Dos / Abdos (`exercises.catalog.QUICK_ZONES`, puces
@@ -470,6 +476,12 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
   volontairement plus grossier que les régions de composition (`MUSCLE_REGIONS`) : un
   filtre d'historique se manie au pouce. Une recherche sans résultat a son propre état
   vide, distinct de « Aucun favori » et de « Aucune séance ».
+- L'historique se filtre aussi par **durée** (issue #153) : puces `--standalone`
+  **≤ 20 min / 21 à 40 min / > 40 min** (`workouts.views.DURATION_RANGES`, champ
+  `duree`), sur une ligne à elles sous les zones — OU entre tranches, ET avec zones,
+  recherche et favoris. La durée filtrée est celle qu'affiche la carte
+  (`planned_minutes`, arrondie), jamais la durée demandée ni une borne SQL sur les
+  secondes : une séance affichée « 20 min » doit tomber dans « ≤ 20 min ».
 - L'historique se **trie** (issue #119) — Plus récentes (défaut) / Faites récemment /
   Plus courtes / Plus longues — par un contrôle segmenté (`.ugg-segmented`, choix fermé) dans le même
   formulaire, champ `tri` (`workouts.views.SORT_ORDERS`). La durée triée est celle
@@ -814,7 +826,8 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
   reçoit la marge qui lui laisse la place à gauche. Un pictogramme par valeur
   déclarable (`accounts.forms.DECLARABLE_EQUIPMENT_CHOICES`) est rendu, un seul visible
   via `.ugg-equipment-row:has(select[…] option[value="…"]:checked)`. Purement décoratif
-  (`aria-hidden`) — le nom du matériel reste toujours affiché en texte à côté ; si
+  (`aria-hidden`) — ici le nom du matériel reste affiché en texte à côté (sur la carte
+  d'historique, il passe en infobulle et en `sr-only`, voir « Blocs de séance ») ; si
   `:has()` sur un `<option>:checked` n'est pas pris en charge par un navigateur,
   l'icône reste simplement invisible, sans rien retirer au formulaire.
 - Le **poids du corps** (`Exercise.Equipment.BODY_ONLY`) ne fait pas partie du matériel
