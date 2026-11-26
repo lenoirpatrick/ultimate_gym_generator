@@ -19,6 +19,7 @@
     cumulables (OU au sein d'un même critère, ET entre critères).
     {% endcomment %}
     <form method="get"
+          id="filtre-seances"
           action="{% url 'workouts:list' %}"
           hx-get="{% url 'workouts:list' %}"
           hx-trigger="change, keyup changed delay:400ms from:#recherche-seance"

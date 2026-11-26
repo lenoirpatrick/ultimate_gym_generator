@@ -5,7 +5,7 @@ import logging
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db.models import F, OrderBy
-from django.http import HttpRequest, HttpResponse
+from django.http import HttpRequest, HttpResponse, QueryDict
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_POST
@@ -99,23 +99,23 @@ def _in_duration_ranges(workout: Workout, keys: list[str]) -> bool:
     return False
 
 
-@login_required
-def workout_list(request: HttpRequest) -> HttpResponse:
-    """Séances passées de l'utilisateur, la plus récente en tête par défaut.
+def _list_context(user, params: QueryDict) -> dict:
+    """Séances filtrées et triées selon `params`, avec l'état des critères.
 
-    Même vue pour la page entière et, en HTMX, le seul bloc de résultats — voir
-    exercises.views.exercise_list pour le même principe.
+    Partagé par la liste et la suppression depuis la liste (issue #167) : les
+    critères voyagent en GET pour l'une, dans le corps du POST (`hx-include`)
+    pour l'autre — une seule logique de filtrage pour les deux.
     """
-    favorites_only = request.GET.get("favoris") == "1"
-    search_query = request.GET.get("q", "").strip()
-    selected_zones = [z for z in request.GET.getlist("zone") if z in catalog.QUICK_ZONES]
-    selected_durations = [d for d in request.GET.getlist("duree") if d in DURATION_RANGES]
-    sort = request.GET.get("tri", DEFAULT_SORT)
+    favorites_only = params.get("favoris") == "1"
+    search_query = params.get("q", "").strip()
+    selected_zones = [z for z in params.getlist("zone") if z in catalog.QUICK_ZONES]
+    selected_durations = [d for d in params.getlist("duree") if d in DURATION_RANGES]
+    sort = params.get("tri", DEFAULT_SORT)
     if sort not in SORT_ORDERS:
         sort = DEFAULT_SORT
 
     workouts_qs = (
-        Workout.objects.filter(user=request.user)
+        Workout.objects.filter(user=user)
         .prefetch_related("muscles")
         .order_by(*SORT_ORDERS[sort][1])
     )
@@ -135,7 +135,7 @@ def workout_list(request: HttpRequest) -> HttpResponse:
         # sur les secondes classerait 20 min 20 s dans « 21 à 40 min ».
         workouts = [w for w in workouts if _in_duration_ranges(w, selected_durations)]
 
-    context = {
+    return {
         "workouts": workouts,
         "favorites_only": favorites_only,
         "search_query": search_query,
@@ -155,6 +155,15 @@ def workout_list(request: HttpRequest) -> HttpResponse:
         ],
     }
 
+
+@login_required
+def workout_list(request: HttpRequest) -> HttpResponse:
+    """Séances passées de l'utilisateur, la plus récente en tête par défaut.
+
+    Même vue pour la page entière et, en HTMX, le seul bloc de résultats — voir
+    exercises.views.exercise_list pour le même principe.
+    """
+    context = _list_context(request.user, request.GET)
     if request.headers.get("HX-Request"):
         return render(request, "workouts/partials/workout_results.html", context)
     return render(request, "workouts/workout_list.html", context)
@@ -527,7 +536,18 @@ def workout_toggle_favorite(request: HttpRequest, pk: int) -> HttpResponse:
 @login_required
 @require_POST
 def workout_delete(request: HttpRequest, pk: int) -> HttpResponse:
+    """Supprime une séance, depuis son écran de détail ou depuis la liste.
+
+    Depuis la liste (HTMX, issue #167), les critères courants voyagent dans le
+    corps de la requête (`hx-include` sur le formulaire de filtre) : la vue
+    rend la liste telle qu'elle était, moins la séance supprimée, avec un
+    message de confirmation en tête plutôt qu'une redirection.
+    """
     workout = get_object_or_404(Workout, pk=pk, user=request.user)
+    name = workout.display_name
     workout.delete()
+    if request.headers.get("HX-Request"):
+        context = {**_list_context(request.user, request.POST), "deleted_name": name}
+        return render(request, "workouts/partials/workout_results.html", context)
     messages.success(request, "Séance supprimée.")
     return redirect("workouts:list")

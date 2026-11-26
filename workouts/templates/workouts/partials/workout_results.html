@@ -8,7 +8,16 @@ liste de muscles longue — puis, sur sa propre ligne, ce qui a été travaillé
 muscles en étiquettes, puis matériel en pictogrammes (issue #154,
 `workout.equipment` posé par `workouts.views._annotate_equipment`), dont le
 nom voyage en infobulle et en texte pour les lecteurs d'écran.
+
+« Supprimer » (issue #167) rend ce même bloc, critères courants compris
+(`hx-include="#filtre-seances"`), avec `deleted_name` pour le message de
+confirmation en tête.
 {% endcomment %}
+{% if deleted_name %}
+    <div class="mb-4">
+        {% include "core/components/alert.html" with level="success" text="Séance « "|add:deleted_name|add:" » supprimée." %}
+    </div>
+{% endif %}
 <div class="grid gap-3">
     {% for workout in workouts %}
         <article class="ugg-card grid gap-3 p-4">
@@ -30,6 +39,15 @@ nom voyage en infobulle et en texte pour les lecteurs d'écran.
                     {% if workout.name %}
                         <span class="ugg-tag">{{ workout.get_format_display }}</span>
                     {% endif %}
+                    <button type="button"
+                            class="ugg-btn ugg-btn--danger ml-auto"
+                            hx-post="{% url 'workouts:delete' workout.pk %}"
+                            hx-include="#filtre-seances"
+                            hx-target="#resultats"
+                            hx-confirm="Supprimer la séance « {{ workout.display_name }} » ? Elle ne pourra pas être récupérée."
+                            aria-label="Supprimer la séance « {{ workout.display_name }} »">
+                        Supprimer
+                    </button>
                 </div>
             </div>
 
