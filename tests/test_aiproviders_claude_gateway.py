@@ -11,7 +11,11 @@ from django.urls import reverse
 
 from aiproviders.clients import get_client
 from aiproviders.clients.base import ProviderError
-from aiproviders.clients.claude_gateway import GENERATE_TIMEOUT, ClaudeGatewayClient
+from aiproviders.clients.claude_gateway import (
+    GENERATE_TIMEOUT,
+    PING_TIMEOUT,
+    ClaudeGatewayClient,
+)
 from aiproviders.forms import ProviderCredentialForm
 from aiproviders.models import ProviderCredential
 from aiproviders.registry import get_spec
@@ -75,8 +79,14 @@ def test_generate_sans_systeme_ne_l_envoie_pas():
 
 def test_le_delai_d_attente_couvre_la_duree_maximale_d_un_appel():
     """La passerelle accorde 180 s à Claude Code : 30 s couperaient un appel normal."""
-    assert ClaudeGatewayClient.timeout == GENERATE_TIMEOUT
+    assert ClaudeGatewayClient.timeout.read == GENERATE_TIMEOUT
     assert GENERATE_TIMEOUT > 180
+
+
+def test_une_passerelle_eteinte_se_signale_sans_attendre_le_delai_de_generation():
+    """Sans quoi chaque fiche d'une traduction en masse attendrait trois minutes."""
+    assert ClaudeGatewayClient.timeout.connect == PING_TIMEOUT
+    assert PING_TIMEOUT < 30
 
 
 def test_une_reponse_sans_texte_est_une_erreur():

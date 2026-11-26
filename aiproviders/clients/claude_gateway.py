@@ -26,7 +26,9 @@ PING_TIMEOUT = 10.0
 
 
 class ClaudeGatewayClient(HttpBaseClient):
-    timeout = GENERATE_TIMEOUT
+    # Seule la réponse peut prendre trois minutes : une passerelle éteinte doit
+    # se signaler en quelques secondes, pas au bout du délai de génération.
+    timeout = httpx.Timeout(GENERATE_TIMEOUT, connect=PING_TIMEOUT)
 
     def _headers(self) -> dict[str, str]:
         return {"Authorization": f"Bearer {self.secret}"}

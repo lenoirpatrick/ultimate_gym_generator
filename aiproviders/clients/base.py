@@ -76,10 +76,10 @@ class HttpBaseClient(BaseClient):
 
     #: Délai d'attente par appel, en secondes. Un adaptateur dont le fournisseur
     #: répond lentement par nature le relève pour lui seul.
-    timeout: float = DEFAULT_TIMEOUT
+    timeout: float | httpx.Timeout = DEFAULT_TIMEOUT
 
     def _request(
-        self, method: str, path: str, *, timeout: float | None = None, **kwargs
+        self, method: str, path: str, *, timeout: float | httpx.Timeout | None = None, **kwargs
     ) -> httpx.Response:
         url = f"{self.base_url.rstrip('/')}{path}"
         with httpx.Client(timeout=timeout or self.timeout, transport=self.transport) as client:
