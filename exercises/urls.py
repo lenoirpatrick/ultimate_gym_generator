@@ -15,4 +15,5 @@ urlpatterns = [
     path("chargement/lot/", views.load_batch, name="load_batch"),
     path("recharger/", views.reload_catalog, name="reload"),
     path("recharger/lot/", views.reload_batch, name="reload_batch"),
+    path("recharger/traduction/", views.translate_batch, name="translate_batch"),
 ]

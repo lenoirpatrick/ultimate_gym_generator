@@ -16,7 +16,7 @@ génération de programmes n'est pas encore implémentée.
 | Configuration | `django-environ`, tout par variables d'environnement |
 | Interface | Gabarits Django + HTMX 2 (vendoré) + Tailwind CSS 4 (CLI autonome, zéro Node) |
 | Chiffrement | Fernet (`cryptography`) pour les clés d'API en base |
-| Fournisseurs IA | Anthropic (SDK officiel), Gemini / Mistral / Ollama (REST via httpx) |
+| Fournisseurs IA | Claude Gateway (passerelle Claude Code du réseau local) et Gemini, en REST via httpx |
 | Comptes | Mono-utilisateur par défaut, multi-utilisateurs pris en charge ; SSO OpenID Connect facultatif (`mozilla-django-oidc`) |
 | Serveur | Gunicorn + WhiteNoise |
 | Qualité | `ruff`, `pytest` + `pytest-django` + couverture, SonarCloud |
@@ -874,6 +874,22 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
 - Une fiche déjà traduite n'est jamais renvoyée au fournisseur : seules celles qui n'ont
   pas encore de `instructions_fr` sont soumises, pour qu'un rechargement répété reste bon
   marché.
+- La traduction en masse se fait **fiche par fiche** (issue #152), jamais dans les lots
+  de 75 du rechargement : avec Claude Gateway (jusqu'à 180 s par appel, un seul à la
+  fois), un lot dépasserait le délai de n'importe quelle requête. Le rechargement
+  synchronise d'abord tout le référentiel sans appel IA, puis
+  `exercises/partials/translation_progress.html` prend le relais : une requête HTMX par
+  fiche (`exercises.views.translate_batch`), la suivante ne partant qu'à l'arrivée de la
+  réponse — jamais deux appels en parallèle. Barre de progression bornée par le nombre
+  de fiches à traduire au départ (`catalog.untranslated()`), chiffrée en clair
+  (`12 / 340 fiches`), avec la dernière fiche traitée et le nombre d'échecs. Le bandeau
+  d'avertissement annonce ce nombre avant le lancement. L'avancement voyage dans
+  `hx-vals` (comme la position du rechargement), et la progression avance **par clé**
+  (`after`) : une fiche en échec reste en anglais et n'est pas retentée en boucle.
+  Après **trois échecs d'affilée** (`MAX_CONSECUTIVE_FAILURES`), la traduction
+  s'interrompt et affiche la cause (`translation.translate_or_raise`) avec un bouton
+  « Reprendre la traduction », pour ne pas échouer en série sur des centaines de fiches
+  quand la passerelle est éteinte ou le jeton refusé.
 - Les illustrations sont vendorées dans le dépôt (`src/exercises/<id>/*.jpg`, licence
   Unlicense) et copiées vers le stockage média (`/media/exercises/…`) au chargement,
   jamais vers les statiques : le manifeste `collectstatic` est figé à la dernière
@@ -953,6 +969,28 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
   séance, chaque carte se relit **toutes les minutes** (`hx-trigger="every 60s"`) ;
   la fermeture de la modale vide le bandeau, ce qui arrête les relectures. Sans
   entité à montrer, la réponse est réellement vide et `:empty` masque le bandeau.
+
+### Fournisseurs IA (`/settings/ai/`, issues #150, #151, #156)
+
+- Le **modèle** d'un fournisseur se choisit dans un menu déroulant (`<select>`), jamais
+  à la saisie quand le catalogue est connaissable. Une fois la configuration
+  enregistrée, le catalogue **distant** (`supports_model_listing` : Gemini, et Claude
+  Gateway via sa route `/v1/models`) arrive en HTMX, avec le modèle réel en clair
+  (« Claude Haiku — claude-haiku-5-5 ») : un alias ajouté côté passerelle apparaît sans
+  toucher à l'application. Avant l'enregistrement, ou si la lecture échoue, un
+  fournisseur qui déclare un catalogue **connu d'avance** (`ProviderSpec.fixed_models`,
+  Claude Gateway : haiku / sonnet / opus) garde un menu sur cette liste, l'erreur
+  affichée au-dessus avec « Réessayer » ; sans catalogue de repli, le champ redevient
+  une saisie libre. « Par défaut (…) » en tête laisse le champ vide en base, pour
+  suivre le modèle par défaut du registre. C'est
+  `ProviderCredentialForm.offers_model_picker` qui tranche entre menu différé et menu
+  fixe — la vue ne fait que relire sa décision. Exception assumée à la règle « choix
+  fermé → contrôle segmenté » : un libellé de modèle est trop long pour une puce au
+  pouce, et le catalogue distant peut compter des dizaines d'entrées — les deux cas
+  gardent ainsi le même contrôle.
+- Le test de connexion de Claude Gateway vérifie le jeton par `/v1/models`
+  (authentifiée, sans lancer Claude Code), affiche le modèle réel retenu, et signale un
+  modèle enregistré que la passerelle ne propose plus.
 
 ### Avatars
 

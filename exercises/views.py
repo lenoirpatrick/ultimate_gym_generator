@@ -6,6 +6,8 @@ affichée est donc réelle — elle mesure ce qui est en base — et aucun threa
 cache partagé n'est nécessaire pour la connaître.
 """
 
+from dataclasses import dataclass, replace
+
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.core.paginator import Paginator
 from django.http import HttpRequest, HttpResponse
@@ -222,10 +224,12 @@ def reload_catalog(request: HttpRequest) -> HttpResponse:
     client = get_active_client()
     ai_warning = None
     if client is not None:
+        pending = catalog.untranslated().count()
         ai_warning = (
             f"La traduction utilisera {client.credential.spec.name} "
             f"({client.credential.effective_model}). Cette opération va consommer "
-            "des jetons IA sur l'ensemble du référentiel."
+            f"des jetons IA : {pending} fiche{'s' if pending > 1 else ''} à traduire, "
+            "une par une — compte plusieurs secondes par fiche."
         )
 
     return render(
@@ -249,12 +253,19 @@ def reload_batch(request: HttpRequest) -> HttpResponse:
     translate = request.POST.get("translate") == "1"
 
     try:
-        reached = catalog.import_batch(offset, translate=translate)
+        # Jamais de traduction dans un lot : elle suit, fiche par fiche, une
+        # fois le référentiel à jour — voir `translate_batch`.
+        reached = catalog.import_batch(offset)
         total = len(catalog.entries())
     except catalog.CatalogError as exc:
         return render(request, "exercises/partials/reload_progress.html", {"error": str(exc)})
 
     progress = catalog.Progress(imported=reached, total=total)
+    if progress.done and translate:
+        return _render_translation(
+            request, TranslationState(total=catalog.untranslated().count()), synced=total
+        )
+
     return render(
         request,
         "exercises/partials/reload_progress.html",
@@ -264,6 +275,110 @@ def reload_batch(request: HttpRequest) -> HttpResponse:
             "detail": f"{reached} / {total}",
             "translate": translate,
             "error": None,
+        },
+    )
+
+
+#: Échecs d'affilée au-delà desquels la traduction en masse s'interrompt :
+#: une passerelle injoignable ou un jeton refusé échoueraient sinon sur
+#: chacune des centaines de fiches restantes, chaque fois après un délai.
+MAX_CONSECUTIVE_FAILURES = 3
+
+
+@dataclass(frozen=True)
+class TranslationState:
+    """Avancement de la traduction en masse, porté d'une requête à la suivante.
+
+    Comme la position du rechargement, il voyage dans la requête plutôt que
+    dans un cache : aucun état partagé côté serveur.
+    """
+
+    total: int
+    processed: int = 0
+    failed: int = 0
+    streak: int = 0
+    after: int = 0
+
+    @classmethod
+    def from_post(cls, data) -> "TranslationState":
+        processed = _offset(data.get("processed"))
+        return cls(
+            # Le total ne sert qu'à l'affichage : il ne peut pas descendre
+            # sous ce qui a déjà été traité.
+            total=max(_offset(data.get("total")), processed),
+            processed=processed,
+            failed=min(_offset(data.get("failed")), processed),
+            streak=_offset(data.get("streak")),
+            after=_offset(data.get("after")),
+        )
+
+    @property
+    def progress(self) -> catalog.Progress:
+        return catalog.Progress(imported=self.processed, total=self.total)
+
+    @property
+    def translated(self) -> int:
+        return self.processed - self.failed
+
+    @property
+    def interrupted(self) -> bool:
+        return self.streak >= MAX_CONSECUTIVE_FAILURES
+
+
+@login_required
+@staff_required
+@require_POST
+def translate_batch(request: HttpRequest) -> HttpResponse:
+    """Traduit une fiche et rend la barre, qui déclenchera la suivante (issue #152).
+
+    Une fiche par requête, et une seule requête à la fois : la suivante ne
+    part qu'à l'arrivée de cette réponse, ce qui respecte la limite d'un appel
+    simultané de Claude Gateway.
+    """
+    state = TranslationState.from_post(request.POST)
+    if state.interrupted:
+        # Reprise demandée après une interruption : on repart sur une série neuve.
+        state = replace(state, streak=0)
+
+    step = catalog.translate_next(state.after)
+    if step.exercise is None:
+        return _render_translation(request, replace(state, total=state.processed), finished=True)
+
+    failed = step.error is not None
+    state = replace(
+        state,
+        processed=state.processed + 1,
+        failed=state.failed + failed,
+        streak=state.streak + 1 if failed else 0,
+        after=step.exercise.pk,
+        total=max(state.total, state.processed + 1),
+    )
+    return _render_translation(
+        request,
+        state,
+        finished=state.progress.done,
+        last=step,
+    )
+
+
+def _render_translation(
+    request: HttpRequest,
+    state: TranslationState,
+    *,
+    finished: bool = False,
+    last: catalog.TranslationStep | None = None,
+    synced: int | None = None,
+) -> HttpResponse:
+    return render(
+        request,
+        "exercises/partials/translation_progress.html",
+        {
+            "state": state,
+            "finished": finished or not state.total,
+            "last": last,
+            "synced": synced,
+            "detail": f"{state.processed} / {state.total} fiches",
+            "max_failures": MAX_CONSECUTIVE_FAILURES,
         },
     )
 

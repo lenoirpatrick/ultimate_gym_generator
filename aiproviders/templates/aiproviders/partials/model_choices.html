@@ -2,8 +2,10 @@
 Champ « modèle par défaut » d'un fournisseur sachant énumérer son catalogue.
 Chargé en HTMX — voir aiproviders.views.credential_models.
 
-Le repli en saisie libre est délibéré : une panne côté fournisseur ne doit pas
-empêcher d'enregistrer une configuration.
+Le repli est délibéré : une panne côté fournisseur ne doit pas empêcher
+d'enregistrer une configuration. Il se fait sur le catalogue connu d'avance
+quand le registre en déclare un (`fallback`, issue #156), en saisie libre
+sinon.
 {% endcomment %}
 <div class="ugg-field">
     <label class="ugg-field__label" for="id_default_model">Modèle par défaut</label>
@@ -32,7 +34,7 @@ empêcher d'enregistrer une configuration.
     {% if error %}
         <p class="ugg-field__error">{{ error }}</p>
         <p class="ugg-field__help">
-            Saisis l'identifiant du modèle à la main, ou
+            {% if fallback %}Les modèles connus sont proposés à la place. Tu peux aussi{% else %}Saisis l'identifiant du modèle à la main, ou{% endif %}
             <button type="button"
                     class="ugg-btn ugg-btn--ghost"
                     hx-get="{% url 'aiproviders:models' spec.slug %}"
@@ -44,10 +46,14 @@ empêcher d'enregistrer une configuration.
                 {% include "core/components/spinner.html" with variant="dumbbell" size="sm" label="Nouvelle tentative de chargement des modèles" %}
             </span>
         </p>
+    {% elif fallback %}
+        <p class="ugg-field__help">
+            {{ spec.name }} n'a renvoyé aucun modèle : les modèles connus sont proposés à la place.
+        </p>
     {% elif models %}
         <p class="ugg-field__help">
-            {{ models|length }} modèle{{ models|pluralize }} lu{{ models|pluralize }} depuis ton
-            compte {{ spec.name }}. « Par défaut » utilise {{ spec.default_model }}.
+            {{ models|length }} modèle{{ models|pluralize }} proposé{{ models|pluralize }} par
+            {{ spec.name }}. « Par défaut » utilise {{ spec.default_model }}.
         </p>
     {% else %}
         <p class="ugg-field__help">

@@ -2,7 +2,8 @@
 Avancement du rechargement à la demande (issue #29). Même mécanique que
 exercises/partials/progress.html, mais l'avancement se mesure sur la position
 atteinte dans le fichier source, pas sur le nombre de lignes en base — voir
-exercises.views.reload_batch.
+exercises.views.reload_batch. Avec traduction, le dernier lot cède la place à
+exercises/partials/translation_progress.html.
 {% endcomment %}
 {% if error %}
     {% include "core/components/alert.html" with level="error" text=error %}
@@ -10,7 +11,7 @@ exercises.views.reload_batch.
 {% elif progress.done %}
     {% include "core/components/progress.html" with percent=100 label="Référentiel à jour" detail=progress.total %}
     <p class="mt-4 text-sm">
-        {{ progress.total }} exercices synchronisés{% if translate %}, traduction incluse{% endif %}.
+        {{ progress.total }} exercices synchronisés.
     </p>
     <a href="{% url 'exercises:list' %}" class="ugg-btn ugg-btn--primary mt-4">Terminé</a>
 

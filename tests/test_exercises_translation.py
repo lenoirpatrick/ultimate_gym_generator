@@ -1,5 +1,7 @@
 """Traduction IA des consignes d'exercices : habillage optionnel (issue #29)."""
 
+import pytest
+
 from aiproviders.clients import ProviderError
 from exercises import translation
 
@@ -90,3 +92,36 @@ def test_le_budget_de_jetons_reste_genereux():
     la réponse visible — une limite trop basse tronque le JSON en plein
     milieu (issue #29 suite). Garde-fou contre une régression silencieuse."""
     assert translation.MAX_TOKENS >= 4000
+
+
+# --------------------------------------------------------------------------- #
+# Variante qui dit pourquoi (traduction en masse, issue #152)
+# --------------------------------------------------------------------------- #
+
+
+def test_translate_or_raise_remonte_le_message_du_fournisseur(monkeypatch):
+    def tomber(self, prompt, **kwargs):
+        raise ProviderError("Passerelle occupée.")
+
+    stub_client(monkeypatch, tomber)
+
+    with pytest.raises(translation.TranslationError, match="Passerelle occupée"):
+        translation.translate_or_raise(INSTRUCTIONS)
+
+
+def test_translate_or_raise_signale_l_absence_de_fournisseur(monkeypatch):
+    monkeypatch.setattr("exercises.translation.get_active_client", lambda: None)
+
+    with pytest.raises(translation.TranslationError, match="Aucun fournisseur"):
+        translation.translate_or_raise(INSTRUCTIONS)
+
+
+@pytest.mark.parametrize(
+    ("reponse", "attendu"),
+    [("pas du json", "illisible"), ('["Une seule ligne."]', "incohérente")],
+)
+def test_translate_or_raise_explique_une_reponse_inexploitable(monkeypatch, reponse, attendu):
+    stub_client(monkeypatch, lambda self, prompt, **kwargs: reponse)
+
+    with pytest.raises(translation.TranslationError, match=attendu):
+        translation.translate_or_raise(INSTRUCTIONS)
