@@ -457,6 +457,12 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
   volontairement plus grossier que les régions de composition (`MUSCLE_REGIONS`) : un
   filtre d'historique se manie au pouce. Une recherche sans résultat a son propre état
   vide, distinct de « Aucun favori » et de « Aucune séance ».
+- L'historique se filtre aussi par **durée** (issue #153) : puces `--standalone`
+  **≤ 20 min / 21 à 40 min / > 40 min** (`workouts.views.DURATION_RANGES`, champ
+  `duree`), sur une ligne à elles sous les zones — OU entre tranches, ET avec zones,
+  recherche et favoris. La durée filtrée est celle qu'affiche la carte
+  (`planned_minutes`, arrondie), jamais la durée demandée ni une borne SQL sur les
+  secondes : une séance affichée « 20 min » doit tomber dans « ≤ 20 min ».
 - L'historique se **trie** (issue #119) — Plus récentes (défaut) / Faites récemment /
   Plus courtes / Plus longues — par un contrôle segmenté (`.ugg-segmented`, choix fermé) dans le même
   formulaire, champ `tri` (`workouts.views.SORT_ORDERS`). La durée triée est celle

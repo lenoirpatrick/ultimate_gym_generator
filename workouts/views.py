@@ -65,6 +65,26 @@ SORT_ORDERS: dict[str, tuple[str, tuple[str | OrderBy, ...]]] = {
 }
 DEFAULT_SORT = "recentes"
 
+#: Tranches de durée filtrables sur l'historique (issue #153) : libellé et
+#: bornes en minutes, `(min exclu, max inclus)`, `None` pour « sans borne ».
+#: Comme pour le tri, la durée filtrée est celle qu'affiche la carte
+#: (`planned_minutes`), jamais la durée demandée à la composition.
+DURATION_RANGES: dict[str, tuple[str, int | None, int | None]] = {
+    "courte": ("≤ 20 min", None, 20),
+    "moyenne": ("21 à 40 min", 20, 40),
+    "longue": ("> 40 min", 40, None),
+}
+
+
+def _in_duration_ranges(workout: Workout, keys: list[str]) -> bool:
+    """Vrai si la durée affichée tombe dans l'une des tranches (OU entre elles)."""
+    minutes = workout.planned_minutes
+    for key in keys:
+        _label, low, high = DURATION_RANGES[key]
+        if (low is None or minutes > low) and (high is None or minutes <= high):
+            return True
+    return False
+
 
 @login_required
 def workout_list(request: HttpRequest) -> HttpResponse:
@@ -76,6 +96,7 @@ def workout_list(request: HttpRequest) -> HttpResponse:
     favorites_only = request.GET.get("favoris") == "1"
     search_query = request.GET.get("q", "").strip()
     selected_zones = [z for z in request.GET.getlist("zone") if z in catalog.QUICK_ZONES]
+    selected_durations = [d for d in request.GET.getlist("duree") if d in DURATION_RANGES]
     sort = request.GET.get("tri", DEFAULT_SORT)
     if sort not in SORT_ORDERS:
         sort = DEFAULT_SORT
@@ -96,12 +117,21 @@ def workout_list(request: HttpRequest) -> HttpResponse:
     _annotate_equipment(workouts)
     if search_query:
         workouts = [w for w in workouts if _matches_search(w, search_query)]
+    if selected_durations:
+        # En Python, sur la durée arrondie qu'affiche la carte : une borne SQL
+        # sur les secondes classerait 20 min 20 s dans « 21 à 40 min ».
+        workouts = [w for w in workouts if _in_duration_ranges(w, selected_durations)]
 
     context = {
         "workouts": workouts,
         "favorites_only": favorites_only,
         "search_query": search_query,
         "selected_zones": selected_zones,
+        "selected_durations": selected_durations,
+        "durations": [
+            {"key": key, "label": label, "checked": key in selected_durations}
+            for key, (label, _low, _high) in DURATION_RANGES.items()
+        ],
         "zones": [
             {"key": key, "label": label, "checked": key in selected_zones}
             for key, (label, _slugs) in catalog.QUICK_ZONES.items()
