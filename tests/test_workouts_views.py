@@ -359,6 +359,46 @@ def test_la_carte_de_seance_liste_le_materiel_utilise(logged_client, user):
         assert label in content
 
 
+def test_le_materiel_de_la_carte_est_un_pictogramme(logged_client, user):
+    """Issue #154 : une icône par matériel, son nom en infobulle et pour les lecteurs d'écran."""
+    composer(logged_client)
+    workout = Workout.objects.get(user=user)
+    used = {item.exercise.equipment or "body only" for item in workout.items.all()}
+
+    content = " ".join(logged_client.get(reverse("workouts:list")).content.decode().split())
+
+    assert 'aria-label="Matériel utilisé"' in content
+    assert content.count('class="ugg-equipment-badge"') == len(used)
+    for value in used:
+        label = Exercise.Equipment(value).label
+        assert f'title="{label}"' in content
+        assert f'<span class="sr-only">{label}</span>' in content
+        # Plus d'étiquette en toutes lettres pour le matériel.
+        assert f'<span class="ugg-tag">{label}</span>' not in content
+
+
+def test_une_fiche_sans_materiel_compte_au_poids_du_corps(logged_client, user):
+    exercise = Exercise.objects.first()
+    exercise.equipment = ""
+    exercise.save()
+    workout = Workout.objects.create(user=user, format=Workout.Format.HIIT, duration_minutes=20)
+    WorkoutExercise.objects.create(workout=workout, exercise=exercise, position=0)
+
+    content = logged_client.get(reverse("workouts:list")).content.decode()
+
+    assert 'title="Poids du corps"' in content
+
+
+def test_la_recherche_trouve_encore_une_seance_par_son_materiel(logged_client, user):
+    exercise = Exercise.objects.exclude(equipment="").exclude(equipment="body only").first()
+    workout = Workout.objects.create(user=user, format=Workout.Format.HIIT, duration_minutes=20)
+    WorkoutExercise.objects.create(workout=workout, exercise=exercise, position=0)
+
+    content = _liste(logged_client, q=exercise.get_equipment_display())
+
+    assert _present(content, workout)
+
+
 def test_la_seance_d_un_autre_utilisateur_est_introuvable(logged_client, staff_client, user):
     """Une séance ne se partage pas : elle n'est même pas visible."""
     composer(logged_client)

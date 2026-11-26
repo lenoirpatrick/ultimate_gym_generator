@@ -4,8 +4,9 @@ Pictogramme d'un type de matériel (issue #37) — un tracé par valeur
 spinner : SVG inline 24×24, `stroke="currentColor"`, aucune dépendance.
 
 Paramètre : `equipment` (la valeur brute, p. ex. "dumbbell" ou "e-z curl bar").
-Purement décoratif — `aria-hidden`, jamais seul porteur d'une information :
-le nom du matériel reste toujours affiché en texte à côté.
+Toujours `aria-hidden` : le nom du matériel l'accompagne en texte, visible à
+côté (déclaration du matériel) ou, sur la carte d'historique (issue #154), en
+infobulle et en texte `sr-only` dans une pastille `.ugg-equipment-badge`.
 
 Usage : {% include "core/components/equipment_icon.html" with equipment="dumbbell" %}
 {% endcomment %}

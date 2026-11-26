@@ -10,28 +10,37 @@ from django.views.decorators.http import require_POST
 
 from aiproviders.clients import get_active_client
 from exercises import catalog
-from exercises.models import Favorite, UnavailableExercise
+from exercises.models import Exercise, Favorite, UnavailableExercise
 from homeassistant import models as home_assistant
 
 from . import coaching, generator, timer
 from .forms import WorkoutForm
 from .models import Workout, WorkoutExercise
 
+#: Libellé affiché de chaque matériel, valeur brute en clé.
+EQUIPMENT_LABELS: dict[str, str] = dict(Exercise.Equipment.choices)
+
 
 def _annotate_equipment(workouts: list[Workout]) -> None:
-    """Pose `workout.equipment_labels` : le matériel réellement utilisé (issue #107).
+    """Pose le matériel réellement utilisé par chaque séance (issue #107).
+
+    `workout.equipment` : couples `(valeur, libellé)` triés par libellé, pour
+    les icônes de la carte (issue #154) ; `workout.equipment_labels` : les
+    seuls libellés, pour la recherche texte.
 
     Une seule requête pour tout l'historique plutôt qu'une par séance — même
     mécanique que `_annotate_favorites` ci-dessous, attribut posé à la volée
     sur des instances déjà chargées.
     """
     items = WorkoutExercise.objects.filter(workout__in=workouts).select_related("exercise")
-    labels_by_workout: dict[int, set[str]] = {workout.pk: set() for workout in workouts}
+    by_workout: dict[int, dict[str, str]] = {workout.pk: {} for workout in workouts}
     for item in items:
-        label = item.exercise.get_equipment_display() or "Poids du corps"
-        labels_by_workout[item.workout_id].add(label)
+        # Une fiche sans matériel renseigné se fait au poids du corps.
+        value = item.exercise.equipment or Exercise.Equipment.BODY_ONLY
+        by_workout[item.workout_id][value] = EQUIPMENT_LABELS.get(value, value)
     for workout in workouts:
-        workout.equipment_labels = sorted(labels_by_workout[workout.pk])
+        workout.equipment = sorted(by_workout[workout.pk].items(), key=lambda pair: pair[1])
+        workout.equipment_labels = [label for _value, label in workout.equipment]
 
 
 def _matches_search(workout: Workout, query: str) -> bool:

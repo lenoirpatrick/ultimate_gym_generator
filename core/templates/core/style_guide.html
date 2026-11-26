@@ -213,6 +213,19 @@
                 </div>
             {% endfor %}
         </div>
+        <p class="mt-6 text-muted">
+            En pastille (<code class="font-mono">.ugg-equipment-badge</code>) sur la carte
+            d'une séance de l'historique (issue #154) : l'icône seule, le nom en infobulle
+            et en texte pour les lecteurs d'écran.
+        </p>
+        <ul class="mt-3 flex flex-wrap gap-1" role="list" aria-label="Exemple de matériel utilisé">
+            {% for value, label in equipment_choices|slice:":4" %}
+                <li class="ugg-equipment-badge" title="{{ label }}">
+                    {% include "core/components/equipment_icon.html" with equipment=value %}
+                    <span class="sr-only">{{ label }}</span>
+                </li>
+            {% endfor %}
+        </ul>
     </section>
 
     <section class="mt-12">
