@@ -1,23 +1,25 @@
 """Credentials IA : chiffrement au repos et non-divulgation du secret."""
 
+import importlib
+
 import pytest
 from django.db import connection
 
 from aiproviders.models import ProviderCredential
 
-SECRET = "sk-ant-secret-de-test-f3a9"
+SECRET = "cle-secrete-de-test-f3a9"
 
 
 @pytest.mark.django_db
 def test_le_secret_fait_un_aller_retour_complet():
-    ProviderCredential.objects.create(provider="anthropic", secret=SECRET)
+    ProviderCredential.objects.create(provider="gemini", secret=SECRET)
 
-    assert ProviderCredential.objects.get(provider="anthropic").secret == SECRET
+    assert ProviderCredential.objects.get(provider="gemini").secret == SECRET
 
 
 @pytest.mark.django_db
 def test_le_secret_est_chiffre_en_base():
-    credential = ProviderCredential.objects.create(provider="mistral", secret=SECRET)
+    credential = ProviderCredential.objects.create(provider="claude_gateway", secret=SECRET)
 
     with connection.cursor() as cursor:
         cursor.execute(
@@ -41,17 +43,27 @@ def test_le_secret_est_masque_a_l_affichage():
 
 @pytest.mark.django_db
 def test_les_valeurs_par_defaut_du_registre_comblent_les_champs_vides():
-    credential = ProviderCredential.objects.create(provider="ollama")
+    credential = ProviderCredential.objects.create(provider="gemini", secret=SECRET)
 
-    assert credential.effective_model == "llama3.1"
-    assert credential.effective_base_url == "http://localhost:11434"
-
-
-@pytest.mark.django_db
-def test_ollama_est_considere_configure_sans_cle_d_api():
-    assert ProviderCredential.objects.create(provider="ollama").is_configured is True
+    assert credential.effective_model == "gemini-2.5-pro"
+    assert credential.effective_base_url == "https://generativelanguage.googleapis.com"
 
 
 @pytest.mark.django_db
-def test_anthropic_n_est_pas_configure_sans_cle_d_api():
-    assert ProviderCredential.objects.create(provider="anthropic").is_configured is False
+def test_gemini_n_est_pas_configure_sans_cle_d_api():
+    assert ProviderCredential.objects.create(provider="gemini").is_configured is False
+
+
+@pytest.mark.django_db
+def test_la_migration_supprime_les_credentials_des_fournisseurs_retires():
+    """Issue #151 : un credential orphelin ferait lever `KeyError` à `get_spec()`."""
+    from django.apps import apps
+
+    migration = importlib.import_module("aiproviders.migrations.0003_remove_legacy_providers")
+    for provider in migration.REMOVED_PROVIDERS:
+        ProviderCredential.objects.create(provider=provider, secret=SECRET)
+    ProviderCredential.objects.create(provider="gemini", secret=SECRET)
+
+    migration.delete_removed_credentials(apps, None)
+
+    assert list(ProviderCredential.objects.values_list("provider", flat=True)) == ["gemini"]

@@ -50,8 +50,6 @@ class ProviderCredential(models.Model):
     @property
     def is_configured(self) -> bool:
         """Vrai lorsque le fournisseur dispose du minimum pour être appelé."""
-        if self.spec.requires_api_key and not self.secret:
+        if not self.secret:
             return False
-        if self.spec.requires_base_url or not self.spec.requires_api_key:
-            return bool(self.effective_base_url)
-        return True
+        return bool(self.effective_base_url) or not self.spec.requires_base_url

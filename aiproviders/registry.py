@@ -15,8 +15,8 @@ class ProviderSpec:
     #: Documentation officielle du fournisseur. Vide quand il n'en a pas de
     #: publique — une passerelle locale documente son API sur sa propre adresse.
     docs_url: str = ""
-    #: Page où l'utilisateur obtient sa clé d'API (ou installe le service, pour
-    #: un fournisseur local). Affichée à côté du champ « clé d'API ».
+    #: Page où l'utilisateur obtient sa clé d'API. Affichée à côté du champ
+    #: « clé d'API ».
     credential_url: str = ""
     #: Libellé du lien ci-dessus, adapté au fournisseur.
     credential_label: str = "Créer une clé d'API"
@@ -26,7 +26,6 @@ class ProviderSpec:
     #: Intitulé du champ secret : une clé d'API, ou le jeton d'une passerelle.
     credential_field_label: str = "Clé d'API"
     default_base_url: str = ""
-    requires_api_key: bool = True
     #: Vrai quand le fournisseur n'a pas d'adresse publique par défaut : l'URL
     #: dépend de l'installation et doit être saisie.
     requires_base_url: bool = False
@@ -57,13 +56,6 @@ PROVIDERS: tuple[ProviderSpec, ...] = (
         supports_model_listing=True,
     ),
     ProviderSpec(
-        slug="anthropic",
-        name="Anthropic (Claude)",
-        docs_url="https://platform.claude.com/docs",
-        credential_url="https://console.anthropic.com/settings/keys",
-        default_model="claude-opus-5",
-    ),
-    ProviderSpec(
         slug="gemini",
         name="Google Gemini",
         docs_url="https://ai.google.dev/gemini-api/docs",
@@ -71,26 +63,6 @@ PROVIDERS: tuple[ProviderSpec, ...] = (
         default_model="gemini-2.5-pro",
         default_base_url="https://generativelanguage.googleapis.com",
         supports_model_listing=True,
-    ),
-    ProviderSpec(
-        slug="mistral",
-        name="Mistral AI",
-        docs_url="https://docs.mistral.ai/",
-        credential_url="https://console.mistral.ai/api-keys",
-        default_model="mistral-large-latest",
-        default_base_url="https://api.mistral.ai",
-    ),
-    ProviderSpec(
-        slug="ollama",
-        name="Ollama (local)",
-        docs_url="https://github.com/ollama/ollama/blob/main/docs/api.md",
-        # Fournisseur local : pas de clé à créer, mais un serveur à installer.
-        credential_url="https://ollama.com/download",
-        credential_label="Installer Ollama",
-        default_model="llama3.1",
-        default_base_url="http://localhost:11434",
-        requires_api_key=False,
-        base_url_help="Adresse du serveur Ollama.",
     ),
 )
 

@@ -9,7 +9,7 @@ from aiproviders import fields
 from aiproviders.clients.base import ModelOption, PingResult, ProviderError
 from aiproviders.models import ProviderCredential
 
-SECRET = "sk-ant-secret-de-test-f3a9"
+SECRET = "cle-secrete-de-test-f3a9"
 
 
 def stub_client(monkeypatch, **methods):
@@ -62,16 +62,16 @@ def test_un_utilisateur_ordinaire_ne_peut_pas_lire_les_credentials(logged_client
 def test_la_page_liste_tous_les_fournisseurs_du_registre(staff_client):
     content = staff_client.get(reverse("aiproviders:list")).content.decode()
 
-    for name in ("Anthropic", "Gemini", "Mistral", "Ollama"):
+    for name in ("Claude Gateway", "Gemini"):
         assert name in content
 
 
 @pytest.mark.django_db
 def test_le_secret_n_est_jamais_rendu_en_clair(staff_client):
-    ProviderCredential.objects.create(provider="anthropic", secret=SECRET)
+    ProviderCredential.objects.create(provider="gemini", secret=SECRET)
 
     listing = staff_client.get(reverse("aiproviders:list")).content.decode()
-    form = staff_client.get(reverse("aiproviders:edit", args=["anthropic"])).content.decode()
+    form = staff_client.get(reverse("aiproviders:edit", args=["gemini"])).content.decode()
 
     assert SECRET not in listing
     assert SECRET not in form
@@ -79,16 +79,16 @@ def test_le_secret_n_est_jamais_rendu_en_clair(staff_client):
 
 @pytest.mark.django_db
 def test_un_champ_secret_vide_conserve_la_cle_enregistree(staff_client):
-    ProviderCredential.objects.create(provider="anthropic", secret=SECRET)
+    ProviderCredential.objects.create(provider="gemini", secret=SECRET)
 
     staff_client.post(
-        reverse("aiproviders:edit", args=["anthropic"]),
-        {"secret": "", "base_url": "", "default_model": "claude-opus-5", "is_active": "on"},
+        reverse("aiproviders:edit", args=["gemini"]),
+        {"secret": "", "base_url": "", "default_model": "gemini-2.5-flash", "is_active": "on"},
     )
 
-    credential = ProviderCredential.objects.get(provider="anthropic")
+    credential = ProviderCredential.objects.get(provider="gemini")
     assert credential.secret == SECRET
-    assert credential.default_model == "claude-opus-5"
+    assert credential.default_model == "gemini-2.5-flash"
 
 
 @pytest.mark.django_db
@@ -98,10 +98,10 @@ def test_un_fournisseur_inconnu_renvoie_404(staff_client):
 
 @pytest.mark.django_db
 def test_le_test_de_connexion_rend_le_resultat_de_l_adaptateur(staff_client, monkeypatch):
-    ProviderCredential.objects.create(provider="anthropic", secret=SECRET)
-    stub_client(monkeypatch, ping=lambda self: PingResult(True, "Connexion établie — Claude."))
+    ProviderCredential.objects.create(provider="gemini", secret=SECRET)
+    stub_client(monkeypatch, ping=lambda self: PingResult(True, "Connexion établie — Gemini."))
 
-    response = staff_client.post(reverse("aiproviders:test", args=["anthropic"]))
+    response = staff_client.post(reverse("aiproviders:test", args=["gemini"]))
 
     assert response.status_code == 200
     assert "Connexion établie" in response.content.decode()
@@ -109,7 +109,7 @@ def test_le_test_de_connexion_rend_le_resultat_de_l_adaptateur(staff_client, mon
 
 @pytest.mark.django_db
 def test_le_test_de_connexion_signale_un_fournisseur_non_configure(staff_client):
-    response = staff_client.post(reverse("aiproviders:test", args=["mistral"]))
+    response = staff_client.post(reverse("aiproviders:test", args=["claude_gateway"]))
 
     assert "n&#x27;est pas encore configuré" in response.content.decode()
 
@@ -133,9 +133,9 @@ def test_le_choix_des_modeles_est_reserve_au_personnel(logged_client):
 
 
 @pytest.mark.django_db
-def test_un_fournisseur_qui_ne_publie_pas_son_catalogue_renvoie_404(staff_client):
-    """Anthropic n'annonce pas `supports_model_listing` : la route n'a pas de sens."""
-    response = staff_client.get(reverse("aiproviders:models", args=["anthropic"]))
+def test_un_fournisseur_retire_renvoie_404(staff_client):
+    """Issue #151 : l'ancienne adresse d'un fournisseur retiré ne mène plus nulle part."""
+    response = staff_client.get(reverse("aiproviders:edit", args=["anthropic"]))
 
     assert response.status_code == 404
 

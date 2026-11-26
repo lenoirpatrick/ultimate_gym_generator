@@ -44,7 +44,7 @@ def test_un_fournisseur_inactif_est_ignore():
     """Décocher « actif » doit suffire à couper les appels."""
     from aiproviders.clients import get_active_client
 
-    ProviderCredential.objects.create(provider="anthropic", secret="sk-test", is_active=False)
+    ProviderCredential.objects.create(provider="gemini", secret="cle", is_active=False)
 
     assert get_active_client() is None
 
@@ -52,7 +52,7 @@ def test_un_fournisseur_inactif_est_ignore():
 def test_un_fournisseur_sans_cle_est_ignore():
     from aiproviders.clients import get_active_client
 
-    ProviderCredential.objects.create(provider="anthropic", secret="", is_active=True)
+    ProviderCredential.objects.create(provider="gemini", secret="", is_active=True)
 
     assert get_active_client() is None
 
@@ -60,11 +60,13 @@ def test_un_fournisseur_sans_cle_est_ignore():
 def test_le_premier_fournisseur_utilisable_est_retenu():
     from aiproviders.clients import get_active_client
 
-    ProviderCredential.objects.create(provider="mistral", secret="cle", is_active=True)
-    ProviderCredential.objects.create(provider="anthropic", secret="sk-test", is_active=True)
+    ProviderCredential.objects.create(provider="gemini", secret="cle", is_active=True)
+    ProviderCredential.objects.create(
+        provider="claude_gateway", secret="jeton", base_url="http://passerelle.test:8765"
+    )
 
-    # L'ordre est celui du registre, où Anthropic précède Mistral.
-    assert get_active_client().credential.provider == "anthropic"
+    # L'ordre est celui du registre, où Claude Gateway précède Gemini.
+    assert get_active_client().credential.provider == "claude_gateway"
 
 
 # --------------------------------------------------------------------------- #

@@ -16,7 +16,7 @@ génération de programmes n'est pas encore implémentée.
 | Configuration | `django-environ`, tout par variables d'environnement |
 | Interface | Gabarits Django + HTMX 2 (vendoré) + Tailwind CSS 4 (CLI autonome, zéro Node) |
 | Chiffrement | Fernet (`cryptography`) pour les clés d'API en base |
-| Fournisseurs IA | Anthropic (SDK officiel), Claude Gateway / Gemini / Mistral / Ollama (REST via httpx) |
+| Fournisseurs IA | Claude Gateway (passerelle Claude Code du réseau local) et Gemini, en REST via httpx |
 | Comptes | Mono-utilisateur par défaut, multi-utilisateurs pris en charge ; SSO OpenID Connect facultatif (`mozilla-django-oidc`) |
 | Serveur | Gunicorn + WhiteNoise |
 | Qualité | `ruff`, `pytest` + `pytest-django` + couverture, SonarCloud |

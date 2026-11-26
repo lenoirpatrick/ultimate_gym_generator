@@ -68,10 +68,7 @@ class BaseClient(ABC):
 
 
 class HttpBaseClient(BaseClient):
-    """Base des adaptateurs appelant une API REST via httpx.
-
-    Anthropic fait exception : son SDK officiel est utilisé à la place.
-    """
+    """Base des adaptateurs appelant une API REST via httpx."""
 
     #: Transport httpx alternatif. `None` en production ; les tests y placent un
     #: `httpx.MockTransport` pour exercer les adaptateurs sans accès réseau.

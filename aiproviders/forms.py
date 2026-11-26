@@ -18,15 +18,11 @@ class ProviderCredentialForm(forms.ModelForm):
 
         secret = self.fields["secret"]
         secret.label = spec.credential_field_label
-        if spec.requires_api_key:
-            secret.help_text = (
-                "Laisser vide pour conserver la valeur enregistrée."
-                if self.instance.pk and self.instance.secret
-                else "La valeur est chiffrée avant enregistrement et n'est jamais réaffichée."
-            )
-        else:
-            secret.required = False
-            secret.widget = forms.HiddenInput()
+        secret.help_text = (
+            "Laisser vide pour conserver la valeur enregistrée."
+            if self.instance.pk and self.instance.secret
+            else "La valeur est chiffrée avant enregistrement et n'est jamais réaffichée."
+        )
 
         base_url = self.fields["base_url"]
         base_url.required = spec.requires_base_url
@@ -55,7 +51,7 @@ class ProviderCredentialForm(forms.ModelForm):
         value = self.cleaned_data.get("secret", "")
         if not value and self.instance.pk:
             return self.instance.secret
-        if not value and self.spec.requires_api_key:
+        if not value:
             raise forms.ValidationError(
                 f"Ce fournisseur nécessite un secret : {self.spec.credential_field_label.lower()}."
             )

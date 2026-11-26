@@ -62,13 +62,17 @@ def test_sans_fournisseur_seul_un_rechargement_simple_est_propose(staff_client):
 
 def test_avec_un_fournisseur_le_bandeau_le_nomme(staff_client):
     ProviderCredential.objects.create(
-        provider="anthropic", secret="sk-test", default_model="claude-opus-5", is_active=True
+        provider="claude_gateway",
+        secret="jeton",
+        base_url="http://passerelle.test:8765",
+        default_model="opus",
+        is_active=True,
     )
 
     content = staff_client.get(reverse("exercises:reload")).content.decode()
 
-    assert "Anthropic (Claude)" in content
-    assert "claude-opus-5" in content
+    assert "Claude Gateway" in content
+    assert "(opus)" in content
     assert "consommer des jetons IA" in content
     assert "Recharger avec traduction" in content
     assert "Recharger sans traduction" in content

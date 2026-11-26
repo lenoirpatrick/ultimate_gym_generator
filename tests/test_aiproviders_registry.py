@@ -36,6 +36,11 @@ def test_la_liste_affiche_le_lien_de_creation_de_cle(staff_client):
 
 @pytest.mark.django_db
 def test_le_formulaire_affiche_le_lien_de_creation_de_cle(staff_client):
-    content = staff_client.get(reverse("aiproviders:edit", args=["anthropic"])).content.decode()
+    content = staff_client.get(reverse("aiproviders:edit", args=["gemini"])).content.decode()
 
-    assert "https://console.anthropic.com/settings/keys" in content
+    assert "https://aistudio.google.com/apikey" in content
+
+
+def test_le_registre_ne_contient_plus_que_claude_gateway_et_gemini():
+    """Issue #151 : Anthropic, Mistral et Ollama sont retirés."""
+    assert [spec.slug for spec in PROVIDERS] == ["claude_gateway", "gemini"]
