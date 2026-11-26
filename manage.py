@@ -12,7 +12,7 @@ def main() -> None:
     except ImportError as exc:  # pragma: no cover - garde-fou d'installation
         raise ImportError(
             "Django est introuvable. Active l'environnement virtuel et installe "
-            "les dépendances : pip install -r requirements/dev.txt"
+            "les dépendances : pip install -r requirements.txt"
         ) from exc
     execute_from_command_line(sys.argv)
 

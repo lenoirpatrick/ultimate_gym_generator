@@ -25,7 +25,7 @@ Prérequis : Python 3.13+ et le CLI autonome de Tailwind CSS (zéro Node,
 installation détaillée dans [`docs/INSTALL.md`](docs/INSTALL.md#3-installation-locale)).
 
 ```bash
-pip install -r requirements/dev.txt
+pip install -r requirements.txt
 
 cp .env.example .env
 # Renseigner au minimum : DJANGO_SECRET_KEY, CREDENTIALS_ENCRYPTION_KEY.
