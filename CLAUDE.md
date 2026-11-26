@@ -970,7 +970,19 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
   la fermeture de la modale vide le bandeau, ce qui arrête les relectures. Sans
   entité à montrer, la réponse est réellement vide et `:empty` masque le bandeau.
 
-### Avatars
+### Fournisseurs IA (`/settings/ai/`, issues #150, #151)
+
+- Le **modèle** d'un fournisseur se choisit dans un menu déroulant (`<select>`), jamais
+  à la saisie quand le catalogue est connaissable. Deux cas : un catalogue **fermé**
+  (`ProviderSpec.fixed_models`, Claude Gateway : haiku / sonnet / opus) est rendu
+  directement dans le formulaire, dès le premier affichage ; un catalogue **distant**
+  (`supports_model_listing`, Gemini) arrive en HTMX une fois la clé enregistrée, avec
+  repli en saisie libre si l'appel échoue. Dans les deux cas, « Par défaut (…) » en tête
+  laisse le champ vide en base, pour suivre le modèle par défaut du registre. Exception
+  assumée à la règle « choix fermé → contrôle segmenté » : un libellé de modèle est trop
+  long pour une puce au pouce, et le catalogue distant peut compter des dizaines
+  d'entrées — les deux cas gardent ainsi le même contrôle.
+
 
 - Photo déposée par l'utilisateur, ou **ses initiales** à défaut — jamais une
   silhouette générique ni un service d'avatar distant.

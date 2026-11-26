@@ -34,6 +34,10 @@ class ProviderSpec:
     #: Vrai lorsque l'adaptateur sait énumérer le catalogue du fournisseur ; le
     #: modèle se choisit alors dans un menu déroulant plutôt qu'à la saisie.
     supports_model_listing: bool = False
+    #: Catalogue fermé, connu sans appel réseau : `(identifiant, libellé)`. Le
+    #: modèle se choisit alors dans un menu déroulant dès le premier affichage
+    #: du formulaire, sans attendre que la configuration soit enregistrée.
+    fixed_models: tuple[tuple[str, str], ...] = ()
 
 
 PROVIDERS: tuple[ProviderSpec, ...] = (
@@ -53,7 +57,12 @@ PROVIDERS: tuple[ProviderSpec, ...] = (
         base_url_help=(
             "Adresse de la passerelle sur le réseau local, par exemple http://192.168.1.10:8765."
         ),
-        supports_model_listing=True,
+        # Énumération `Model` du schéma OpenAPI de la passerelle.
+        fixed_models=(
+            ("haiku", "Claude Haiku — le plus rapide"),
+            ("sonnet", "Claude Sonnet — équilibré"),
+            ("opus", "Claude Opus — le plus capable, le plus lent"),
+        ),
     ),
     ProviderSpec(
         slug="gemini",

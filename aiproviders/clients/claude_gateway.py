@@ -10,13 +10,6 @@ import httpx
 
 from .base import DEFAULT_MAX_TOKENS, HttpBaseClient, ModelOption, PingResult, ProviderError
 
-#: Modèles acceptés par la passerelle (énumération `Model` de son schéma OpenAPI).
-MODELS: tuple[ModelOption, ...] = (
-    ModelOption("haiku", "Claude Haiku — le plus rapide"),
-    ModelOption("sonnet", "Claude Sonnet — équilibré"),
-    ModelOption("opus", "Claude Opus — le plus capable, le plus lent"),
-)
-
 #: La passerelle coupe elle-même un appel à 180 s ; la marge laisse sa propre
 #: réponse 504 arriver plutôt qu'un délai dépassé côté client, moins explicite.
 GENERATE_TIMEOUT = 190.0
@@ -90,7 +83,10 @@ class ClaudeGatewayClient(HttpBaseClient):
         return PingResult(True, f"Connexion établie — {version}, modèle {self.model}.")
 
     def list_models(self) -> list[ModelOption]:
-        return list(MODELS)
+        return [
+            ModelOption(identifier, label)
+            for identifier, label in self.credential.spec.fixed_models
+        ]
 
     def generate(
         self, prompt: str, *, system: str | None = None, max_tokens: int = DEFAULT_MAX_TOKENS

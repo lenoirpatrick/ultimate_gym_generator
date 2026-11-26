@@ -250,3 +250,59 @@ def test_le_ping_d_une_adresse_muette_parle_de_passerelle_injoignable():
 
     assert result.ok is False
     assert "Passerelle injoignable" in result.message
+
+
+# --------------------------------------------------------------------------- #
+# Choix du modèle par menu déroulant
+# --------------------------------------------------------------------------- #
+
+
+@pytest.mark.django_db
+def test_le_modele_se_choisit_dans_un_menu_des_le_premier_affichage(staff_client):
+    """Catalogue fermé : rien à attendre du réseau ni d'une configuration enregistrée."""
+    content = staff_client.get(reverse("aiproviders:edit", args=["claude_gateway"])).content
+    content = " ".join(content.decode().split())
+
+    assert '<select name="default_model"' in content
+    for identifier in ("haiku", "sonnet", "opus"):
+        assert f'value="{identifier}"' in content
+    assert "Par défaut (sonnet)" in content
+    # Pas de chargement différé : la liste est déjà là.
+    assert reverse("aiproviders:models", args=["claude_gateway"]) not in content
+
+
+@pytest.mark.django_db
+def test_le_modele_enregistre_revient_preselectionne(staff_client):
+    ProviderCredential.objects.create(
+        provider="claude_gateway", secret=TOKEN, base_url=BASE_URL, default_model="haiku"
+    )
+
+    content = staff_client.get(reverse("aiproviders:edit", args=["claude_gateway"])).content
+    content = " ".join(content.decode().split())
+
+    assert '<option value="haiku" selected>' in content
+
+
+@pytest.mark.django_db
+def test_un_modele_hors_catalogue_est_refuse():
+    form = ProviderCredentialForm(
+        {"secret": TOKEN, "base_url": BASE_URL, "default_model": "gpt-5", "is_active": "on"},
+        spec=get_spec("claude_gateway"),
+    )
+
+    assert not form.is_valid()
+    assert "default_model" in form.errors
+
+
+@pytest.mark.django_db
+def test_le_choix_par_defaut_suit_le_modele_du_registre():
+    form = ProviderCredentialForm(
+        {"secret": TOKEN, "base_url": BASE_URL, "default_model": "", "is_active": "on"},
+        spec=get_spec("claude_gateway"),
+    )
+
+    assert form.is_valid()
+    credential = form.save(commit=False)
+    credential.provider = "claude_gateway"  # posé par la vue, comme à l'enregistrement
+    assert credential.default_model == ""
+    assert credential.effective_model == "sonnet"

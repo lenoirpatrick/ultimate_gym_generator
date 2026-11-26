@@ -31,10 +31,12 @@ class ProviderCredentialForm(forms.ModelForm):
             if spec.default_base_url
             else "Laisser vide pour l'URL officielle du fournisseur."
         )
+        if spec.fixed_models:
+            self.fields["default_model"] = self._fixed_model_field(spec)
         # Quand le fournisseur sait publier son catalogue, ce champ est remplacé
         # par un menu déroulant dès qu'une clé est enregistrée — l'aide annonce
         # donc ce qui attend l'utilisateur au prochain passage.
-        if spec.supports_model_listing and not (self.instance.pk and self.instance.is_configured):
+        elif spec.supports_model_listing and not (self.instance.pk and self.instance.is_configured):
             self.fields["default_model"].help_text = (
                 f"Laisser vide pour utiliser {spec.default_model}. "
                 "Une fois la configuration enregistrée, le modèle se choisira dans "
@@ -45,6 +47,20 @@ class ProviderCredentialForm(forms.ModelForm):
                 f"Laisser vide pour utiliser {spec.default_model}. "
                 "L'identifiant doit correspondre au catalogue actuel du fournisseur."
             )
+
+    @staticmethod
+    def _fixed_model_field(spec: ProviderSpec) -> forms.ChoiceField:
+        """Menu déroulant d'un catalogue fermé, « Par défaut » en tête.
+
+        Le choix vide est conservé tel quel en base : il suit le modèle par
+        défaut du registre si celui-ci change un jour.
+        """
+        return forms.ChoiceField(
+            label="Modèle par défaut",
+            choices=[("", f"Par défaut ({spec.default_model})"), *spec.fixed_models],
+            required=False,
+            help_text=f"« Par défaut » utilise {spec.default_model}.",
+        )
 
     def clean_secret(self) -> str:
         """Un champ vide conserve la clé existante plutôt que de l'effacer."""
