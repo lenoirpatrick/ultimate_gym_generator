@@ -978,6 +978,16 @@ def test_on_ne_supprime_pas_la_seance_d_un_autre(logged_client, staff_client, us
     assert Workout.objects.filter(pk=workout.pk).exists()
 
 
+def test_la_suppression_hors_htmx_redirige_vers_la_liste(logged_client, user):
+    composer(logged_client)
+    workout = Workout.objects.get(user=user)
+
+    response = logged_client.post(reverse("workouts:delete", args=[workout.pk]))
+
+    assert response.status_code == 302
+    assert response.url == reverse("workouts:list")
+
+
 # --------------------------------------------------------------------------- #
 # Rappel d'un exercice (issue #30)
 # --------------------------------------------------------------------------- #
@@ -1815,3 +1825,67 @@ def test_la_timeline_du_minuteur_porte_un_id_par_ligne(logged_client, user):
 
     for ligne in workout.items.all():
         assert f'id="minuteur-consignes-{ligne.pk}"' in content
+
+
+# --------------------------------------------------------------------------- #
+# Suppression depuis la liste (issue #167)
+# --------------------------------------------------------------------------- #
+
+
+def _supprimer_depuis_liste(client, workout: Workout, **criteres) -> str:
+    response = client.post(
+        reverse("workouts:delete", args=[workout.pk]), criteres, HTTP_HX_REQUEST="true"
+    )
+    assert response.status_code == 200
+    return response.content.decode()
+
+
+def test_chaque_carte_propose_la_suppression(logged_client, seances):
+    content = _liste(logged_client)
+
+    for workout in seances:
+        assert reverse("workouts:delete", args=[workout.pk]) in content
+    assert 'hx-include="#filtre-seances"' in content
+    assert 'id="filtre-seances"' in content
+    assert "hx-confirm=" in content
+
+
+def test_supprimer_depuis_la_liste_rend_la_liste_sans_la_seance(logged_client, seances):
+    bras, jambes = seances
+
+    content = _supprimer_depuis_liste(logged_client, bras)
+
+    assert not Workout.objects.filter(pk=bras.pk).exists()
+    assert not _present(content, bras)
+    assert _present(content, jambes)
+    assert "Séance « Pompes du matin » supprimée." in content
+    # Le fragment seul, pas la page entière.
+    assert "<html" not in content
+
+
+def test_supprimer_depuis_la_liste_garde_les_criteres_courants(logged_client, seances_de_durees):
+    courte, longue, moyenne = seances_de_durees
+
+    content = _supprimer_depuis_liste(logged_client, courte, duree="longue")
+
+    assert _present(content, longue)
+    assert not _present(content, moyenne)
+
+
+def test_supprimer_la_derniere_seance_affiche_l_etat_vide(logged_client, user):
+    workout = Workout.objects.create(user=user, format=Workout.Format.CIRCUIT, duration_minutes=20)
+
+    content = _supprimer_depuis_liste(logged_client, workout)
+
+    assert "Aucune séance" in content
+    assert "supprimée." in content
+
+
+def test_supprimer_depuis_la_liste_n_affiche_pas_de_message_au_chargement_suivant(
+    logged_client, seances
+):
+    bras, _jambes = seances
+
+    _supprimer_depuis_liste(logged_client, bras)
+
+    assert "Séance supprimée." not in _liste(logged_client)

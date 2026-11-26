@@ -467,6 +467,18 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
   `workout.equipment_labels` (pour la recherche) sont posés par
   `workouts.views._annotate_equipment` — une requête pour tout l'historique plutôt
   qu'une par séance, même mécanique que `_annotate_favorites`.
+- Une séance se **supprime depuis sa carte** d'historique (issue #167), pas seulement
+  depuis son écran de détail : bouton « Supprimer » (`.ugg-btn--danger`, toujours
+  labellisé, `aria-label` nommant la séance) en bout de la ligne favori/durée
+  (`ml-auto`), confirmé par `hx-confirm` — l'action est définitive, contrairement à
+  « Changer l'exercice ». Même patron que la suppression d'une activité Apple Santé :
+  `hx-include="#filtre-seances"` fait voyager recherche, zones, durées, tri et favoris
+  dans le POST, et `workouts.views.workout_delete` rend le même fragment que le filtrage
+  (`workouts.views._list_context`, une seule logique pour les deux) — la liste reste
+  celle sur laquelle on travaillait. Un message de succès nommant la séance s'affiche en
+  tête des résultats (`.ugg-alert--success`, annoncé par la zone `aria-live`) ; la
+  dernière séance supprimée laisse place à l'état vide habituel. Hors HTMX (écran de
+  détail), la vue redirige vers la liste avec un message flash, comme avant.
 - L'**historique** se filtre par **recherche texte** (`.ugg-search`, champ `q`, issue
   #116 — nom, format, muscles et matériel, sans casse) et par **zones rapides**
   Bras / Jambes / Dos / Abdos (`exercises.catalog.QUICK_ZONES`, puces
