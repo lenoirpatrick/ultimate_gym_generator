@@ -17,6 +17,7 @@ from pathlib import Path
 
 from django.conf import settings
 from django.db import transaction
+from django.db.models import QuerySet
 
 from . import translation
 from .models import Exercise, Muscle
@@ -464,3 +465,45 @@ def import_all(translate: bool = False) -> int:
     while offset < total:
         offset = import_batch(offset, translate=translate)
     return total
+
+
+# --------------------------------------------------------------------------- #
+# Traduction en masse, fiche par fiche (issue #152)
+# --------------------------------------------------------------------------- #
+
+
+@dataclass(frozen=True)
+class TranslationStep:
+    """Issue de la traduction d'une fiche dans la traduction en masse."""
+
+    #: Fiche traitée, `None` quand il ne restait plus rien à traduire.
+    exercise: Exercise | None
+    #: Cause de l'échec, `None` si la fiche est traduite.
+    error: str | None = None
+
+
+def untranslated() -> QuerySet[Exercise]:
+    """Fiches qui ont des consignes sans traduction, dans un ordre stable."""
+    return Exercise.objects.exclude(instructions=[]).filter(instructions_fr=[]).order_by("pk")
+
+
+def translate_next(after_pk: int) -> TranslationStep:
+    """Traduit la première fiche non traduite dont la clé suit `after_pk`.
+
+    Une fiche par appel : avec un fournisseur lent (Claude Gateway, jusqu'à
+    180 s par appel, un seul à la fois), un lot de plusieurs fiches dépasserait
+    le délai de n'importe quelle requête HTTP. Avancer par clé plutôt que de
+    reprendre la première fiche non traduite évite de retomber indéfiniment
+    sur une fiche en échec.
+    """
+    exercise = untranslated().filter(pk__gt=after_pk).first()
+    if exercise is None:
+        return TranslationStep(exercise=None)
+
+    try:
+        exercise.instructions_fr = translation.translate_or_raise(exercise.instructions)
+    except translation.TranslationError as exc:
+        return TranslationStep(exercise=exercise, error=str(exc))
+
+    exercise.save(update_fields=["instructions_fr"])
+    return TranslationStep(exercise=exercise)

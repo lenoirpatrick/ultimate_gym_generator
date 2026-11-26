@@ -29,6 +29,10 @@ SYSTEM_PROMPT = (
 )
 
 
+class TranslationError(Exception):
+    """Traduction impossible, avec un message affichable tel quel."""
+
+
 def translate_instructions(instructions: list[str]) -> list[str] | None:
     """Traduit une liste de consignes, ou `None` si la traduction est indisponible.
 
@@ -39,17 +43,32 @@ def translate_instructions(instructions: list[str]) -> list[str] | None:
     if not instructions:
         return None
 
+    try:
+        return translate_or_raise(instructions)
+    except TranslationError:
+        logger.warning("Traduction des consignes indisponible", exc_info=True)
+        return None
+
+
+def translate_or_raise(instructions: list[str]) -> list[str]:
+    """Traduit une liste de consignes, ou lève `TranslationError` en disant pourquoi.
+
+    Pour la traduction en masse (issue #152), qui affiche la cause d'un échec
+    et s'arrête quand les échecs s'enchaînent, plutôt que de les taire.
+    """
+    if not instructions:
+        raise TranslationError("Aucune consigne à traduire.")
+
     client = get_active_client()
     if client is None:
-        return None
+        raise TranslationError("Aucun fournisseur IA actif.")
 
     prompt = json.dumps(instructions, ensure_ascii=False)
 
     try:
         raw = client.generate(prompt, system=SYSTEM_PROMPT, max_tokens=MAX_TOKENS).strip()
-    except ProviderError:
-        logger.warning("Traduction des consignes indisponible", exc_info=True)
-        return None
+    except ProviderError as exc:
+        raise TranslationError(str(exc)) from exc
 
     return _parse(_strip_code_fence(raw), expected=len(instructions))
 
@@ -67,12 +86,12 @@ def _strip_code_fence(text: str) -> str:
     return "\n".join(lines).strip()
 
 
-def _parse(raw: str, *, expected: int) -> list[str] | None:
+def _parse(raw: str, *, expected: int) -> list[str]:
     try:
         translated = json.loads(raw)
-    except json.JSONDecodeError:
+    except json.JSONDecodeError as exc:
         logger.warning("Réponse de traduction illisible : %r", raw[:200])
-        return None
+        raise TranslationError("Réponse du fournisseur illisible (JSON attendu).") from exc
 
     valide = (
         isinstance(translated, list)
@@ -81,6 +100,8 @@ def _parse(raw: str, *, expected: int) -> list[str] | None:
     )
     if not valide:
         logger.warning("Réponse de traduction incohérente : %r", raw[:200])
-        return None
+        raise TranslationError(
+            "Réponse du fournisseur incohérente : le nombre de consignes ne correspond pas."
+        )
 
     return translated

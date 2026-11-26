@@ -874,6 +874,22 @@ seule fois. Aucune valeur graphique en dur ailleurs dans le code.
 - Une fiche déjà traduite n'est jamais renvoyée au fournisseur : seules celles qui n'ont
   pas encore de `instructions_fr` sont soumises, pour qu'un rechargement répété reste bon
   marché.
+- La traduction en masse se fait **fiche par fiche** (issue #152), jamais dans les lots
+  de 75 du rechargement : avec Claude Gateway (jusqu'à 180 s par appel, un seul à la
+  fois), un lot dépasserait le délai de n'importe quelle requête. Le rechargement
+  synchronise d'abord tout le référentiel sans appel IA, puis
+  `exercises/partials/translation_progress.html` prend le relais : une requête HTMX par
+  fiche (`exercises.views.translate_batch`), la suivante ne partant qu'à l'arrivée de la
+  réponse — jamais deux appels en parallèle. Barre de progression bornée par le nombre
+  de fiches à traduire au départ (`catalog.untranslated()`), chiffrée en clair
+  (`12 / 340 fiches`), avec la dernière fiche traitée et le nombre d'échecs. Le bandeau
+  d'avertissement annonce ce nombre avant le lancement. L'avancement voyage dans
+  `hx-vals` (comme la position du rechargement), et la progression avance **par clé**
+  (`after`) : une fiche en échec reste en anglais et n'est pas retentée en boucle.
+  Après **trois échecs d'affilée** (`MAX_CONSECUTIVE_FAILURES`), la traduction
+  s'interrompt et affiche la cause (`translation.translate_or_raise`) avec un bouton
+  « Reprendre la traduction », pour ne pas échouer en série sur des centaines de fiches
+  quand la passerelle est éteinte ou le jeton refusé.
 - Les illustrations sont vendorées dans le dépôt (`src/exercises/<id>/*.jpg`, licence
   Unlicense) et copiées vers le stockage média (`/media/exercises/…`) au chargement,
   jamais vers les statiques : le manifeste `collectstatic` est figé à la dernière
