@@ -67,26 +67,57 @@ class ClaudeGatewayClient(HttpBaseClient):
         if health.is_error:
             return PingResult(False, self._describe_status(health))
 
-        # Corps vide : la passerelle vérifie le jeton avant le contenu, donc un
-        # 400 « prompt manquant » prouve que le jeton passe — sans lancer
-        # Claude Code ni consommer quoi que ce soit.
+        # `/v1/models` est authentifiée et ne lance pas Claude Code : elle
+        # vérifie le jeton sans rien consommer (issue #156).
         try:
-            probe = self._request(
-                "POST", "/v1/generate", headers=self._headers(), json={}, timeout=PING_TIMEOUT
+            models = self._fetch_models()
+        except ProviderError as exc:
+            return PingResult(False, str(exc))
+
+        current = next((model for model in models if model.get("id") == self.model), None)
+        if current is None:
+            return PingResult(
+                False,
+                f"Jeton valide, mais la passerelle ne propose pas le modèle « {self.model} ». "
+                "Choisis-en un autre dans la configuration.",
             )
-        except httpx.HTTPError as exc:
-            return PingResult(False, self._describe_http_error(exc))
-        if probe.status_code not in (200, 400):
-            return PingResult(False, self._describe_status(probe))
 
         version = _json(health).get("claude") or "Claude Code"
-        return PingResult(True, f"Connexion établie — {version}, modèle {self.model}.")
+        resolved = f" ({current['resolved']})" if current.get("resolved") else ""
+        return PingResult(True, f"Connexion établie — {version}, modèle {self.model}{resolved}.")
 
     def list_models(self) -> list[ModelOption]:
-        return [
-            ModelOption(identifier, label)
-            for identifier, label in self.credential.spec.fixed_models
-        ]
+        """Alias acceptés par la passerelle, avec le modèle réel qu'ils désignent."""
+        options = []
+        for model in self._fetch_models():
+            identifier = model.get("id")
+            if not isinstance(identifier, str) or not identifier:
+                continue
+            label = f"Claude {identifier.capitalize()}"
+            if model.get("resolved"):
+                label = f"{label} — {model['resolved']}"
+            options.append(ModelOption(identifier, label))
+        return options
+
+    def _fetch_models(self) -> list[dict]:
+        try:
+            response = self._request(
+                "GET", "/v1/models", headers=self._headers(), timeout=PING_TIMEOUT
+            )
+        except httpx.HTTPError as exc:
+            raise ProviderError(self._describe_http_error(exc)) from exc
+        if response.status_code == 404:
+            raise ProviderError(
+                "Cette passerelle ne publie pas ses modèles (route /v1/models absente) : "
+                "mets-la à jour."
+            )
+        if response.is_error:
+            raise ProviderError(self._describe_status(response))
+
+        models = _json(response).get("models")
+        if not isinstance(models, list):
+            raise ProviderError("La passerelle a renvoyé une liste de modèles illisible.")
+        return [model for model in models if isinstance(model, dict)]
 
     def generate(
         self, prompt: str, *, system: str | None = None, max_tokens: int = DEFAULT_MAX_TOKENS
